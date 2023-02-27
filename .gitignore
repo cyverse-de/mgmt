@@ -1,0 +1,9 @@
+# See https://github.com/github/gitignore/blob/main/Rust.gitignore
+
+target/
+debug/
+builds/
+
+**/*.rs.bk
+
+*.pdb

@@ -1,0 +1,12 @@
+[package]
+name = "mgmt"
+version = "0.1.0"
+edition = "2021"
+description = "Deploys microservices for the Discovery Environment."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.69"
+clap = { version = "4.1.6", features = ["derive"] }
+which = "4.4.0"
