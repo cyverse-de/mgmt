@@ -1,10 +1,6 @@
-mod app;
-mod cli;
-mod configs;
-mod git;
-
-use crate::cli::Cli;
 use clap::Parser;
+use mgmt::app;
+use mgmt::cli::Cli;
 use which::which;
 
 fn main() {

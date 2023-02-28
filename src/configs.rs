@@ -1,15 +1,30 @@
+//! # configs
+//!
+//! Contains the functions needed for loading configs and secrets in mgmt.
+
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+/// Get the config directory for the given environment.
+///
+/// # Arguments
+/// * `env` - A string slice containing the name of the environment.
+///
+/// # Examples
+///
+/// ```
+/// let env = "prod";
+/// let result = mgmt::configs::dir(env).unwrap();
+///
+/// assert_eq!(result, "resources/configs/prod");
+/// ```
 pub fn dir(env: &str) -> Result<String> {
     Ok(String::from(
         Path::new("resources")
             .join("configs")
             .join(env)
-            .canonicalize()
-            .context("failed to get abs path to the config dir")?
             .to_str()
             .context(format!("failed to get the configs dir for env {}", env))?,
     ))
@@ -20,8 +35,6 @@ pub fn secrets_dir(env: &str) -> Result<String> {
         Path::new("resources")
             .join("secrets")
             .join(env)
-            .canonicalize()
-            .context("failed to get absolute path to secrets dir")?
             .to_str()
             .context(format!("failed to get secrets dir for env {}", env))?,
     ))
@@ -38,8 +51,15 @@ fn values_path(env: &str) -> Result<String> {
 }
 
 fn generate(env: &str) -> Result<bool> {
-    let cfg_dir = dir(env)?;
-    let config_values_file = values_path(env)?;
+    let dir_buf = fs::canonicalize(dir(env)?)?;
+    let cfg_dir = dir_buf
+        .to_str()
+        .context("failed to get the absolute path to the configs dir")?;
+
+    let cv_buf = fs::canonicalize(values_path(env)?)?;
+    let config_values_file = cv_buf
+        .to_str()
+        .context("failed to get the absolute path to the config_values directory")?;
 
     Ok(Command::new("gomplate")
         .args(["--input-dir", "templates/configs"])
