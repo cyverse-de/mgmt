@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use clap::{ArgGroup, Parser};
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::{Command, Stdio};
 use std::{fs, io, str};
 use which::which;
 
@@ -118,6 +118,36 @@ impl State {
         }
     }
 
+    fn configs_dir(&self) -> Result<String> {
+        Ok(String::from(
+            Path::new("resources")
+                .join("configs")
+                .join(&self.environment)
+                .canonicalize()
+                .context("failed to get absolute path to the configs dir")?
+                .to_str()
+                .context(format!(
+                    "failed to get config dir for env {}",
+                    &self.environment
+                ))?,
+        ))
+    }
+
+    fn secrets_dir(&self) -> Result<String> {
+        Ok(String::from(
+            Path::new("resources")
+                .join("secrets")
+                .join(&self.environment)
+                .canonicalize()
+                .context("failed to get absolute path to secrets dir")?
+                .to_str()
+                .context(format!(
+                    "failed to get secrets dir for env {}",
+                    &self.environment
+                ))?,
+        ))
+    }
+
     fn repo_path(&self, repo: &str) -> Result<String> {
         Ok(String::from(
             Path::new(&self.repos_path)
@@ -138,6 +168,80 @@ impl State {
         ))
     }
 
+    fn load_configs(&self) -> Result<bool> {
+        let cfg_dir = self.configs_dir()?;
+        let dry_run = Command::new("kubectl")
+            .args(["-n", &self.namespace])
+            .arg("create")
+            .arg("secret")
+            .arg("generic")
+            .arg("service-configs")
+            .args(["--from-file", &cfg_dir])
+            .arg("--dry-run")
+            .args(["-o", "yaml"])
+            .stdout(Stdio::piped())
+            .spawn()
+            .context("failed to run dry run command in load_configs()")?;
+        let load_cmd = Command::new("kubectl")
+            .args(["-n", &self.namespace])
+            .arg("apply")
+            .args(["-f", "-"])
+            .stdin(Stdio::from(dry_run.stdout.context("error getting stdout")?))
+            .status()
+            .context("unable to load configs")?
+            .success();
+        Ok(load_cmd)
+    }
+
+    fn load_resource(&self, resource_file_path: &str) -> Result<bool> {
+        let abs_path = Path::new(resource_file_path).canonicalize()?;
+        let rfp = abs_path.to_str().context("couldn't get path string")?;
+        let cmd = Command::new("kubectl")
+            .args(["-n", &self.namespace])
+            .arg("apply")
+            .args(["-f", rfp])
+            .status()
+            .context(format!("unable to load {}", rfp))?
+            .success();
+        Ok(cmd)
+    }
+
+    fn load_resource_type(&self, resource_type: &str) -> Result<bool> {
+        let abs_path = Path::new(resource_type)
+            .join(resource_type)
+            .join(format!("{}.yml", &self.environment))
+            .canonicalize()?;
+        let file_resource = abs_path.to_str().context("couldn't get path string")?;
+        self.load_resource(file_resource)
+    }
+
+    fn load_secrets(&self) -> Result<bool> {
+        let s_dir = self.secrets_dir()?;
+
+        let s_files: Vec<String> = fs::read_dir(s_dir)?
+            .into_iter()
+            .flat_map(|entry| entry.ok())
+            .filter_map(|entry| {
+                let m = entry.metadata().ok()?;
+                let buf = entry.path();
+                let p = buf.to_str()?;
+                if m.is_file() {
+                    Some(String::from(p))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let result = s_files
+            .iter()
+            .map(|s_file| self.load_resource(s_file).unwrap_or_else(|_| false))
+            .reduce(|acc, v| acc && v)
+            .context("failed to get result of loading secrets")?;
+
+        Ok(result)
+    }
+
     fn build_project(&self, project: &str) -> Result<bool> {
         let submodule_path = self.repo_path(project)?;
         let build_file = self.build_file_path(project)?;
@@ -151,6 +255,24 @@ impl State {
             .arg("build")
             .args(["--namespace", &self.namespace])
             .args(["--file-output", &build_file])
+            .status()?
+            .success())
+    }
+
+    fn deploy_project(&self, project: &str) -> Result<bool> {
+        let submodule_path = self.repo_path(project)?;
+        let build_path = self.build_file_path(project)?;
+
+        if !Path::new(&submodule_path).exists() {
+            return Err(anyhow!("missing submodule path {}", submodule_path));
+        };
+
+        Ok(Command::new("skaffold")
+            .current_dir(submodule_path)
+            .arg("deploy")
+            .args(["--namespace", &self.namespace])
+            .args(["--build-artifacts", &build_path])
+            .arg("--force")
             .status()?
             .success())
     }
@@ -171,6 +293,97 @@ impl State {
         println!("done building the {} project", project);
 
         build_result
+    }
+
+    fn do_shared_deployment_steps(&self) -> Result<bool> {
+        println!("loading configs into namespace {}", self.namespace);
+        self.load_configs()?;
+        println!("done loading configs into namespace {}", self.namespace);
+
+        println!("loading ingresses");
+        self.load_resource_type("ingresses")?;
+        println!("done loading ingresses");
+
+        println!("loading secrets");
+        self.load_secrets()?;
+        println!("done loading secrets");
+
+        println!("loading services");
+        let result = self.load_resource_type("services");
+        println!("done loading services");
+
+        result
+    }
+
+    fn do_deployment(&self, project: &str, shared: bool) -> Result<bool> {
+        if shared {
+            self.do_shared_deployment_steps()?;
+        }
+        println!("fetch the submodules");
+        fetch_submodule(&self.repo_path(project)?)?;
+        println!("done fetch the submodules");
+
+        println!("deploying the project");
+        let result = self.deploy_project(project);
+        println!("done deploying the project");
+
+        result
+    }
+
+    fn check_in_changes(&self, project: &str) -> Result<bool> {
+        let submodule_path = self.repo_path(project)?;
+
+        git_add(&submodule_path)?;
+        git_add("builds")?;
+        if staged_changes()? {
+            let msg = format!("update builds for the {} project", &project);
+            git_commit(&msg)?;
+        };
+
+        Ok(true)
+    }
+
+    fn process(&self) -> Result<bool> {
+        let is_shared = self.projects.len() > 1;
+        if is_shared {
+            let shared_complete = self
+                .do_shared_deployment_steps()
+                .context("failed to do shared deployment steps")?;
+            if !shared_complete {
+                return Err(anyhow!(
+                    "invalid status returned from shared deployment steps"
+                ));
+            }
+        }
+        for project in self.projects.iter() {
+            if self.do_build {
+                if self.do_build(&project).context("do_build failed")? {
+                    return Err(anyhow!("non-zero status returned from build steps"));
+                };
+            }
+            if self.do_deploy {
+                if self
+                    .do_deployment(&project, is_shared)
+                    .context("do_deployment failed")?
+                {
+                    return Err(anyhow!("non-zero status returned from deployment steps"));
+                };
+            }
+            if self.do_build && self.do_check_in {
+                if self
+                    .check_in_changes(&project)
+                    .context("check_in_changes failed")?
+                {
+                    return Err(anyhow!("non-zero status returned from checking in changes"));
+                };
+            }
+        }
+
+        if self.clean {
+            println!("clean not yet implemented");
+        }
+
+        Ok(true)
     }
 }
 
@@ -195,15 +408,23 @@ fn get_projects_from_build_dir(builds_path: &str) -> Result<Vec<String>> {
     Ok(projects)
 }
 
-fn git_add(path: &str) -> Result<ExitStatus> {
-    Ok(Command::new("git").args(["add", "--all", path]).status()?)
+fn git_add(path: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["add", "--all", path])
+        .status()
+        .context("git add failed")?
+        .success())
 }
 
-fn git_commit(msg: &str) -> Result<ExitStatus> {
-    Ok(Command::new("git").args(["commit", "-m", msg]).status()?)
+fn git_commit(msg: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["commit", "-m", msg])
+        .status()
+        .context("git commit failed")?
+        .success())
 }
 
-fn fetch_submodule(submodule_path: &str) -> Result<ExitStatus> {
+fn fetch_submodule(submodule_path: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args([
             "submodule",
@@ -213,12 +434,18 @@ fn fetch_submodule(submodule_path: &str) -> Result<ExitStatus> {
             "--recursive",
             submodule_path,
         ])
-        .status()?)
+        .status()
+        .context("error fetching submodule")?
+        .success())
 }
 
-fn update_submodule(submodule_path: &str) -> Result<ExitStatus> {
+fn update_submodule(submodule_path: &str) -> Result<bool> {
     fetch_submodule(submodule_path)?;
-    Ok(Command::new("git").args(["add", submodule_path]).status()?)
+    Ok(Command::new("git")
+        .args(["add", submodule_path])
+        .status()
+        .context("error updating submodule")?
+        .success())
 }
 
 fn staged_changes() -> Result<bool> {
@@ -318,6 +545,7 @@ fn main() {
     println!("git path is {}", git_path.display());
 
     let state = State::from(cli);
+
     println!("projects: {:?}", state.projects);
     println!("namespace: {}", state.namespace);
     println!("environment: {}", state.environment);
@@ -327,4 +555,16 @@ fn main() {
     println!("do_build: {}", state.do_build);
     println!("do_deploy: {}", state.do_deploy);
     println!("clean: {}", state.clean);
+
+    match state.process() {
+        Ok(status) => {
+            if !status {
+                println!("failed to deploy");
+                return;
+            }
+        }
+        Err(e) => {
+            println!("{}", e);
+        }
+    }
 }
