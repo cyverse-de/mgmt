@@ -9,8 +9,11 @@ use std::process::Command;
 
 /// Get the config directory for the given environment.
 ///
-/// # Arguments
+/// # Parameters
 /// * `env` - A string slice containing the name of the environment.
+///
+/// # Returns
+/// * `anyhow::Result<String>` - An anyhow::Result wrapping a String containing the path.
 ///
 /// # Examples
 ///
@@ -30,6 +33,21 @@ pub fn dir(env: &str) -> Result<String> {
     ))
 }
 
+/// Get the secrets directory for the given environment.
+///
+/// # Parameters
+/// * `env` - A string slice containing the name of the environment.
+///
+/// # Returns
+/// * `anyhow::Result<String>` - An anyhow::Result wrapping a String containing the path.
+///
+/// # Examples
+/// ```
+/// let env = "prod";
+/// let result = mgmt::configs::secrets_dir(env).unwrap();
+///
+/// assert_eq!(result, "resources/secrets/prod");
+/// ```
 pub fn secrets_dir(env: &str) -> Result<String> {
     Ok(String::from(
         Path::new("resources")
@@ -40,11 +58,26 @@ pub fn secrets_dir(env: &str) -> Result<String> {
     ))
 }
 
+/// Get the path to the directory containing configuration values.
+///
+/// # Parameters
+/// * `env` - A string slice containing the name of the environment.
+///
+/// # Returns
+/// * `anyhow::Result<String>` - An anyhow::Result containing the relative path to the directory.
+///
+/// # Examples
+///
+/// ```ignore
+/// let env = "prod";
+/// let result = values_path(env).unwrap();
+///
+/// assert_eq!(result, "config_values/prod.yaml")
+/// ```
 fn values_path(env: &str) -> Result<String> {
     Ok(String::from(
         Path::new("config_values")
             .join(format!("{}.yaml", env))
-            .canonicalize()?
             .to_str()
             .context("failed to create path to env config_values file")?,
     ))
@@ -87,6 +120,17 @@ fn list_envs() -> Result<Vec<String>> {
     Ok(envs)
 }
 
+/// Renders all of the configuration files.
+///
+/// # Returns
+/// * `anyhow::Result<bool>` - An anyhow::Result containing a boolean indicating whether the operation succeeded.
+///
+/// # Examples
+/// ```no_run
+/// let generation_succeeded = mgmt::configs::generate_all().unwrap();
+///
+/// assert!(generation_succeeded);
+/// ```
 pub fn generate_all() -> Result<bool> {
     let mut success: bool = false;
     let envs = list_envs()?;
