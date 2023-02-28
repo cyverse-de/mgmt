@@ -1,8 +1,11 @@
+mod configs;
+mod git;
+
 use anyhow::{anyhow, Context, Result};
 use clap::{ArgGroup, Parser};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::{fs, io, str};
+use std::{fs, str};
 use which::which;
 
 #[derive(Parser)]
@@ -118,36 +121,6 @@ impl State {
         }
     }
 
-    fn configs_dir(&self) -> Result<String> {
-        Ok(String::from(
-            Path::new("resources")
-                .join("configs")
-                .join(&self.environment)
-                .canonicalize()
-                .context("failed to get absolute path to the configs dir")?
-                .to_str()
-                .context(format!(
-                    "failed to get config dir for env {}",
-                    &self.environment
-                ))?,
-        ))
-    }
-
-    fn secrets_dir(&self) -> Result<String> {
-        Ok(String::from(
-            Path::new("resources")
-                .join("secrets")
-                .join(&self.environment)
-                .canonicalize()
-                .context("failed to get absolute path to secrets dir")?
-                .to_str()
-                .context(format!(
-                    "failed to get secrets dir for env {}",
-                    &self.environment
-                ))?,
-        ))
-    }
-
     fn repo_path(&self, repo: &str) -> Result<String> {
         Ok(String::from(
             Path::new(&self.repos_path)
@@ -169,7 +142,7 @@ impl State {
     }
 
     fn load_configs(&self) -> Result<bool> {
-        let cfg_dir = self.configs_dir()?;
+        let cfg_dir = configs::dir(&self.environment)?;
         let dry_run = Command::new("kubectl")
             .args(["-n", &self.namespace])
             .arg("create")
@@ -216,7 +189,7 @@ impl State {
     }
 
     fn load_secrets(&self) -> Result<bool> {
-        let s_dir = self.secrets_dir()?;
+        let s_dir = configs::secrets_dir(&self.environment)?;
 
         let s_files: Vec<String> = fs::read_dir(s_dir)?
             .into_iter()
@@ -281,11 +254,11 @@ impl State {
         let submodule_path = self.repo_path(project)?;
 
         println!("generating configs");
-        generate_all_configs()?;
+        configs::generate_all()?;
         println!("done generating configs");
 
         println!("updating the submodules");
-        update_submodule(&submodule_path).context("error updating submodule")?;
+        git::update_submodule(&submodule_path).context("error updating submodule")?;
         println!("done updating the submodules");
 
         println!("printing the {} project", project);
@@ -320,7 +293,7 @@ impl State {
             self.do_shared_deployment_steps()?;
         }
         println!("fetch the submodules");
-        fetch_submodule(&self.repo_path(project)?)?;
+        git::fetch_submodule(&self.repo_path(project)?)?;
         println!("done fetch the submodules");
 
         println!("deploying the project");
@@ -328,19 +301,6 @@ impl State {
         println!("done deploying the project");
 
         result
-    }
-
-    fn check_in_changes(&self, project: &str) -> Result<bool> {
-        let submodule_path = self.repo_path(project)?;
-
-        git_add(&submodule_path)?;
-        git_add("builds")?;
-        if staged_changes()? {
-            let msg = format!("update builds for the {} project", &project);
-            git_commit(&msg)?;
-        };
-
-        Ok(true)
     }
 
     fn process(&self) -> Result<bool> {
@@ -356,6 +316,8 @@ impl State {
             }
         }
         for project in self.projects.iter() {
+            let project_path = self.repo_path(project)?;
+
             if self.do_build {
                 if self.do_build(&project).context("do_build failed")? {
                     return Err(anyhow!("non-zero status returned from build steps"));
@@ -370,10 +332,7 @@ impl State {
                 };
             }
             if self.do_build && self.do_check_in {
-                if self
-                    .check_in_changes(&project)
-                    .context("check_in_changes failed")?
-                {
+                if git::check_in_changes(&project_path).context("check_in_changes failed")? {
                     return Err(anyhow!("non-zero status returned from checking in changes"));
                 };
             }
@@ -406,120 +365,6 @@ fn get_projects_from_build_dir(builds_path: &str) -> Result<Vec<String>> {
         .collect();
 
     Ok(projects)
-}
-
-fn git_add(path: &str) -> Result<bool> {
-    Ok(Command::new("git")
-        .args(["add", "--all", path])
-        .status()
-        .context("git add failed")?
-        .success())
-}
-
-fn git_commit(msg: &str) -> Result<bool> {
-    Ok(Command::new("git")
-        .args(["commit", "-m", msg])
-        .status()
-        .context("git commit failed")?
-        .success())
-}
-
-fn fetch_submodule(submodule_path: &str) -> Result<bool> {
-    Ok(Command::new("git")
-        .args([
-            "submodule",
-            "update",
-            "--remote",
-            "--init",
-            "--recursive",
-            submodule_path,
-        ])
-        .status()
-        .context("error fetching submodule")?
-        .success())
-}
-
-fn update_submodule(submodule_path: &str) -> Result<bool> {
-    fetch_submodule(submodule_path)?;
-    Ok(Command::new("git")
-        .args(["add", submodule_path])
-        .status()
-        .context("error updating submodule")?
-        .success())
-}
-
-fn staged_changes() -> Result<bool> {
-    let output = Command::new("git").arg("status").output()?;
-
-    let found = String::from_utf8(output.stdout)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
-        .contains("nothing to commit");
-
-    Ok(found)
-}
-
-fn config_dir(env: &str) -> Result<String> {
-    Ok(String::from(
-        Path::new("resources")
-            .join("configs")
-            .join(env)
-            .canonicalize()?
-            .to_str()
-            .context("no env config dir")?,
-    ))
-}
-
-fn config_values_path(env: &str) -> Result<String> {
-    Ok(String::from(
-        Path::new("config_values")
-            .join(format!("{}.yaml", env))
-            .canonicalize()?
-            .to_str()
-            .context("failed to create path to env config_values file")?,
-    ))
-}
-
-fn list_envs() -> Result<Vec<String>> {
-    let envs = fs::read_dir("config_values")?
-        .into_iter()
-        .flat_map(|r| r.ok())
-        .filter_map(|entry| {
-            let m = entry.metadata().ok()?;
-            let p = entry.path();
-            let ext = p.extension()?.to_str()?;
-            if m.is_file() && (ext == "yaml" || ext == "yml") {
-                Some(String::from(entry.file_name().to_str()?.strip_suffix(ext)?))
-            } else {
-                None
-            }
-        })
-        .collect();
-    Ok(envs)
-}
-
-fn generate_configs(env: &str) -> Result<bool> {
-    let cfg_dir = config_dir(env)?;
-    let config_values_file = config_values_path(env)?;
-
-    Ok(Command::new("gomplate")
-        .args(["--input-dir", "templates/configs"])
-        .args(["--output-dir", &cfg_dir])
-        .args(["-d", &format!("config={}", config_values_file)])
-        .status()?
-        .success())
-}
-
-fn generate_all_configs() -> Result<bool> {
-    let mut success: bool = false;
-    let envs = list_envs()?;
-    for env in envs.iter() {
-        let r = generate_configs(env)?;
-        success = success && r;
-        if !r {
-            println!("failed to generate configs for {}", &env)
-        }
-    }
-    Ok(success)
 }
 
 fn main() {
