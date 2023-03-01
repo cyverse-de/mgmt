@@ -18,6 +18,9 @@ fn commit(msg: &str) -> Result<bool> {
         .success())
 }
 
+/// Uses git to fetch a submodule from the remote repository.
+///
+///
 pub fn fetch_submodule(submodule_path: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args([

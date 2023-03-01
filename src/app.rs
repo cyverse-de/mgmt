@@ -42,6 +42,21 @@ impl App {
         }
     }
 
+    pub fn new() -> App {
+        let empty: Vec<String> = Vec::new();
+        App {
+            projects: empty,
+            namespace: String::from("default"),
+            environment: String::from("qa"),
+            repos_path: String::from("repos"),
+            builds_path: String::from("builds"),
+            do_build: false,
+            do_deploy: false,
+            do_check_in: false,
+            clean: false,
+        }
+    }
+
     pub fn print_fields(&self) {
         println!("projects: {:?}", self.projects);
         println!("namespace: {}", self.namespace);
@@ -74,9 +89,9 @@ impl App {
         ))
     }
 
-    fn load_configs(&self) -> Result<bool> {
-        let cfg_dir = configs::dir(&self.environment)?;
-        let dry_run = Command::new("kubectl")
+    fn dry_run_cmd(&self, cfg_dir: &str) -> Command {
+        let mut command: Command = Command::new("kubectl");
+        command
             .args(["-n", &self.namespace])
             .arg("create")
             .arg("secret")
@@ -84,18 +99,39 @@ impl App {
             .arg("service-configs")
             .args(["--from-file", &cfg_dir])
             .arg("--dry-run")
-            .args(["-o", "yaml"])
+            .args(["-o", "yaml"]);
+        command
+    }
+
+    fn load_cmd(&self) -> Command {
+        let mut command: Command = Command::new("kubectl");
+        command
+            .args(["-n", &self.namespace])
+            .arg("apply")
+            .args(["-f", "-"]);
+        command
+    }
+
+    fn load_configs(&self) -> Result<bool> {
+        let cfg_dir = configs::dir(&self.environment)?;
+
+        let mut dr = self.dry_run_cmd(&cfg_dir);
+        let mut load = self.load_cmd();
+
+        println!("running: {:#?}", dr);
+        println!("running: {:#?}", load);
+
+        let dry_run = dr
             .stdout(Stdio::piped())
             .spawn()
             .context("failed to run dry run command in load_configs()")?;
-        let load_cmd = Command::new("kubectl")
-            .args(["-n", &self.namespace])
-            .arg("apply")
-            .args(["-f", "-"])
+
+        let load_cmd = load
             .stdin(Stdio::from(dry_run.stdout.context("error getting stdout")?))
             .status()
             .context("unable to load configs")?
             .success();
+
         Ok(load_cmd)
     }
 
@@ -148,6 +184,16 @@ impl App {
         Ok(result)
     }
 
+    fn skaffold_build_cmd(&self, submodule_path: &str, build_path: &str) -> Command {
+        let mut command: Command = Command::new("skaffold");
+        command
+            .current_dir(submodule_path)
+            .arg("build")
+            .args(["--namespace", &self.namespace])
+            .args(["--file-output", &build_path]);
+        command
+    }
+
     fn build_project(&self, project: &str) -> Result<bool> {
         let submodule_path = self.repo_path(project)?;
         let build_file = self.build_file_path(project)?;
@@ -156,13 +202,22 @@ impl App {
             return Err(anyhow!("missing submodule path {}", submodule_path));
         };
 
-        Ok(Command::new("skaffold")
+        let mut build = self.skaffold_build_cmd(&submodule_path, &build_file);
+
+        println!("running: {:?}", build);
+
+        Ok(build.status()?.success())
+    }
+
+    fn skaffold_deploy_cmd(&self, build_path: &str, submodule_path: &str) -> Command {
+        let mut command: Command = Command::new("skaffold");
+        command
             .current_dir(submodule_path)
-            .arg("build")
+            .arg("deploy")
             .args(["--namespace", &self.namespace])
-            .args(["--file-output", &build_file])
-            .status()?
-            .success())
+            .args(["--build-artifacts", &build_path])
+            .arg("--force");
+        command
     }
 
     fn deploy_project(&self, project: &str) -> Result<bool> {
@@ -173,14 +228,11 @@ impl App {
             return Err(anyhow!("missing submodule path {}", submodule_path));
         };
 
-        Ok(Command::new("skaffold")
-            .current_dir(submodule_path)
-            .arg("deploy")
-            .args(["--namespace", &self.namespace])
-            .args(["--build-artifacts", &build_path])
-            .arg("--force")
-            .status()?
-            .success())
+        let mut deploy = self.skaffold_deploy_cmd(&build_path, &submodule_path);
+
+        println!("running: {:?}", deploy);
+
+        Ok(deploy.status()?.success())
     }
 
     fn do_build(&self, project: &str) -> Result<bool> {
@@ -298,4 +350,24 @@ fn get_projects_from_build_dir(builds_path: &str) -> Result<Vec<String>> {
         .collect();
 
     Ok(projects)
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let n = App::new();
+        assert!(!n.clean);
+        assert!(!n.do_check_in);
+        assert!(!n.do_build);
+        assert!(!n.do_deploy);
+        assert_eq!(n.builds_path, "builds");
+        assert_eq!(n.environment, "qa");
+        assert_eq!(n.namespace, "default");
+        let empty: Vec<String> = Vec::new();
+        assert!(n.projects == empty);
+    }
 }

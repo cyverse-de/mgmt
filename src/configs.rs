@@ -143,3 +143,15 @@ pub fn generate_all() -> Result<bool> {
     }
     Ok(success)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_values_path() {
+        let env = "prod";
+        let result = values_path(env).unwrap();
+        assert_eq!(result, "config_values/prod.yaml");
+    }
+}
