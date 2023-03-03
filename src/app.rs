@@ -290,6 +290,7 @@ impl App {
 
     pub fn process(&self) -> Result<bool> {
         let is_shared = self.projects.len() > 1;
+
         if is_shared {
             let shared_complete = self
                 .do_shared_deployment_steps()
@@ -300,6 +301,7 @@ impl App {
                 ));
             }
         }
+
         for project in self.projects.iter() {
             let project_path = self.repo_path(project)?;
 
@@ -308,6 +310,7 @@ impl App {
                     return Err(anyhow!("non-zero status returned from build steps"));
                 };
             }
+
             if self.do_deploy {
                 if self
                     .do_deployment(&project, is_shared)
@@ -316,6 +319,7 @@ impl App {
                     return Err(anyhow!("non-zero status returned from deployment steps"));
                 };
             }
+
             if self.do_build && self.do_check_in {
                 if git::check_in_changes(&project_path).context("check_in_changes failed")? {
                     return Err(anyhow!("non-zero status returned from checking in changes"));

@@ -9,7 +9,7 @@ fn main() {
     let skaffold_path = match which("skaffold") {
         Ok(path_buf) => path_buf,
         Err(e) => {
-            println!("{}", e);
+            println!("error finding skaffold: {}", e);
             return;
         }
     };
@@ -17,16 +17,24 @@ fn main() {
     let git_path = match which("git") {
         Ok(path_buf) => path_buf,
         Err(e) => {
-            println!("{}", e);
+            println!("error finding git: {}", e);
             return;
         }
     };
 
-    println!("skaffold path is {}", skaffold_path.display());
-    println!("git path is {}", git_path.display());
+    let kubectl_path = match which("kubectl") {
+        Ok(path_buf) => path_buf,
+        Err(e) => {
+            println!("error finding kubectl: {}", e);
+            return;
+        }
+    };
+
+    println!("skaffold path: {}", skaffold_path.display());
+    println!("git path: {}", git_path.display());
+    println!("kubectl path: {}", kubectl_path.display());
 
     let state = app::App::from(cli);
-    state.print_fields();
 
     match state.process() {
         Ok(status) => {

@@ -52,7 +52,7 @@ fn staged_changes() -> Result<bool> {
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
         .contains("nothing to commit");
 
-    Ok(found)
+    Ok(!found)
 }
 
 pub fn check_in_changes(project_path: &str) -> Result<bool> {
