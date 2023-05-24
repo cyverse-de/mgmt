@@ -544,7 +544,7 @@ pub struct PermanentId {
     data_cite: PermanentIdDataCite,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Unleash {
     #[serde(rename = "BaseURL")]
@@ -563,6 +563,17 @@ pub struct Unleash {
     maintenance_flag: String,
 }
 
+impl Default for Unleash {
+    fn default() -> Self {
+        Unleash {
+            base_url: String::from("http://unleash:4242"),
+            api_path: String::from("/api"),
+            maintenance_flag: String::from("DE-Maintenance"),
+            api_token: String::new(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct UserPortal {
@@ -571,7 +582,7 @@ pub struct UserPortal {
     base_uri: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceFileTransfers {
     #[garde(length(min = 1))]
@@ -581,6 +592,15 @@ pub struct ViceFileTransfers {
     tag: String,
 }
 
+impl Default for ViceFileTransfers {
+    fn default() -> Self {
+        ViceFileTransfers {
+            image: String::from("harbor.cyverse.org/de/vice-file-transfers"),
+            tag: String::from("latest"),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceDefaultBackend {
@@ -588,7 +608,7 @@ pub struct ViceDefaultBackend {
     loading_page_template_string: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Vice {
     #[serde(rename = "BaseURI")]
@@ -621,7 +641,39 @@ pub struct Vice {
     default_backend: ViceDefaultBackend,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Vice {
+    fn default() -> Self {
+        Vice {
+            base_uri: String::new(),
+            file_transfers: ViceFileTransfers::default(),
+            image_pull_secret: String::from("vice-image-pull-secret"),
+            image_cache: vec![
+                String::from("harbor.cyverse.org/de/vice-proxy:latest"),
+                String::from("harbor.cyverse.org/de/porklock:latest"),
+                String::from("harbor.cyverse.org/de/vice-file-transfers:latest"),
+                String::from("harbor.cyverse.org/vice/cli/bash:latest"),
+                String::from("harbor.cyverse.org/legacy/datahog:beta"),
+                String::from("harbor.cyverse.org/vice/jupyter/datascience:latest"),
+                String::from("harbor.cyverse.org/vice/jupyter/rstudio:latest"),
+                String::from("harbor.cyverse.org/vice/jupyter/geospatial:latest"),
+                String::from("harbor.cyverse.org/vice/rstudio/rstudio"),
+                String::from("harbor.cyverse.org/vice/rstudio/geospatial:latest"),
+                String::from("harbor.cyverse.org/vice/rstudio/verse:latest"),
+                String::from("harbor.cyverse.org/vice/rstudio/verse:latest"),
+                String::from("harbor.cyverse.org/vice/vscode:latest"),
+                String::from("harbor.cyverse.org/vice/xpra/qgis:20.04"),
+                String::from("harbor.cyverse.org/vice/rstudio/stan:latest"),
+            ],
+            use_csi_driver: true,
+            default_cas_url: String::from("https://auth.cyverse.org/cas5"),
+            default_cas_validate: String::from("validate"),
+            use_case_chars_min: 60,
+            default_backend: ViceDefaultBackend::default(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DatabaseConfig {
     #[garde(ascii, length(min = 3))]
@@ -640,7 +692,19 @@ pub struct DatabaseConfig {
     name: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        DatabaseConfig {
+            user: String::new(),
+            password: String::new(),
+            host: String::new(),
+            port: 5432,
+            name: String::new(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct QMSDatabaseConfig {
     #[garde(ascii, length(min = 3))]
@@ -665,7 +729,21 @@ pub struct QMSDatabaseConfig {
     reinitialize: bool,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for QMSDatabaseConfig {
+    fn default() -> Self {
+        QMSDatabaseConfig {
+            user: String::new(),
+            password: String::new(),
+            host: String::new(),
+            port: 5432,
+            name: String::from("qms"),
+            automigrate: false,
+            reinitialize: false,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Admin {
     #[garde(length(min = 1))]
@@ -674,7 +752,16 @@ pub struct Admin {
     attribute: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Admin {
+    fn default() -> Self {
+        Admin {
+            groups: String::from("core-service,tito-admins,tito-qa-admins,dev,staff"),
+            attribute: String::from("entitlement"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Analytics {
     #[garde(skip)]
@@ -684,7 +771,16 @@ pub struct Analytics {
     id: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Analytics {
+    fn default() -> Self {
+        Analytics {
+            enabled: false,
+            id: String::from("g-id"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Harbor {
     #[serde(rename = "URL")]
@@ -700,14 +796,30 @@ pub struct Harbor {
     project_qa_robot_secret: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Harbor {
+    fn default() -> Self {
+        Harbor {
+            url: String::from("harbor.cyverse.org"),
+            project_qa_robot_name: String::new(),
+            project_qa_robot_secret: String::new(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Qms {
     #[garde(skip)]
     enabled: bool,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Qms {
+    fn default() -> Self {
+        Qms { enabled: true }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jaeger {
     #[garde(url)]
@@ -715,6 +827,17 @@ pub struct Jaeger {
 
     #[garde(url)]
     http_endpoint: String,
+}
+
+impl Default for Jaeger {
+    fn default() -> Self {
+        Jaeger {
+            endpoint: String::from("http://jaeger-collector.jaeger.svc.cluster.local:14250"),
+            http_endpoint: String::from(
+                "http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces",
+            ),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Validate, Clone)]
@@ -730,8 +853,8 @@ pub struct ConfigValues {
     #[garde(length(min = 1))]
     uid_domain: String,
 
-    #[garde(skip)]
-    agave: Option<Agave>,
+    #[garde(dive)]
+    agave: Agave,
 
     #[serde(rename = "BaseURLs")]
     #[garde(dive)]
@@ -762,8 +885,8 @@ pub struct ConfigValues {
     #[garde(dive)]
     infosquito: Infosquito,
 
-    #[garde(skip)]
-    intercom: Option<Intercom>,
+    #[garde(dive)]
+    intercom: Intercom,
 
     #[serde(rename = "IRODS")]
     #[garde(dive)]
@@ -780,14 +903,14 @@ pub struct ConfigValues {
     pgp: Pgp,
 
     #[serde(rename = "PermanentID")]
-    #[garde(skip)]
-    permanent_id: Option<PermanentId>,
+    #[garde(dive)]
+    permanent_id: PermanentId,
 
     #[garde(length(min = 1))]
     timezone: String,
 
-    #[garde(skip)]
-    unleash: Option<Unleash>,
+    #[garde(dive)]
+    unleash: Unleash,
 
     #[garde(dive)]
     user_portal: UserPortal,
@@ -817,66 +940,32 @@ pub struct ConfigValues {
     permissions_db: DatabaseConfig,
 
     #[serde(rename = "QMSDB")]
-    #[garde(skip)]
-    qms_db: Option<DatabaseConfig>,
+    #[garde(dive)]
+    qms_db: DatabaseConfig,
 
     #[serde(rename = "MetadataDB")]
     #[garde(dive)]
     metadata_db: DatabaseConfig,
 
     #[serde(rename = "UnleashDB")]
-    #[garde(skip)]
-    unleash_db: Option<DatabaseConfig>,
+    #[garde(dive)]
+    unleash_db: DatabaseConfig,
 
     #[garde(dive)]
     admin: Admin,
 
-    #[garde(skip)]
-    analytics: Option<Analytics>,
+    #[garde(dive)]
+    analytics: Analytics,
 
     #[garde(dive)]
     harbor: Harbor,
 
     #[serde(rename = "QMS")]
-    #[garde(skip)]
-    qms: Option<Qms>,
+    #[garde(dive)]
+    qms: Qms,
 
-    #[garde(skip)]
-    jaeger: Option<Jaeger>,
-}
-
-impl ConfigValues {
-    fn new(features: &[OptionalFeatures]) -> Self {
-        let mut config_values = ConfigValues::default();
-
-        for feature in features.iter() {
-            match feature {
-                OptionalFeatures::HighThroughput => {
-                    let mut a = Agave::default();
-                    a.read_timeout = 30000;
-                    a.enabled = false;
-                    a.jobs_enabled = false;
-                    config_values.agave = Some(a);
-                }
-                OptionalFeatures::Subscriptions => {
-                    let mut s = DESubscriptions::default();
-                    s.enforce = false;
-                    config_values.de.subscriptions = Some(s);
-                }
-                OptionalFeatures::Support => {
-                    let mut sup = Intercom::default();
-                    sup.enabled = false;
-                    config_values.intercom = Some(sup);
-                }
-                OptionalFeatures::DOI => {}
-                OptionalFeatures::Analytics => {}
-                OptionalFeatures::QuotaEnforcement => {}
-                OptionalFeatures::Tracing => {}
-            }
-        }
-
-        config_values
-    }
+    #[garde(dive)]
+    jaeger: Jaeger,
 }
 
 // These are features that are truly optional. In other words, they do not need
