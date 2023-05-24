@@ -1,7 +1,8 @@
+use anyhow::anyhow;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Agave {
     #[garde(ascii, length(min = 3))]
@@ -13,6 +14,9 @@ pub struct Agave {
     #[serde(rename = "RedirectURI")]
     #[garde(url)]
     redirect_uri: String,
+
+    #[garde(length(min = 0))]
+    storage_system: String,
 
     #[serde(rename = "CallbackBaseURI")]
     #[garde(url)]
@@ -26,6 +30,21 @@ pub struct Agave {
 
     #[garde(skip)]
     jobs_enabled: bool,
+}
+
+impl Default for Agave {
+    fn default() -> Self {
+        Agave {
+            key: String::new(),
+            secret: String::new(),
+            redirect_uri: String::new(),
+            storage_system: String::new(),
+            callback_base_uri: String::new(),
+            read_timeout: 30000,
+            enabled: false,
+            jobs_enabled: false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -48,7 +67,7 @@ pub struct Amqp {
     vhost: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct BaseURLs {
     #[garde(url)]
@@ -110,11 +129,45 @@ pub struct BaseURLs {
     user_info: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for BaseURLs {
+    fn default() -> Self {
+        BaseURLs {
+            analyses: String::from("http://analyses"),
+            app_exposer: String::from("http://app-exposer"),
+            apps: String::from("http://apps"),
+            async_tasks: String::from("http://async-tasks"),
+            dashboard_aggregator: String::from("http://dashboard-aggregator"),
+            data_info: String::from("http://data-info"),
+            grouper_web_services: String::from("http://grouper-ws/grouper-ws"),
+            iplant_email: String::from("http://de-mailer"),
+            iplant_groups: String::from("http://iplant-groups"),
+            jex_adapter: String::from("http://jex-adapter"),
+            job_status_listener: String::from("http://job-status-listener"),
+            metadata: String::from("http://metadata"),
+            notifications: String::from("http://notifications"),
+            permissions: String::from("http://permissions"),
+            qms: String::from("http://qms"),
+            requests: String::from("http://requests"),
+            search: String::from("http://search"),
+            terrain: String::from("http://terrain"),
+            user_info: String::from("http://user_info"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 pub struct Website {
     #[serde(rename = "URL")]
     #[garde(url)]
     url: String,
+}
+
+impl Default for Website {
+    fn default() -> Self {
+        Website {
+            url: String::from("https://cyverse.org"),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -138,12 +191,20 @@ pub struct DESubscriptions {
     enforce: bool,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DECoge {
     #[serde(rename = "BaseURI")]
     #[garde(url)]
     base_uri: String,
+}
+
+impl Default for DECoge {
+    fn default() -> Self {
+        DECoge {
+            base_uri: String::from("https://genomevolution.org/coge/api/v1"),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -153,7 +214,7 @@ pub struct DETools {
     admin: DEToolsAdmin,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DEToolsAdmin {
     #[garde(range(min=0, max=u32::MAX))]
@@ -164,6 +225,16 @@ pub struct DEToolsAdmin {
 
     #[garde(range(min=0, max=u64::MAX))]
     max_disk_limit: u64,
+}
+
+impl Default for DEToolsAdmin {
+    fn default() -> Self {
+        DEToolsAdmin {
+            max_cpu_limit: 24,
+            max_memory_limit: 75161927680,
+            max_disk_limit: 1099511627776,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -177,8 +248,8 @@ pub struct DE {
     #[garde(url)]
     base_uri: String,
 
-    #[garde(dive)]
-    subscriptions: DESubscriptions,
+    #[garde(skip)]
+    subscriptions: Option<DESubscriptions>,
 
     #[garde(length(min = 3))]
     default_output_folder: String,
@@ -190,7 +261,7 @@ pub struct DE {
     tools: DETools,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Docker {
     #[garde(skip)]
@@ -198,6 +269,18 @@ pub struct Docker {
 
     #[garde(length(min = 1))]
     tag: String,
+}
+
+impl Default for Docker {
+    fn default() -> Self {
+        Docker {
+            tag: String::from("latest"),
+            trusted_registries: vec![
+                String::from("harbor.cyverse.org"),
+                String::from("docker.cyverse.org"),
+            ],
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -281,7 +364,7 @@ pub struct Icat {
     password: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Infosquito {
     #[garde(range(min = 1, max = 7))]
@@ -289,6 +372,15 @@ pub struct Infosquito {
 
     #[garde(range(min=1, max = u32::MAX))]
     prefix_length: u32,
+}
+
+impl Default for Infosquito {
+    fn default() -> Self {
+        Infosquito {
+            day_num: 4,
+            prefix_length: 4,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -309,7 +401,7 @@ pub struct Intercom {
     company_name: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct IrodsWebDav {
     #[serde(rename = "AnonURI")]
@@ -317,7 +409,15 @@ pub struct IrodsWebDav {
     anon_uri: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for IrodsWebDav {
+    fn default() -> Self {
+        IrodsWebDav {
+            anon_uri: String::from("https://data.cyverse.rocksi/dav-anon"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Irods {
     #[serde(rename = "AMQP")]
@@ -350,6 +450,23 @@ pub struct Irods {
 
     #[garde(length(min = 1))]
     quota_root_resources: String,
+}
+
+impl Default for Irods {
+    fn default() -> Self {
+        Irods {
+            amqp: Amqp::default(),
+            host: String::new(),
+            user: String::new(),
+            zone: String::new(),
+            password: String::new(),
+            admin_users: Vec::new(),
+            perms_filter: Vec::new(),
+            web_dav: IrodsWebDav::default(),
+            external_host: String::from("data.cyverse.rocks"),
+            quota_root_resources: String::from("mainIngestRes,mainReplRes"),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Validate, Default, Clone)]
@@ -600,7 +717,7 @@ pub struct Jaeger {
     http_endpoint: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Validate, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
     #[garde(length(min = 1))]
@@ -613,8 +730,8 @@ pub struct ConfigValues {
     #[garde(length(min = 1))]
     uid_domain: String,
 
-    #[garde(dive)]
-    agave: Agave,
+    #[garde(skip)]
+    agave: Option<Agave>,
 
     #[serde(rename = "BaseURLs")]
     #[garde(dive)]
@@ -645,8 +762,8 @@ pub struct ConfigValues {
     #[garde(dive)]
     infosquito: Infosquito,
 
-    #[garde(dive)]
-    intercom: Intercom,
+    #[garde(skip)]
+    intercom: Option<Intercom>,
 
     #[serde(rename = "IRODS")]
     #[garde(dive)]
@@ -663,14 +780,14 @@ pub struct ConfigValues {
     pgp: Pgp,
 
     #[serde(rename = "PermanentID")]
-    #[garde(dive)]
-    permanent_id: PermanentId,
+    #[garde(skip)]
+    permanent_id: Option<PermanentId>,
 
     #[garde(length(min = 1))]
     timezone: String,
 
-    #[garde(dive)]
-    unleash: Unleash,
+    #[garde(skip)]
+    unleash: Option<Unleash>,
 
     #[garde(dive)]
     user_portal: UserPortal,
@@ -700,30 +817,79 @@ pub struct ConfigValues {
     permissions_db: DatabaseConfig,
 
     #[serde(rename = "QMSDB")]
-    #[garde(dive)]
-    qms_db: DatabaseConfig,
+    #[garde(skip)]
+    qms_db: Option<DatabaseConfig>,
 
     #[serde(rename = "MetadataDB")]
     #[garde(dive)]
     metadata_db: DatabaseConfig,
 
     #[serde(rename = "UnleashDB")]
-    #[garde(dive)]
-    unleash_db: DatabaseConfig,
+    #[garde(skip)]
+    unleash_db: Option<DatabaseConfig>,
 
     #[garde(dive)]
     admin: Admin,
 
-    #[garde(dive)]
-    analytics: Analytics,
+    #[garde(skip)]
+    analytics: Option<Analytics>,
 
     #[garde(dive)]
     harbor: Harbor,
 
     #[serde(rename = "QMS")]
-    #[garde(dive)]
-    qms: Qms,
+    #[garde(skip)]
+    qms: Option<Qms>,
 
-    #[garde(dive)]
-    jaeger: Jaeger,
+    #[garde(skip)]
+    jaeger: Option<Jaeger>,
+}
+
+impl ConfigValues {
+    fn new(features: &[OptionalFeatures]) -> Self {
+        let mut config_values = ConfigValues::default();
+
+        for feature in features.iter() {
+            match feature {
+                OptionalFeatures::HighThroughput => {
+                    let mut a = Agave::default();
+                    a.read_timeout = 30000;
+                    a.enabled = false;
+                    a.jobs_enabled = false;
+                    config_values.agave = Some(a);
+                }
+                OptionalFeatures::Subscriptions => {
+                    let mut s = DESubscriptions::default();
+                    s.enforce = false;
+                    config_values.de.subscriptions = Some(s);
+                }
+                OptionalFeatures::Support => {
+                    let mut sup = Intercom::default();
+                    sup.enabled = false;
+                    config_values.intercom = Some(sup);
+                }
+                OptionalFeatures::DOI => {}
+                OptionalFeatures::Analytics => {}
+                OptionalFeatures::QuotaEnforcement => {}
+                OptionalFeatures::Tracing => {}
+            }
+        }
+
+        config_values
+    }
+}
+
+// These are features that are truly optional. In other words, they do not need
+// to be present in an installation. This is in contrast to features that are
+// optional in an environment specific config_values file because they have
+// sane defaults defined in defaults.yaml.
+#[derive(PartialEq)]
+pub enum OptionalFeatures {
+    HighThroughput,
+    Subscriptions,
+    Support,
+    DOI,
+    Analytics,
+    QuotaEnforcement,
+    Tracing,
 }
