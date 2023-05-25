@@ -248,7 +248,7 @@ pub struct DE {
     base_uri: String,
 
     #[garde(skip)]
-    subscriptions: Option<DESubscriptions>,
+    subscriptions: DESubscriptions,
 
     #[garde(length(min = 3))]
     default_output_folder: String,
@@ -862,6 +862,7 @@ pub struct ConfigValues {
     #[garde(dive)]
     dashboard_aggregator: DashboardAggregator,
 
+    #[serde(rename = "DE")]
     #[garde(dive)]
     de: DE,
 
