@@ -30,7 +30,7 @@ pub struct Cli {
     pub all_projects: bool,
 
     #[arg(short, long)]
-    /// The names of the proejcts to deploy. Corresponds to a submodule in the repos directory.
+    /// The names of the projects to deploy. Corresponds to a submodule in the repos directory.
     pub project: Vec<String>,
 
     #[arg(short, long)]

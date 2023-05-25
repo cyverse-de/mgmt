@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 

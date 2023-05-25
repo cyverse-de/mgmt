@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2021"
 description = "Deploys microservices for the Discovery Environment."
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "mgmt"
+path = "src/main.rs"
+
+[[bin]]
+name = "mgmt-defaults"
+path = "src/bin/mgmt-defaults/main.rs"
 
 [dependencies]
 anyhow = "1.0.69"
