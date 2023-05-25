@@ -3,7 +3,7 @@
 target/
 debug/
 builds/
-
+.vscode/
 **/*.rs.bk
 
 *.pdb
