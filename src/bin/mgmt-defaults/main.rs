@@ -1,9 +1,10 @@
-use mgmt::config_values;
+use garde::Validate;
+use mgmt::config_values::{self, ConfigValues};
 
 use clap::{arg, Command};
 use serde_yaml::{self};
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 fn cli() -> Command {
@@ -21,11 +22,18 @@ fn cli() -> Command {
                     ),
                 ),
         )
+        .subcommand(
+            Command::new("validate")
+                .args_conflicts_with_subcommands(true)
+                .arg(
+                    arg!(-i --"input-file" <INPUT_FILE>).value_parser(clap::value_parser!(PathBuf)),
+                ),
+        )
 }
 
 fn create_defaults(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
-    if let Some(p) = output_file.as_deref() {
-        println!("output file is {}", p.display())
+    if let Some(p) = output_file {
+        println!("output file is {}", p.display());
     }
 
     let writer = match output_file {
@@ -35,6 +43,20 @@ fn create_defaults(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
 
     let defaults = config_values::ConfigValues::default();
     Ok(serde_yaml::to_writer(writer, &defaults)?)
+}
+
+fn validate_file(input_file: Option<&PathBuf>) -> anyhow::Result<()> {
+    if let Some(p) = input_file {
+        println!("input file is {}", p.display());
+    }
+
+    let reader = match input_file {
+        Some(x) => Box::new(File::open(x)?) as Box<dyn Read>,
+        None => Box::new(io::stdin()) as Box<dyn Read>,
+    };
+
+    let values: ConfigValues = serde_yaml::from_reader(reader)?;
+    Ok(values.validate(&())?)
 }
 
 fn main() -> anyhow::Result<()> {
@@ -55,6 +77,10 @@ fn main() -> anyhow::Result<()> {
                     unreachable!("Bad subcommand: {name}")
                 }
             }
+        }
+        Some(("validate", sub_m)) => {
+            let input_path = sub_m.get_one::<PathBuf>("input-file");
+            validate_file(input_path)?;
         }
         _ => unreachable!("Bad subcommand"),
     }
