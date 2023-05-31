@@ -1,34 +1,23 @@
-use garde::Validate;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Agave {
-    #[garde(ascii, length(min = 3))]
     key: String,
-
-    #[garde(ascii, length(min = 3))]
     secret: String,
 
     #[serde(rename = "RedirectURI")]
-    #[garde(url)]
     redirect_uri: String,
 
-    #[garde(length(min = 0))]
     storage_system: String,
 
     #[serde(rename = "CallbackBaseURI")]
-    #[garde(url)]
     callback_base_uri: String,
 
-    #[garde(range(min=0, max=u32::MAX))]
-    read_timeout: u32,
-
-    #[garde(skip)]
-    enabled: bool,
-
-    #[garde(skip)]
-    jobs_enabled: bool,
+    read_timeout: Option<u32>,
+    enabled: Option<bool>,
+    jobs_enabled: Option<bool>,
 }
 
 impl Default for Agave {
@@ -39,234 +28,262 @@ impl Default for Agave {
             redirect_uri: String::new(),
             storage_system: String::new(),
             callback_base_uri: String::new(),
-            read_timeout: 30000,
-            enabled: false,
-            jobs_enabled: false,
+            read_timeout: Some(30000),
+            enabled: Some(false),
+            jobs_enabled: Some(false),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Agave {
+    pub fn merge(&self, right: &Agave) -> anyhow::Result<Agave> {
+        Ok(serde_merge::omerge(self, right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "AMQP")]
 pub struct Amqp {
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 3))]
     password: String,
-
-    #[garde(length(min = 3))]
     host: String,
-
-    #[garde(range(min = 1024, max = 65535))]
     port: u16,
-
-    #[garde(length(min = 3))]
     vhost: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Amqp {
+    fn merge(&self, right: &Amqp) -> anyhow::Result<Amqp> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct BaseURLs {
-    #[garde(url)]
-    analyses: String,
+    analyses: Option<Url>,
+    app_exposer: Option<Url>,
+    apps: Option<Url>,
+    async_tasks: Option<Url>,
+    dashboard_aggregator: Option<Url>,
+    data_info: Option<Url>,
+    grouper_web_services: Option<Url>,
+    iplant_email: Option<Url>,
+    iplant_groups: Option<Url>,
+    jex_adapter: Option<Url>,
+    job_status_listener: Option<Url>,
+    metadata: Option<Url>,
+    notifications: Option<Url>,
+    permissions: Option<Url>,
 
-    #[garde(url)]
-    app_exposer: String,
-
-    #[garde(url)]
-    apps: String,
-
-    #[garde(url)]
-    async_tasks: String,
-
-    #[garde(url)]
-    dashboard_aggregator: String,
-
-    #[garde(url)]
-    data_info: String,
-
-    #[garde(url)]
-    grouper_web_services: String,
-
-    #[garde(url)]
-    iplant_email: String,
-
-    #[garde(url)]
-    iplant_groups: String,
-
-    #[garde(url)]
-    jex_adapter: String,
-
-    #[garde(url)]
-    job_status_listener: String,
-
-    #[garde(url)]
-    metadata: String,
-
-    #[garde(url)]
-    notifications: String,
-
-    #[garde(url)]
-    permissions: String,
-
-    #[garde(url)]
     #[serde(rename = "QMS")]
-    qms: String,
+    qms: Option<Url>,
 
-    #[garde(url)]
-    requests: String,
-
-    #[garde(url)]
-    search: String,
-
-    #[garde(url)]
-    terrain: String,
-
-    #[garde(url)]
-    user_info: String,
+    requests: Option<Url>,
+    search: Option<Url>,
+    terrain: Option<Url>,
+    user_info: Option<Url>,
 }
 
 impl Default for BaseURLs {
     fn default() -> Self {
         BaseURLs {
-            analyses: String::from("http://analyses"),
-            app_exposer: String::from("http://app-exposer"),
-            apps: String::from("http://apps"),
-            async_tasks: String::from("http://async-tasks"),
-            dashboard_aggregator: String::from("http://dashboard-aggregator"),
-            data_info: String::from("http://data-info"),
-            grouper_web_services: String::from("http://grouper-ws/grouper-ws"),
-            iplant_email: String::from("http://de-mailer"),
-            iplant_groups: String::from("http://iplant-groups"),
-            jex_adapter: String::from("http://jex-adapter"),
-            job_status_listener: String::from("http://job-status-listener"),
-            metadata: String::from("http://metadata"),
-            notifications: String::from("http://notifications"),
-            permissions: String::from("http://permissions"),
-            qms: String::from("http://qms"),
-            requests: String::from("http://requests"),
-            search: String::from("http://search"),
-            terrain: String::from("http://terrain"),
-            user_info: String::from("http://user_info"),
+            analyses: Url::parse("http://analyses").ok(),
+            app_exposer: Url::parse("http://app-exposer").ok(),
+            apps: Url::parse("http://apps").ok(),
+            async_tasks: Url::parse("http://async-tasks").ok(),
+            dashboard_aggregator: Url::parse("http://dashboard-aggregator").ok(),
+            data_info: Url::parse("http://data-info").ok(),
+            grouper_web_services: Url::parse("http://grouper-ws/grouper-ws").ok(),
+            iplant_email: Url::parse("http://de-mailer").ok(),
+            iplant_groups: Url::parse("http://iplant-groups").ok(),
+            jex_adapter: Url::parse("http://jex-adapter").ok(),
+            job_status_listener: Url::parse("http://job-status-listener").ok(),
+            metadata: Url::parse("http://metadata").ok(),
+            notifications: Url::parse("http://notifications").ok(),
+            permissions: Url::parse("http://permissions").ok(),
+            qms: Url::parse("http://qms").ok(),
+            requests: Url::parse("http://requests").ok(),
+            search: Url::parse("http://search").ok(),
+            terrain: Url::parse("http://terrain").ok(),
+            user_info: Url::parse("http://user_info").ok(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl BaseURLs {
+    fn merge(&self, right: &BaseURLs) -> anyhow::Result<BaseURLs> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Website {
     #[serde(rename = "URL")]
-    #[garde(url)]
-    url: String,
+    url: Option<url::Url>,
 }
 
 impl Default for Website {
     fn default() -> Self {
         Website {
-            url: String::from("https://cyverse.org"),
+            url: Url::parse("https://cyverse.org").ok(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
-#[serde(rename_all = "PascalCase")]
-pub struct DashboardAggregator {
-    #[garde(length(min = 3))]
-    public_group: String,
-
-    #[garde(dive)]
-    website: Website,
+impl Website {
+    fn merge(&self, right: &Website) -> anyhow::Result<Website> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct DashboardAggregator {
+    public_group: String,
+    website: Option<Website>,
+}
+
+impl DashboardAggregator {
+    fn merge(&self, right: &DashboardAggregator) -> anyhow::Result<DashboardAggregator> {
+        let mut merged: DashboardAggregator = serde_merge::omerge(&self, &right)?;
+        if let Some(website) = &self.website {
+            if let Some(right_website) = &right.website {
+                merged.website = Some(website.merge(right_website)?);
+            }
+        }
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DESubscriptions {
     #[serde(rename = "CheckoutURL")]
-    #[garde(url)]
-    checkout_url: String,
+    checkout_url: Option<Url>,
 
-    #[garde(skip)]
     enforce: bool,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl DESubscriptions {
+    fn merge(&self, right: &DESubscriptions) -> anyhow::Result<DESubscriptions> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DECoge {
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<Url>,
+}
+
+impl DECoge {
+    fn merge(&self, right: &DECoge) -> anyhow::Result<DECoge> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
 }
 
 impl Default for DECoge {
     fn default() -> Self {
         DECoge {
-            base_uri: String::from("https://genomevolution.org/coge/api/v1"),
+            base_uri: Url::parse("https://genomevolution.org/coge/api/v1").ok(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DETools {
-    #[garde(dive)]
     admin: DEToolsAdmin,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl DETools {
+    fn merge(&self, right: &DETools) -> anyhow::Result<DETools> {
+        let mut merged: DETools = serde_merge::omerge(&self, &right)?;
+        merged.admin = self.admin.merge(&right.admin)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DEToolsAdmin {
-    #[garde(range(min=0, max=u32::MAX))]
-    max_cpu_limit: u32,
-
-    #[garde(range(min=0, max=u64::MAX))]
-    max_memory_limit: u64,
-
-    #[garde(range(min=0, max=u64::MAX))]
-    max_disk_limit: u64,
+    max_cpu_limit: Option<u32>,
+    max_memory_limit: Option<u64>,
+    max_disk_limit: Option<u64>,
 }
 
 impl Default for DEToolsAdmin {
     fn default() -> Self {
         DEToolsAdmin {
-            max_cpu_limit: 24,
-            max_memory_limit: 75161927680,
-            max_disk_limit: 1099511627776,
+            max_cpu_limit: Some(24),
+            max_memory_limit: Some(75161927680),
+            max_disk_limit: Some(1099511627776),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl DEToolsAdmin {
+    fn merge(&self, right: &DEToolsAdmin) -> anyhow::Result<DEToolsAdmin> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DE {
     #[serde(rename = "AMQP")]
-    #[garde(dive)]
     amqp: Amqp,
 
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<Url>, //Required before deployment.
 
-    #[garde(skip)]
-    subscriptions: DESubscriptions,
-
-    #[garde(length(min = 3))]
+    subscriptions: Option<DESubscriptions>,
     default_output_folder: String,
-
-    #[garde(dive)]
-    coge: DECoge,
-
-    #[garde(dive)]
-    tools: DETools,
+    coge: Option<DECoge>,
+    tools: Option<DETools>,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Default for DE {
+    fn default() -> Self {
+        DE {
+            amqp: Amqp::default(),
+            base_uri: Url::parse("https://de.cyverse.org").ok(),
+            subscriptions: Some(DESubscriptions::default()),
+            default_output_folder: String::from("analyses"),
+            coge: Some(DECoge::default()),
+            tools: Some(DETools::default()),
+        }
+    }
+}
+
+impl DE {
+    fn merge(&self, right: &DE) -> anyhow::Result<DE> {
+        let mut merged: DE = serde_merge::omerge(&self, &right)?;
+        if let Some(subscriptions) = &self.subscriptions {
+            if let Some(right_subscriptions) = &right.subscriptions {
+                merged.subscriptions = Some(subscriptions.merge(right_subscriptions)?);
+            }
+        }
+        if let Some(coge) = &self.coge {
+            if let Some(right_coge) = &right.coge {
+                merged.coge = Some(coge.merge(&right_coge)?);
+            }
+        }
+        if let Some(tools) = &self.tools {
+            if let Some(right_tools) = &right.tools {
+                merged.tools = Some(tools.merge(&right_tools)?);
+            }
+        }
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Docker {
-    #[garde(skip)]
-    trusted_registries: Vec<String>,
-
-    #[garde(length(min = 1))]
+    trusted_registries: Option<Vec<String>>,
     tag: String,
 }
 
@@ -274,181 +291,182 @@ impl Default for Docker {
     fn default() -> Self {
         Docker {
             tag: String::from("latest"),
-            trusted_registries: vec![
+            trusted_registries: Some(vec![
                 String::from("harbor.cyverse.org"),
                 String::from("docker.cyverse.org"),
-            ],
+            ]),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Docker {
+    fn merge(&self, right: &Docker) -> anyhow::Result<Docker> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ElasticSearch {
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<Url>,
 
-    #[garde(ascii, length(min = 3))]
     username: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
-
-    #[garde(range(min=0, max=u32::MAX))]
-    index: u32,
+    index: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl ElasticSearch {
+    fn merge(&self, right: &ElasticSearch) -> anyhow::Result<ElasticSearch> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Email {
-    #[garde(email)]
     src: String,
-
-    #[garde(email)]
     dest: String,
 
     #[serde(rename = "PermIDRequestDest")]
-    #[garde(email)]
     perm_id_request_dest: String,
 
-    #[garde(email)]
     support_dest: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Email {
+    fn merge(&self, right: &Email) -> anyhow::Result<Email> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct GrouperLoader {
     #[serde(rename = "URI")]
-    #[garde(url)]
-    uri: String,
+    uri: Option<Url>,
 
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl GrouperLoader {
+    fn merge(&self, right: &GrouperLoader) -> anyhow::Result<GrouperLoader> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Grouper {
-    #[garde(alphanumeric, length(min = 1))]
     morph_string: String,
-
-    #[garde(ascii, length(min = 3))]
     password: String,
-
-    #[garde(alphanumeric)]
     folder_name_prefix: String,
-
-    #[garde(dive)]
     loader: GrouperLoader,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Grouper {
+    fn merge(&self, right: &Grouper) -> anyhow::Result<Grouper> {
+        let mut merged: Grouper = serde_merge::omerge(&self, &right)?;
+        merged.loader = self.loader.merge(&right.loader)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "ICAT")]
 pub struct Icat {
-    #[garde(length(min = 3))]
     host: String,
-
-    #[garde(range(min = 1024, max = 65535))]
     port: u16,
-
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 3))]
     password: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Icat {
+    fn merge(&self, right: &Icat) -> anyhow::Result<Icat> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Infosquito {
-    #[garde(range(min = 1, max = 7))]
-    day_num: u8,
-
-    #[garde(range(min=1, max = u32::MAX))]
-    prefix_length: u32,
+    day_num: Option<u8>,
+    prefix_length: Option<u32>,
 }
 
 impl Default for Infosquito {
     fn default() -> Self {
         Infosquito {
-            day_num: 4,
-            prefix_length: 4,
+            day_num: Some(4),
+            prefix_length: Some(4),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Infosquito {
+    fn merge(&self, right: &Infosquito) -> anyhow::Result<Infosquito> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Intercom {
-    #[garde(skip)]
     enabled: bool,
 
     #[serde(rename = "AppID")]
-    #[garde(length(min = 1))]
     app_id: String,
 
     #[serde(rename = "CompanyID")]
-    #[garde(length(min = 1))]
     company_id: String,
 
-    #[garde(length(min = 1))]
     company_name: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Intercom {
+    fn merge(&self, right: &Intercom) -> anyhow::Result<Intercom> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct IrodsWebDav {
     #[serde(rename = "AnonURI")]
-    #[garde(url)]
-    anon_uri: String,
+    anon_uri: Option<Url>,
 }
 
 impl Default for IrodsWebDav {
     fn default() -> Self {
         IrodsWebDav {
-            anon_uri: String::from("https://data.cyverse.rocksi/dav-anon"),
+            anon_uri: Url::parse("https://data.cyverse.rocksi/dav-anon").ok(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl IrodsWebDav {
+    fn merge(&self, right: &IrodsWebDav) -> anyhow::Result<IrodsWebDav> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Irods {
     #[serde(rename = "AMQP")]
-    #[garde(dive)]
     amqp: Amqp,
 
-    #[garde(length(min = 3))]
     host: String,
-
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(length(min = 1))]
     zone: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
-
-    #[garde(skip)]
     admin_users: Vec<String>,
-
-    #[garde(skip)]
     perms_filter: Vec<String>,
-
-    #[garde(length(min = 3))]
-    external_host: String,
-
-    #[garde(dive)]
-    web_dav: IrodsWebDav,
-
-    #[garde(length(min = 1))]
-    quota_root_resources: String,
+    external_host: Option<String>,
+    web_dav: Option<IrodsWebDav>,
+    quota_root_resources: Option<String>,
 }
 
 impl Default for Irods {
@@ -461,192 +479,236 @@ impl Default for Irods {
             password: String::new(),
             admin_users: Vec::new(),
             perms_filter: Vec::new(),
-            web_dav: IrodsWebDav::default(),
-            external_host: String::from("data.cyverse.rocks"),
-            quota_root_resources: String::from("mainIngestRes,mainReplRes"),
+            web_dav: Some(IrodsWebDav::default()),
+            external_host: Some(String::from("data.cyverse.rocks")),
+            quota_root_resources: Some(String::from("mainIngestRes,mainReplRes")),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Irods {
+    fn merge(&self, right: &Irods) -> anyhow::Result<Irods> {
+        let mut merged: Irods = serde_merge::omerge(&self, &right)?;
+        if let Some(web_dav) = &self.web_dav {
+            if let Some(right_web_dav) = &right.web_dav {
+                merged.web_dav = Some(web_dav.merge(right_web_dav)?);
+            }
+        }
+        merged.amqp = self.amqp.merge(&right.amqp)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jobs {
-    #[garde(length(min = 1))]
     data_transfer_image: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Default for Jobs {
+    fn default() -> Self {
+        Jobs {
+            data_transfer_image: String::from("harbor.cyverse.org/de/porklock"),
+        }
+    }
+}
+
+impl Jobs {
+    fn merge(&self, right: &Jobs) -> anyhow::Result<Jobs> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct KeycloakVice {
     #[serde(rename = "ClientID")]
-    #[garde(length(min = 1))]
     client_id: String,
 
-    #[garde(length(min = 8))]
     client_secret: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl KeycloakVice {
+    fn merge(&self, right: &KeycloakVice) -> anyhow::Result<KeycloakVice> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Keycloak {
-    #[garde(url)]
-    server_uri: String,
-
-    #[garde(length(min = 1))]
+    server_uri: Option<Url>,
     realm: String,
 
     #[serde(rename = "ClientID")]
-    #[garde(length(min = 1))]
     client_id: String,
 
-    #[garde(length(min = 1))]
     client_secret: String,
 
     #[serde(rename = "VICE")]
-    #[garde(dive)]
     vice: KeycloakVice,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Keycloak {
+    fn merge(&self, right: &Keycloak) -> anyhow::Result<Keycloak> {
+        let mut merged: Keycloak = serde_merge::omerge(&self, &right)?;
+        merged.vice = self.vice.merge(&right.vice)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "PGP")]
 pub struct Pgp {
-    #[garde(ascii, length(min = 8))]
     key_password: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Pgp {
+    fn merge(&self, right: &Pgp) -> anyhow::Result<Pgp> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentIdDataCite {
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<Url>,
 
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
 
     #[serde(rename = "DOIPrefix")]
-    #[garde(length(min = 1))]
     doi_prefix: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl PermanentIdDataCite {
+    fn merge(&self, right: &PermanentIdDataCite) -> anyhow::Result<PermanentIdDataCite> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentId {
-    #[garde(length(min = 1))]
     curators_group: String,
-
-    #[garde(dive)]
     data_cite: PermanentIdDataCite,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl PermanentId {
+    fn merge(&self, right: &PermanentId) -> anyhow::Result<PermanentId> {
+        let mut merged: PermanentId = serde_merge::omerge(&self, &right)?;
+        merged.data_cite = self.data_cite.merge(&right.data_cite)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Unleash {
     #[serde(rename = "BaseURL")]
-    #[garde(url)]
-    base_url: String,
+    base_url: Option<Url>,
 
     #[serde(rename = "APIPath")]
-    #[garde(length(min = 1))]
-    api_path: String,
+    api_path: Option<String>,
 
     #[serde(rename = "APIToken")]
-    #[garde(length(min = 1))]
     api_token: String,
 
-    #[garde(length(min = 1))]
-    maintenance_flag: String,
+    maintenance_flag: Option<String>,
 }
 
 impl Default for Unleash {
     fn default() -> Self {
         Unleash {
-            base_url: String::from("http://unleash:4242"),
-            api_path: String::from("/api"),
-            maintenance_flag: String::from("DE-Maintenance"),
+            base_url: Url::parse("http://unleash:4242").ok(),
+            api_path: Some(String::from("/api")),
+            maintenance_flag: Some(String::from("DE-Maintenance")),
             api_token: String::new(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl Unleash {
+    fn merge(&self, right: &Unleash) -> anyhow::Result<Unleash> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct UserPortal {
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl UserPortal {
+    fn merge(&self, right: &UserPortal) -> anyhow::Result<UserPortal> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceFileTransfers {
-    #[garde(length(min = 1))]
-    image: String,
-
-    #[garde(length(min = 1))]
-    tag: String,
+    image: Option<String>,
+    tag: Option<String>,
 }
 
 impl Default for ViceFileTransfers {
     fn default() -> Self {
         ViceFileTransfers {
-            image: String::from("harbor.cyverse.org/de/vice-file-transfers"),
-            tag: String::from("latest"),
+            image: Some(String::from("harbor.cyverse.org/de/vice-file-transfers")),
+            tag: Some(String::from("latest")),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Default, Clone)]
+impl ViceFileTransfers {
+    fn merge(&self, right: &ViceFileTransfers) -> anyhow::Result<ViceFileTransfers> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceDefaultBackend {
-    #[garde(length(min = 1))]
     loading_page_template_string: String,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl ViceDefaultBackend {
+    fn merge(&self, right: &ViceDefaultBackend) -> anyhow::Result<ViceDefaultBackend> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Vice {
     #[serde(rename = "BaseURI")]
-    #[garde(url)]
-    base_uri: String,
+    base_uri: Option<Url>,
 
-    #[garde(dive)]
-    file_transfers: ViceFileTransfers,
-
-    #[garde(ascii, length(min = 8))]
-    image_pull_secret: String,
-
-    #[garde(skip)]
-    image_cache: Vec<String>,
+    file_transfers: Option<ViceFileTransfers>,
+    image_pull_secret: Option<String>,
+    image_cache: Option<Vec<String>>,
 
     #[serde(rename = "UseCSIDriver")]
-    #[garde(skip)]
-    use_csi_driver: bool,
+    use_csi_driver: Option<bool>,
 
-    #[garde(url)]
-    default_cas_url: String,
-
-    #[garde(length(min = 3))]
-    default_cas_validate: String,
-
-    #[garde(range(min=0, max=u32::MAX))]
-    use_case_chars_min: u32,
-
-    #[garde(dive)]
+    default_cas_url: Option<String>,
+    default_cas_validate: Option<String>,
+    use_case_chars_min: Option<u32>,
     default_backend: ViceDefaultBackend,
 }
 
 impl Default for Vice {
     fn default() -> Self {
         Vice {
-            base_uri: String::new(),
-            file_transfers: ViceFileTransfers::default(),
-            image_pull_secret: String::from("vice-image-pull-secret"),
-            image_cache: vec![
+            base_uri: None,
+            file_transfers: Some(ViceFileTransfers::default()),
+            image_pull_secret: Some(String::from("vice-image-pull-secret")),
+            image_cache: Some(vec![
                 String::from("harbor.cyverse.org/de/vice-proxy:latest"),
                 String::from("harbor.cyverse.org/de/porklock:latest"),
                 String::from("harbor.cyverse.org/de/vice-file-transfers:latest"),
@@ -662,32 +724,36 @@ impl Default for Vice {
                 String::from("harbor.cyverse.org/vice/vscode:latest"),
                 String::from("harbor.cyverse.org/vice/xpra/qgis:20.04"),
                 String::from("harbor.cyverse.org/vice/rstudio/stan:latest"),
-            ],
-            use_csi_driver: true,
-            default_cas_url: String::from("https://auth.cyverse.org/cas5"),
-            default_cas_validate: String::from("validate"),
-            use_case_chars_min: 60,
+            ]),
+            use_csi_driver: Some(true),
+            default_cas_url: Some(String::from("https://auth.cyverse.org/cas5")),
+            default_cas_validate: Some(String::from("validate")),
+            use_case_chars_min: Some(60),
             default_backend: ViceDefaultBackend::default(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Vice {
+    fn merge(&self, right: &Vice) -> anyhow::Result<Vice> {
+        let mut merged: Vice = serde_merge::omerge(&self, &right)?;
+        if let Some(ft) = &merged.file_transfers {
+            if let Some(right_ft) = &right.file_transfers {
+                merged.file_transfers = Some(ft.merge(right_ft)?);
+            }
+        }
+        merged.default_backend = self.default_backend.merge(&right.default_backend)?;
+        Ok(merged)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DatabaseConfig {
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
-
-    #[garde(length(min = 1))]
     host: String,
-
-    #[garde(range(min = 1025, max = 65535))]
     port: u32,
-
-    #[garde(length(min = 1))]
     name: String,
 }
 
@@ -703,29 +769,22 @@ impl Default for DatabaseConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl DatabaseConfig {
+    fn merge(&self, right: &DatabaseConfig) -> anyhow::Result<DatabaseConfig> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct QMSDatabaseConfig {
-    #[garde(ascii, length(min = 3))]
     user: String,
-
-    #[garde(ascii, length(min = 8))]
     password: String,
-
-    #[garde(length(min = 1))]
     host: String,
-
-    #[garde(range(min = 1025, max = 65535))]
-    port: u32,
-
-    #[garde(length(min = 1))]
-    name: String,
-
-    #[garde(skip)]
-    automigrate: bool,
-
-    #[garde(skip)]
-    reinitialize: bool,
+    port: Option<u32>,
+    name: Option<String>,
+    automigrate: Option<bool>,
+    reinitialize: Option<bool>,
 }
 
 impl Default for QMSDatabaseConfig {
@@ -734,238 +793,408 @@ impl Default for QMSDatabaseConfig {
             user: String::new(),
             password: String::new(),
             host: String::new(),
-            port: 5432,
-            name: String::from("qms"),
-            automigrate: false,
-            reinitialize: false,
+            port: Some(5432),
+            name: Some(String::from("qms")),
+            automigrate: Some(false),
+            reinitialize: Some(false),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl QMSDatabaseConfig {
+    fn merge(&self, right: &QMSDatabaseConfig) -> anyhow::Result<QMSDatabaseConfig> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Admin {
-    #[garde(length(min = 1))]
-    groups: String,
-    #[garde(length(min = 1))]
-    attribute: String,
+    groups: Option<String>,
+    attribute: Option<String>,
 }
 
 impl Default for Admin {
     fn default() -> Self {
         Admin {
-            groups: String::from("core-service,tito-admins,tito-qa-admins,dev,staff"),
-            attribute: String::from("entitlement"),
+            groups: Some(String::from(
+                "core-service,tito-admins,tito-qa-admins,dev,staff",
+            )),
+            attribute: Some(String::from("entitlement")),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Admin {
+    fn merge(&self, right: &Admin) -> anyhow::Result<Admin> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Analytics {
-    #[garde(skip)]
-    enabled: bool,
-
-    #[garde(length(min = 1))]
-    id: String,
+    enabled: Option<bool>,
+    id: Option<String>,
 }
 
 impl Default for Analytics {
     fn default() -> Self {
         Analytics {
-            enabled: false,
-            id: String::from("g-id"),
+            enabled: Some(false),
+            id: Some(String::from("g-id")),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Analytics {
+    fn merge(&self, right: &Analytics) -> anyhow::Result<Analytics> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Harbor {
     #[serde(rename = "URL")]
-    #[garde(url)]
-    url: String,
+    url: Option<String>, // called a URL, but it's actually a host name.
 
     #[serde(rename = "ProjectQARobotName")]
-    #[garde(length(min = 1))]
     project_qa_robot_name: String,
 
     #[serde(rename = "ProjectQARobotSecret")]
-    #[garde(length(min = 1))]
     project_qa_robot_secret: String,
 }
 
 impl Default for Harbor {
     fn default() -> Self {
         Harbor {
-            url: String::from("harbor.cyverse.org"),
+            url: Some(String::from("harbor.cyverse.org")),
             project_qa_robot_name: String::new(),
             project_qa_robot_secret: String::new(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Harbor {
+    fn merge(&self, right: &Harbor) -> anyhow::Result<Harbor> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Qms {
-    #[garde(skip)]
-    enabled: bool,
+    enabled: Option<bool>,
 }
 
 impl Default for Qms {
     fn default() -> Self {
-        Qms { enabled: true }
+        Qms {
+            enabled: Some(true),
+        }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone)]
+impl Qms {
+    fn merge(&self, right: &Qms) -> anyhow::Result<Qms> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jaeger {
-    #[garde(url)]
-    endpoint: String,
-
-    #[garde(url)]
-    http_endpoint: String,
+    endpoint: Option<Url>,
+    http_endpoint: Option<Url>,
 }
 
 impl Default for Jaeger {
     fn default() -> Self {
         Jaeger {
-            endpoint: String::from("http://jaeger-collector.jaeger.svc.cluster.local:14250"),
-            http_endpoint: String::from(
+            endpoint: Url::parse("http://jaeger-collector.jaeger.svc.cluster.local:14250").ok(),
+            http_endpoint: Url::parse(
                 "http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces",
-            ),
+            )
+            .ok(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Validate, Clone)]
+impl Jaeger {
+    fn merge(&self, right: &Jaeger) -> anyhow::Result<Jaeger> {
+        Ok(serde_merge::omerge(&self, &right)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
-    #[garde(length(min = 1))]
+    // Must be user supplied.
     environment: String,
 
-    #[garde(length(min = 1))]
+    // Must be user supplied.
     namespace: String,
 
+    // Must be user supplied.
     #[serde(rename = "UIDDomain")]
-    #[garde(length(min = 1))]
     uid_domain: String,
 
-    #[garde(dive)]
-    agave: Agave,
+    // Optional for deployment.
+    agave: Option<Agave>,
 
+    // Defaults are provided for deployment.
     #[serde(rename = "BaseURLs")]
-    #[garde(dive)]
-    base_urls: BaseURLs,
+    base_urls: Option<BaseURLs>,
 
-    #[garde(dive)]
-    dashboard_aggregator: DashboardAggregator,
+    // Defaults are provided for deployment (or will be).
+    dashboard_aggregator: Option<DashboardAggregator>,
 
+    // Contains settings that must be provided for deployment.
     #[serde(rename = "DE")]
-    #[garde(dive)]
     de: DE,
 
-    #[garde(dive)]
-    docker: Docker,
+    // Defaults are provided for deployment.
+    docker: Option<Docker>,
 
-    #[garde(dive)]
+    // Must be configured for deplyoment.
     elasticsearch: ElasticSearch,
 
-    #[garde(dive)]
+    // Must be configured for deployment.
     email: Email,
 
-    #[garde(dive)]
+    // Must be configured for deployment.
     grouper: Grouper,
 
+    // Must be configured for deployment.
     #[serde(rename = "ICAT")]
-    #[garde(dive)]
     icat: Icat,
 
-    #[garde(dive)]
-    infosquito: Infosquito,
+    // Defaults provided for deployment.
+    infosquito: Option<Infosquito>,
 
-    #[garde(dive)]
-    intercom: Intercom,
+    // Optional for deployment
+    intercom: Option<Intercom>,
 
+    // Must be configured for deployment.
     #[serde(rename = "IRODS")]
-    #[garde(dive)]
     irods: Irods,
 
-    #[garde(dive)]
-    jobs: Jobs,
+    // Defaults are provided for deployment.
+    jobs: Option<Jobs>,
 
-    #[garde(dive)]
+    // Must be configured for deployment.
     keycloak: Keycloak,
 
+    // Must be configured for deployment.
     #[serde(rename = "PGP")]
-    #[garde(dive)]
     pgp: Pgp,
 
+    // Optional for deployment.
     #[serde(rename = "PermanentID")]
-    #[garde(dive)]
-    permanent_id: PermanentId,
+    permanent_id: Option<PermanentId>,
 
-    #[garde(length(min = 1))]
-    timezone: String,
+    // Defaults provided for deployment.
+    timezone: Option<String>,
 
-    #[garde(dive)]
-    unleash: Unleash,
+    // Optional for deployment.
+    unleash: Option<Unleash>,
 
-    #[garde(dive)]
+    // Required for deployment
     user_portal: UserPortal,
 
+    // Required for deployment.
     #[serde(rename = "VICE")]
-    #[garde(dive)]
     vice: Vice,
 
+    // Required for deployment.
     #[serde(rename = "DEDB")]
-    #[garde(dive)]
     de_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "GrouperDB")]
-    #[garde(dive)]
     grouper_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "NewNotificationsDB")]
-    #[garde(dive)]
     new_notifications_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "NotificationsDB")]
-    #[garde(dive)]
     notifications_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "PermissionsDB")]
-    #[garde(dive)]
     permissions_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "QMSDB")]
-    #[garde(dive)]
-    qms_db: DatabaseConfig,
+    qms_db: QMSDatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "MetadataDB")]
-    #[garde(dive)]
     metadata_db: DatabaseConfig,
 
+    // Required for deployment.
     #[serde(rename = "UnleashDB")]
-    #[garde(dive)]
     unleash_db: DatabaseConfig,
 
-    #[garde(dive)]
-    admin: Admin,
+    // Defaults provided.
+    admin: Option<Admin>,
 
-    #[garde(dive)]
-    analytics: Analytics,
+    // Optional for deployment.
+    analytics: Option<Analytics>,
 
-    #[garde(dive)]
-    harbor: Harbor,
+    // Defaults provided for deployment.
+    harbor: Option<Harbor>,
 
+    // Optional for deployment.
     #[serde(rename = "QMS")]
-    #[garde(dive)]
-    qms: Qms,
+    qms: Option<Qms>,
 
-    #[garde(dive)]
-    jaeger: Jaeger,
+    // Optional for deployment.
+    jaeger: Option<Jaeger>,
+}
+
+impl Default for ConfigValues {
+    fn default() -> Self {
+        ConfigValues {
+            environment: String::new(),
+            namespace: String::new(),
+            uid_domain: String::new(),
+            agave: Some(Agave::default()),
+            base_urls: Some(BaseURLs::default()),
+            dashboard_aggregator: Some(DashboardAggregator::default()),
+            de: DE::default(),
+            docker: Some(Docker::default()),
+            elasticsearch: ElasticSearch::default(),
+            email: Email::default(),
+            grouper: Grouper::default(),
+            icat: Icat::default(),
+            infosquito: Some(Infosquito::default()),
+            intercom: Some(Intercom::default()),
+            irods: Irods::default(),
+            jobs: Some(Jobs::default()),
+            keycloak: Keycloak::default(),
+            pgp: Pgp::default(),
+            permanent_id: Some(PermanentId::default()),
+            timezone: Some(String::new()),
+            unleash: Some(Unleash::default()),
+            user_portal: UserPortal::default(),
+            vice: Vice::default(),
+            de_db: DatabaseConfig::default(),
+            grouper_db: DatabaseConfig::default(),
+            new_notifications_db: DatabaseConfig::default(),
+            notifications_db: DatabaseConfig::default(),
+            permissions_db: DatabaseConfig::default(),
+            qms_db: QMSDatabaseConfig::default(),
+            metadata_db: DatabaseConfig::default(),
+            unleash_db: DatabaseConfig::default(),
+            admin: Some(Admin::default()),
+            analytics: Some(Analytics::default()),
+            harbor: Some(Harbor::default()),
+            qms: Some(Qms::default()),
+            jaeger: Some(Jaeger::default()),
+        }
+    }
+}
+
+impl ConfigValues {
+    pub fn merge(&self, right: &ConfigValues) -> anyhow::Result<ConfigValues> {
+        let mut merged: ConfigValues = serde_merge::omerge(&self, &right)?;
+        if let Some(agave) = &self.agave {
+            if let Some(right_agave) = &right.agave {
+                merged.agave = Some(agave.merge(right_agave)?);
+            }
+        }
+        if let Some(base_urls) = &self.base_urls {
+            if let Some(right_base_urls) = &right.base_urls {
+                merged.base_urls = Some(base_urls.merge(right_base_urls)?);
+            }
+        }
+        if let Some(dashboard_aggregator) = &self.dashboard_aggregator {
+            if let Some(right_dashboard_aggregator) = &right.dashboard_aggregator {
+                merged.dashboard_aggregator =
+                    Some(dashboard_aggregator.merge(right_dashboard_aggregator)?);
+            }
+        }
+        merged.de = self.de.merge(&right.de)?;
+        if let Some(docker) = &self.docker {
+            if let Some(right_docker) = &right.docker {
+                merged.docker = Some(docker.merge(right_docker)?);
+            }
+        }
+        merged.elasticsearch = self.elasticsearch.merge(&right.elasticsearch)?;
+        merged.email = self.email.merge(&right.email)?;
+        merged.grouper = self.grouper.merge(&right.grouper)?;
+        merged.icat = self.icat.merge(&right.icat)?;
+        if let Some(infosquito) = &self.infosquito {
+            if let Some(right_infosquito) = &right.infosquito {
+                merged.infosquito = Some(infosquito.merge(right_infosquito)?);
+            }
+        }
+        if let Some(intercom) = &self.intercom {
+            if let Some(right_intercom) = &right.intercom {
+                merged.intercom = Some(intercom.merge(right_intercom)?);
+            }
+        }
+        merged.irods = self.irods.merge(&right.irods)?;
+        if let Some(jobs) = &self.jobs {
+            if let Some(right_jobs) = &right.jobs {
+                merged.jobs = Some(jobs.merge(right_jobs)?);
+            }
+        }
+        merged.keycloak = self.keycloak.merge(&right.keycloak)?;
+        merged.pgp = self.pgp.merge(&right.pgp)?;
+        if let Some(permanent_id) = &self.permanent_id {
+            if let Some(right_permanent_id) = &right.permanent_id {
+                merged.permanent_id = Some(permanent_id.merge(right_permanent_id)?);
+            }
+        }
+        if let Some(unleash) = &self.unleash {
+            if let Some(right_unleash) = &right.unleash {
+                merged.unleash = Some(unleash.merge(right_unleash)?);
+            }
+        }
+        merged.user_portal = self.user_portal.merge(&right.user_portal)?;
+        merged.vice = self.vice.merge(&right.vice)?;
+        merged.de_db = self.de_db.merge(&right.de_db)?;
+        merged.grouper_db = self.grouper_db.merge(&right.grouper_db)?;
+        merged.new_notifications_db = self
+            .new_notifications_db
+            .merge(&right.new_notifications_db)?;
+        merged.notifications_db = self.notifications_db.merge(&right.notifications_db)?;
+        merged.permissions_db = self.permissions_db.merge(&right.permissions_db)?;
+        merged.qms_db = self.qms_db.merge(&right.qms_db)?;
+        merged.metadata_db = self.metadata_db.merge(&right.metadata_db)?;
+        merged.unleash_db = self.unleash_db.merge(&right.unleash_db)?;
+        if let Some(admin) = &self.admin {
+            if let Some(right_admin) = &right.admin {
+                merged.admin = Some(admin.merge(right_admin)?);
+            }
+        }
+        if let Some(analytics) = &self.analytics {
+            if let Some(right_analytics) = &right.analytics {
+                merged.analytics = Some(analytics.merge(right_analytics)?);
+            }
+        }
+        if let Some(harbor) = &self.harbor {
+            if let Some(right_harbor) = &right.harbor {
+                merged.harbor = Some(harbor.merge(right_harbor)?);
+            }
+        }
+        if let Some(qms) = &self.qms {
+            if let Some(right_qms) = &right.qms {
+                merged.qms = Some(qms.merge(right_qms)?);
+            }
+        }
+        if let Some(jaeger) = &self.jaeger {
+            if let Some(right_jaeger) = &right.jaeger {
+                merged.jaeger = Some(jaeger.merge(right_jaeger)?);
+            }
+        }
+        Ok(merged)
+    }
 }
 
 // These are features that are truly optional. In other words, they do not need

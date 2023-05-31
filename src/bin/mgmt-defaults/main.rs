@@ -1,8 +1,6 @@
-use garde::Validate;
 use mgmt::config_values::{self, ConfigValues};
 
 use clap::{arg, Command};
-use serde_yaml::{self};
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
@@ -27,6 +25,11 @@ fn cli() -> Command {
                 .args_conflicts_with_subcommands(true)
                 .arg(
                     arg!(-i --"input-file" <INPUT_FILE>).value_parser(clap::value_parser!(PathBuf)),
+                )
+                .arg(
+                    arg!(-d --"defaults-file" <DEFAULTS_FILE>)
+                        .default_value("defaults.yaml")
+                        .value_parser(clap::value_parser!(PathBuf)),
                 ),
         )
 }
@@ -45,9 +48,16 @@ fn create_defaults(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
     Ok(serde_yaml::to_writer(writer, &defaults)?)
 }
 
-fn validate_file(input_file: Option<&PathBuf>) -> anyhow::Result<()> {
+fn validate_file(
+    input_file: Option<&PathBuf>,
+    defaults_file: Option<&PathBuf>,
+) -> anyhow::Result<()> {
     if let Some(p) = input_file {
         println!("input file is {}", p.display());
+    }
+
+    if let Some(d) = defaults_file {
+        println!("defaults file is {}", d.display());
     }
 
     let reader = match input_file {
@@ -55,8 +65,16 @@ fn validate_file(input_file: Option<&PathBuf>) -> anyhow::Result<()> {
         None => Box::new(io::stdin()) as Box<dyn Read>,
     };
 
-    let values: ConfigValues = serde_yaml::from_reader(reader)?;
-    Ok(values.validate(&())?)
+    let defaults_reader = match defaults_file {
+        Some(i) => Box::new(File::open(i)?) as Box<dyn Read>,
+        None => Box::new(io::stdin()) as Box<dyn Read>,
+    };
+
+    let defaults: ConfigValues = serde_yaml::from_reader(defaults_reader)?;
+    let from_values: ConfigValues = serde_yaml::from_reader(reader)?;
+    let values: ConfigValues = ConfigValues::merge(&defaults, &from_values)?;
+    eprintln!(" {}", serde_yaml::to_string(&values)?);
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -80,7 +98,8 @@ fn main() -> anyhow::Result<()> {
         }
         Some(("validate", sub_m)) => {
             let input_path = sub_m.get_one::<PathBuf>("input-file");
-            validate_file(input_path)?;
+            let defaults_path = sub_m.get_one::<PathBuf>("defaults-file");
+            validate_file(input_path, defaults_path)?;
         }
         _ => unreachable!("Bad subcommand"),
     }
