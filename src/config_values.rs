@@ -1,3 +1,4 @@
+use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -38,6 +39,28 @@ impl Default for Agave {
 impl Agave {
     pub fn merge(&self, right: &Agave) -> anyhow::Result<Agave> {
         Ok(serde_merge::omerge(self, right)?)
+    }
+
+    pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let agave_key = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Key")
+            .interact()?;
+
+        self.key = agave_key;
+
+        let secret = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Secret")
+            .interact()?;
+
+        self.secret = secret;
+
+        let storage_system = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Storage System")
+            .interact()?;
+
+        self.storage_system = storage_system;
+
+        Ok(())
     }
 }
 
@@ -135,6 +158,16 @@ impl Website {
     fn merge(&self, right: &Website) -> anyhow::Result<Website> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let url = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Dashboard Website URL")
+            .interact()?;
+
+        self.url = Url::parse(&url).ok();
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -154,6 +187,18 @@ impl DashboardAggregator {
         }
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let public_group = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Dashboard Public Group")
+            .interact()?;
+
+        self.public_group = public_group;
+
+        self.website.as_mut().unwrap().ask_for_info()?;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -169,6 +214,17 @@ impl DESubscriptions {
     fn merge(&self, right: &DESubscriptions) -> anyhow::Result<DESubscriptions> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let checkout_url = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Subscriptions Checkout URL")
+            .default("https://cyverse-subscription.phoenixbioinformatics.org".into())
+            .interact()?;
+
+        self.checkout_url = Url::parse(&checkout_url).ok();
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -181,6 +237,17 @@ pub struct DECoge {
 impl DECoge {
     fn merge(&self, right: &DECoge) -> anyhow::Result<DECoge> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("CoGe Base URI")
+            .default("https://genomevolution.org/coge/api/v1".into())
+            .interact()?;
+
+        self.base_uri = Url::parse(&base_uri).ok();
+
+        Ok(())
     }
 }
 
@@ -203,6 +270,31 @@ impl DETools {
         let mut merged: DETools = serde_merge::omerge(&self, &right)?;
         merged.admin = self.admin.merge(&right.admin)?;
         Ok(merged)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let max_cpu_limit = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Max CPU Limit")
+            .default(24)
+            .interact()?;
+
+        self.admin.max_cpu_limit = Some(max_cpu_limit);
+
+        let max_memory_limit = Input::<u64>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Max Memory Limit")
+            .default(75161927680)
+            .interact()?;
+
+        self.admin.max_memory_limit = Some(max_memory_limit);
+
+        let max_disk_limit = Input::<u64>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Max Disk Limit")
+            .default(1099511627776)
+            .interact()?;
+
+        self.admin.max_disk_limit = Some(max_disk_limit);
+
+        Ok(())
     }
 }
 
@@ -278,6 +370,20 @@ impl DE {
         }
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("DE Base URI")
+            .interact()?;
+
+        self.base_uri = Url::parse(&base_uri).ok();
+
+        self.subscriptions.as_mut().unwrap().ask_for_info()?;
+        self.coge.as_mut().unwrap().ask_for_info()?;
+        self.tools.as_mut().unwrap().ask_for_info()?;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -303,6 +409,17 @@ impl Docker {
     fn merge(&self, right: &Docker) -> anyhow::Result<Docker> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let tag = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Docker Tag")
+            .default("latest".into())
+            .interact()?;
+
+        self.tag = tag;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -319,6 +436,31 @@ pub struct ElasticSearch {
 impl ElasticSearch {
     fn merge(&self, right: &ElasticSearch) -> anyhow::Result<ElasticSearch> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ElasticSearch Base URI")
+            .interact()?;
+
+        let username = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ElasticSearch Username")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("ElasticSearch Password")
+            .interact()?;
+
+        let index = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ElasticSearch Index")
+            .interact()?;
+
+        self.base_uri = Url::parse(&base_uri).ok();
+        self.username = username;
+        self.password = password;
+        self.index = index;
+
+        Ok(())
     }
 }
 
@@ -338,6 +480,35 @@ impl Email {
     fn merge(&self, right: &Email) -> anyhow::Result<Email> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let src = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Email Source")
+            .interact()?;
+
+        let dest = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Email Destination")
+            .interact()?;
+
+        let perm_id_default = dest.clone();
+        let perm_id_request_dest = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID Request Destination")
+            .default(perm_id_default)
+            .interact()?;
+
+        let support_dest_default = dest.clone();
+        let support_dest = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Support Destination")
+            .default(support_dest_default)
+            .interact()?;
+
+        self.src = src;
+        self.dest = dest;
+        self.perm_id_request_dest = perm_id_request_dest;
+        self.support_dest = support_dest;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -353,6 +524,26 @@ pub struct GrouperLoader {
 impl GrouperLoader {
     fn merge(&self, right: &GrouperLoader) -> anyhow::Result<GrouperLoader> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Loader URI")
+            .interact()?;
+
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Loader User")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Loader Password")
+            .interact()?;
+
+        self.uri = Url::parse(&uri).ok();
+        self.user = user;
+        self.password = password;
+
+        Ok(())
     }
 }
 
@@ -371,6 +562,26 @@ impl Grouper {
         merged.loader = self.loader.merge(&right.loader)?;
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let morph_string = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Morph String")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Password")
+            .interact()?;
+
+        let folder_name_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Grouper Folder Name Prefix")
+            .interact()?;
+
+        self.morph_string = morph_string;
+        self.password = password;
+        self.folder_name_prefix = folder_name_prefix;
+        self.loader.ask_for_info()?;
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -386,6 +597,32 @@ pub struct Icat {
 impl Icat {
     fn merge(&self, right: &Icat) -> anyhow::Result<Icat> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ICAT Host")
+            .interact()?;
+
+        let port = Input::<u16>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ICAT Port")
+            .default(1247)
+            .interact()?;
+
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("ICAT User")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("ICAT Password")
+            .interact()?;
+
+        self.host = host;
+        self.port = port;
+        self.user = user;
+        self.password = password;
+
+        Ok(())
     }
 }
 
@@ -409,6 +646,23 @@ impl Infosquito {
     fn merge(&self, right: &Infosquito) -> anyhow::Result<Infosquito> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let day_num = Input::<u8>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Infosquito Day Number")
+            .default(4)
+            .interact()?;
+
+        let prefix_length = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Infosquito Prefix Length")
+            .default(4)
+            .interact()?;
+
+        self.day_num = Some(day_num);
+        self.prefix_length = Some(prefix_length);
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -428,6 +682,33 @@ pub struct Intercom {
 impl Intercom {
     fn merge(&self, right: &Intercom) -> anyhow::Result<Intercom> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Intercom Enabled")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        let app_id = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Intercom App ID")
+            .interact()?;
+
+        let company_id = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Intercom Company ID")
+            .interact()?;
+
+        let company_name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Intercom Company Name")
+            .interact()?;
+
+        self.enabled = enabled == 0;
+        self.app_id = app_id;
+        self.company_id = company_id;
+        self.company_name = company_name;
+
+        Ok(())
     }
 }
 
@@ -449,6 +730,16 @@ impl Default for IrodsWebDav {
 impl IrodsWebDav {
     fn merge(&self, right: &IrodsWebDav) -> anyhow::Result<IrodsWebDav> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let anon_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods WebDav Anon URI")
+            .interact()?;
+
+        self.anon_uri = Url::parse(&anon_uri).ok();
+
+        Ok(())
     }
 }
 
@@ -497,6 +788,43 @@ impl Irods {
         merged.amqp = self.amqp.merge(&right.amqp)?;
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods Host")
+            .interact()?;
+
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods User")
+            .interact()?;
+
+        let zone = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods Zone")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods Password")
+            .interact()?;
+
+        let admin_users = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods Admin Users")
+            .interact()?;
+
+        let perms_filter = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Irods Perms Filter")
+            .interact()?;
+
+        self.host = host;
+        self.user = user;
+        self.zone = zone;
+        self.password = password;
+        self.admin_users = admin_users.split(',').map(|s| s.to_string()).collect();
+        self.perms_filter = perms_filter.split(',').map(|s| s.to_string()).collect();
+
+        self.web_dav.as_mut().unwrap().ask_for_info()?;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -517,6 +845,17 @@ impl Jobs {
     fn merge(&self, right: &Jobs) -> anyhow::Result<Jobs> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let data_transfer_image = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Jobs Data Transfer Image")
+            .default("harbor.cyverse.org/de/porklock".into())
+            .interact()?;
+
+        self.data_transfer_image = data_transfer_image;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -531,6 +870,21 @@ pub struct KeycloakVice {
 impl KeycloakVice {
     fn merge(&self, right: &KeycloakVice) -> anyhow::Result<KeycloakVice> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let client_id = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak VICE Client ID")
+            .interact()?;
+
+        let client_secret = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak VICE Client Secret")
+            .interact()?;
+
+        self.client_id = client_id;
+        self.client_secret = client_secret;
+
+        Ok(())
     }
 }
 
@@ -555,6 +909,33 @@ impl Keycloak {
         merged.vice = self.vice.merge(&right.vice)?;
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let server_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak Server URI")
+            .interact()?;
+
+        let realm = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak Realm")
+            .interact()?;
+
+        let client_id = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak Client ID")
+            .interact()?;
+
+        let client_secret = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Keycloak Client Secret")
+            .interact()?;
+
+        self.server_uri = Url::parse(&server_uri).ok();
+        self.realm = realm;
+        self.client_id = client_id;
+        self.client_secret = client_secret;
+
+        self.vice.ask_for_info()?;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -567,6 +948,16 @@ pub struct Pgp {
 impl Pgp {
     fn merge(&self, right: &Pgp) -> anyhow::Result<Pgp> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let key_password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("PGP Key Password")
+            .interact()?;
+
+        self.key_password = key_password;
+
+        Ok(())
     }
 }
 
@@ -587,6 +978,31 @@ impl PermanentIdDataCite {
     fn merge(&self, right: &PermanentIdDataCite) -> anyhow::Result<PermanentIdDataCite> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID DataCite Base URI")
+            .interact()?;
+
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID DataCite User")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID DataCite Password")
+            .interact()?;
+
+        let doi_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID DataCite DOI Prefix")
+            .interact()?;
+
+        self.base_uri = Url::parse(&base_uri).ok();
+        self.user = user;
+        self.password = password;
+        self.doi_prefix = doi_prefix;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -601,6 +1017,18 @@ impl PermanentId {
         let mut merged: PermanentId = serde_merge::omerge(&self, &right)?;
         merged.data_cite = self.data_cite.merge(&right.data_cite)?;
         Ok(merged)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let curators_group = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Permanent ID Curators Group")
+            .interact()?;
+
+        self.curators_group = curators_group;
+
+        self.data_cite.ask_for_info()?;
+
+        Ok(())
     }
 }
 
@@ -634,6 +1062,34 @@ impl Unleash {
     fn merge(&self, right: &Unleash) -> anyhow::Result<Unleash> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_url = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Unleash Base URL")
+            .default("http://unleash:4242".into())
+            .interact()?;
+
+        let api_path = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Unleash API Path")
+            .default("/api".into())
+            .interact()?;
+
+        let maintenance_flag = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Unleash Maintenance Flag")
+            .default("DE-Maintenance".into())
+            .interact()?;
+
+        let api_token = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Unleash API Token")
+            .interact()?;
+
+        self.base_url = Url::parse(&base_url).ok();
+        self.api_path = Some(api_path);
+        self.maintenance_flag = Some(maintenance_flag);
+        self.api_token = api_token;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -646,6 +1102,16 @@ pub struct UserPortal {
 impl UserPortal {
     fn merge(&self, right: &UserPortal) -> anyhow::Result<UserPortal> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("User Portal Base URI")
+            .interact()?;
+
+        self.base_uri = Some(base_uri);
+
+        Ok(())
     }
 }
 
@@ -669,6 +1135,23 @@ impl ViceFileTransfers {
     fn merge(&self, right: &ViceFileTransfers) -> anyhow::Result<ViceFileTransfers> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let image = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice File Transfers Image")
+            .default("harbor.cyverse.org/de/vice-file-transfers".into())
+            .interact()?;
+
+        let tag = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice File Transfers Tag")
+            .default("latest".into())
+            .interact()?;
+
+        self.image = Some(image);
+        self.tag = Some(tag);
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -680,6 +1163,16 @@ pub struct ViceDefaultBackend {
 impl ViceDefaultBackend {
     fn merge(&self, right: &ViceDefaultBackend) -> anyhow::Result<ViceDefaultBackend> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let loading_page_template_string = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Default Backend Loading Page Template String")
+            .interact()?;
+
+        self.loading_page_template_string = loading_page_template_string;
+
+        Ok(())
     }
 }
 
@@ -745,6 +1238,58 @@ impl Vice {
         merged.default_backend = self.default_backend.merge(&right.default_backend)?;
         Ok(merged)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Base URI")
+            .interact()?;
+
+        let image_pull_secret = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Image Pull Secret")
+            .default("vice-image-pull-secret".into())
+            .interact()?;
+
+        let image_cache = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Image Cache")
+            .default(
+                "harbor.cyverse.org/de/vice-proxy:latest,harbor.cyverse.org/de/porklock:latest,harbor.cyverse.org/de/vice-file-transfers:latest,harbor.cyverse.org/vice/cli/bash:latest,harbor.cyverse.org/legacy/datahog:beta,harbor.cyverse.org/vice/jupyter/datascience:latest,harbor.cyverse.org/vice/jupyter/rstudio:latest,harbor.cyverse.org/vice/jupyter/geospatial:latest,harbor.cyverse.org/vice/rstudio/rstudio,harbor.cyverse.org/vice/rstudio/geospatial:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/vscode:latest,harbor.cyverse.org/vice/xpra/qgis:20.04,harbor.cyverse.org/vice/rstudio/stan:latest"
+                    .into(),
+            )
+            .interact()?;
+
+        let default_cas_url = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Default CAS URL")
+            .default("https://auth.cyverse.org/cas5".into())
+            .interact()?;
+
+        let default_cas_validate = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Default CAS Validate")
+            .default("validate".into())
+            .interact()?;
+
+        let use_csi_data = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Use CSI Driver")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        let use_case_chars_min = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Vice Use Case Chars Min")
+            .default(60)
+            .interact()?;
+
+        self.file_transfers.as_mut().unwrap().ask_for_info()?;
+        self.default_backend.ask_for_info()?;
+        self.base_uri = Url::parse(&base_uri).ok();
+        self.image_pull_secret = Some(image_pull_secret);
+        self.image_cache = Some(image_cache.split(',').map(|s| s.to_string()).collect());
+        self.default_cas_url = Some(default_cas_url);
+        self.default_cas_validate = Some(default_cas_validate);
+        self.use_case_chars_min = Some(use_case_chars_min);
+        self.use_csi_driver = Some(use_csi_data == 0);
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -772,6 +1317,37 @@ impl Default for DatabaseConfig {
 impl DatabaseConfig {
     fn merge(&self, right: &DatabaseConfig) -> anyhow::Result<DatabaseConfig> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Database User")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Database Password")
+            .interact()?;
+
+        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Database Host")
+            .interact()?;
+
+        let port = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Database Port")
+            .default(5432)
+            .interact()?;
+
+        let name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Database Name")
+            .interact()?;
+
+        self.user = user;
+        self.password = password;
+        self.host = host;
+        self.port = port;
+        self.name = name;
+
+        Ok(())
     }
 }
 
@@ -805,6 +1381,51 @@ impl QMSDatabaseConfig {
     fn merge(&self, right: &QMSDatabaseConfig) -> anyhow::Result<QMSDatabaseConfig> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database User")
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Password")
+            .interact()?;
+
+        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Host")
+            .interact()?;
+
+        let port = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Port")
+            .default(5432)
+            .interact()?;
+
+        let name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Name")
+            .interact()?;
+
+        let automigrate = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Automigrate")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        let reinitialize = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Database Reinitialize")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        self.user = user;
+        self.password = password;
+        self.host = host;
+        self.port = Some(port);
+        self.name = Some(name);
+        self.automigrate = Some(automigrate == 0);
+        self.reinitialize = Some(reinitialize == 0);
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -829,6 +1450,23 @@ impl Admin {
     fn merge(&self, right: &Admin) -> anyhow::Result<Admin> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let groups = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Admin Groups")
+            .default("core-service,tito-admins,tito-qa-admins,dev,staff".into())
+            .interact()?;
+
+        let attribute = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Admin Attribute")
+            .default("entitlement".into())
+            .interact()?;
+
+        self.groups = Some(groups);
+        self.attribute = Some(attribute);
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -850,6 +1488,23 @@ impl Default for Analytics {
 impl Analytics {
     fn merge(&self, right: &Analytics) -> anyhow::Result<Analytics> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Analytics Enabled")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        let id = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Analytics ID")
+            .interact()?;
+
+        self.enabled = Some(enabled == 0);
+        self.id = Some(id);
+
+        Ok(())
     }
 }
 
@@ -880,6 +1535,27 @@ impl Harbor {
     fn merge(&self, right: &Harbor) -> anyhow::Result<Harbor> {
         Ok(serde_merge::omerge(&self, &right)?)
     }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let url = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Harbor URL")
+            .default("harbor.cyverse.org".into())
+            .interact()?;
+
+        let project_qa_robot_name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Harbor Project QA Robot Name")
+            .interact()?;
+
+        let project_qa_robot_secret = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Harbor Project QA Robot Secret")
+            .interact()?;
+
+        self.url = Some(url);
+        self.project_qa_robot_name = project_qa_robot_name;
+        self.project_qa_robot_secret = project_qa_robot_secret;
+
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -899,6 +1575,18 @@ impl Default for Qms {
 impl Qms {
     fn merge(&self, right: &Qms) -> anyhow::Result<Qms> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("QMS Enabled")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        self.enabled = Some(enabled == 0);
+
+        Ok(())
     }
 }
 
@@ -924,6 +1612,23 @@ impl Default for Jaeger {
 impl Jaeger {
     fn merge(&self, right: &Jaeger) -> anyhow::Result<Jaeger> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let endpoint = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Jaeger Endpoint")
+            .default("http://jaeger-collector.jaeger.svc.cluster.local:14250".into())
+            .interact()?;
+
+        let http_endpoint = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Jaeger HTTP Endpoint")
+            .default("http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces".into())
+            .interact()?;
+
+        self.endpoint = Url::parse(&endpoint).ok();
+        self.http_endpoint = Url::parse(&http_endpoint).ok();
+
+        Ok(())
     }
 }
 
@@ -1194,6 +1899,57 @@ impl ConfigValues {
             }
         }
         Ok(merged)
+    }
+
+    pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        let environment = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Environment")
+            .interact()?;
+        let namespace = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Namespace")
+            .interact()?;
+        let uid_domain = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("UID Domain")
+            .interact()?;
+
+        self.agave.as_mut().unwrap().ask_for_info()?;
+        //self.base_urls.as_mut().unwrap().ask_for_info()?;
+        self.dashboard_aggregator.as_mut().unwrap().ask_for_info()?;
+        self.de.ask_for_info()?;
+        self.docker.as_mut().unwrap().ask_for_info()?;
+        self.elasticsearch.ask_for_info()?;
+        self.email.ask_for_info()?;
+        self.grouper.ask_for_info()?;
+        self.icat.ask_for_info()?;
+        self.infosquito.as_mut().unwrap().ask_for_info()?;
+        self.intercom.as_mut().unwrap().ask_for_info()?;
+        self.irods.ask_for_info()?;
+        self.jobs.as_mut().unwrap().ask_for_info()?;
+        self.keycloak.ask_for_info()?;
+        self.pgp.ask_for_info()?;
+        self.permanent_id.as_mut().unwrap().ask_for_info()?;
+        self.unleash.as_mut().unwrap().ask_for_info()?;
+        self.user_portal.ask_for_info()?;
+        self.vice.ask_for_info()?;
+        self.de_db.ask_for_info()?;
+        self.grouper_db.ask_for_info()?;
+        self.new_notifications_db.ask_for_info()?;
+        self.notifications_db.ask_for_info()?;
+        self.permissions_db.ask_for_info()?;
+        self.qms_db.ask_for_info()?;
+        self.metadata_db.ask_for_info()?;
+        self.unleash_db.ask_for_info()?;
+        self.admin.as_mut().unwrap().ask_for_info()?;
+        self.analytics.as_mut().unwrap().ask_for_info()?;
+        self.harbor.as_mut().unwrap().ask_for_info()?;
+        self.qms.as_mut().unwrap().ask_for_info()?;
+        self.jaeger.as_mut().unwrap().ask_for_info()?;
+
+        self.environment = environment;
+        self.namespace = namespace;
+        self.uid_domain = uid_domain;
+
+        Ok(())
     }
 }
 
