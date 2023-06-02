@@ -194,8 +194,9 @@ impl DashboardAggregator {
             .interact()?;
 
         self.public_group = public_group;
-
-        self.website.as_mut().unwrap().ask_for_info()?;
+        let mut new_website = Website::default();
+        new_website.ask_for_info()?;
+        self.website = Some(new_website);
 
         Ok(())
     }
@@ -378,9 +379,17 @@ impl DE {
 
         self.base_uri = Url::parse(&base_uri).ok();
 
-        self.subscriptions.as_mut().unwrap().ask_for_info()?;
-        self.coge.as_mut().unwrap().ask_for_info()?;
-        self.tools.as_mut().unwrap().ask_for_info()?;
+        let mut new_subs = DESubscriptions::default();
+        new_subs.ask_for_info()?;
+        self.subscriptions = Some(new_subs);
+
+        let mut new_coge = DECoge::default();
+        new_coge.ask_for_info()?;
+        self.coge = Some(new_coge);
+
+        let mut new_tools = DETools::default();
+        new_tools.ask_for_info()?;
+        self.tools = Some(new_tools);
 
         Ok(())
     }
@@ -821,7 +830,9 @@ impl Irods {
         self.admin_users = admin_users.split(',').map(|s| s.to_string()).collect();
         self.perms_filter = perms_filter.split(',').map(|s| s.to_string()).collect();
 
-        self.web_dav.as_mut().unwrap().ask_for_info()?;
+        let mut new_web_dav = IrodsWebDav::default();
+        new_web_dav.ask_for_info()?;
+        self.web_dav = Some(new_web_dav);
 
         Ok(())
     }
@@ -1278,7 +1289,10 @@ impl Vice {
             .default(60)
             .interact()?;
 
-        self.file_transfers.as_mut().unwrap().ask_for_info()?;
+        let mut new_file_transfers = ViceFileTransfers::default();
+        new_file_transfers.ask_for_info()?;
+        self.file_transfers = Some(new_file_transfers);
+
         self.default_backend.ask_for_info()?;
         self.base_uri = Url::parse(&base_uri).ok();
         self.image_pull_secret = Some(image_pull_secret);
@@ -1912,23 +1926,50 @@ impl ConfigValues {
             .with_prompt("UID Domain")
             .interact()?;
 
-        self.agave.as_mut().unwrap().ask_for_info()?;
-        //self.base_urls.as_mut().unwrap().ask_for_info()?;
-        self.dashboard_aggregator.as_mut().unwrap().ask_for_info()?;
+        let mut new_agave = Agave::default();
+        new_agave.ask_for_info()?;
+        self.agave = Some(new_agave);
+
+        let mut new_da = DashboardAggregator::default();
+        new_da.ask_for_info()?;
+        self.dashboard_aggregator = Some(new_da);
+
         self.de.ask_for_info()?;
-        self.docker.as_mut().unwrap().ask_for_info()?;
+
+        let mut new_docker = Docker::default();
+        new_docker.ask_for_info()?;
+        self.docker = Some(new_docker);
+
         self.elasticsearch.ask_for_info()?;
         self.email.ask_for_info()?;
         self.grouper.ask_for_info()?;
         self.icat.ask_for_info()?;
-        self.infosquito.as_mut().unwrap().ask_for_info()?;
-        self.intercom.as_mut().unwrap().ask_for_info()?;
+
+        let mut new_infosquito = Infosquito::default();
+        new_infosquito.ask_for_info()?;
+        self.infosquito = Some(new_infosquito);
+
+        let mut new_intercom = Intercom::default();
+        new_intercom.ask_for_info()?;
+        self.intercom = Some(new_intercom);
+
         self.irods.ask_for_info()?;
-        self.jobs.as_mut().unwrap().ask_for_info()?;
+
+        let mut new_jobs = Jobs::default();
+        new_jobs.ask_for_info()?;
+        self.jobs = Some(new_jobs);
+
         self.keycloak.ask_for_info()?;
         self.pgp.ask_for_info()?;
-        self.permanent_id.as_mut().unwrap().ask_for_info()?;
-        self.unleash.as_mut().unwrap().ask_for_info()?;
+
+        let mut new_permanent_id = PermanentId::default();
+        new_permanent_id.ask_for_info()?;
+        self.permanent_id = Some(new_permanent_id);
+
+        let mut new_unleash = Unleash::default();
+        new_unleash.ask_for_info()?;
+        self.unleash = Some(new_unleash);
+
         self.user_portal.ask_for_info()?;
         self.vice.ask_for_info()?;
         self.de_db.ask_for_info()?;
@@ -1939,11 +1980,26 @@ impl ConfigValues {
         self.qms_db.ask_for_info()?;
         self.metadata_db.ask_for_info()?;
         self.unleash_db.ask_for_info()?;
-        self.admin.as_mut().unwrap().ask_for_info()?;
-        self.analytics.as_mut().unwrap().ask_for_info()?;
-        self.harbor.as_mut().unwrap().ask_for_info()?;
-        self.qms.as_mut().unwrap().ask_for_info()?;
-        self.jaeger.as_mut().unwrap().ask_for_info()?;
+
+        let mut new_admin = Admin::default();
+        new_admin.ask_for_info()?;
+        self.admin = Some(new_admin);
+
+        let mut new_analytics = Analytics::default();
+        new_analytics.ask_for_info()?;
+        self.analytics = Some(new_analytics);
+
+        let mut new_harbor = Harbor::default();
+        new_harbor.ask_for_info()?;
+        self.harbor = Some(new_harbor);
+
+        let mut new_qms = Qms::default();
+        new_qms.ask_for_info()?;
+        self.qms = Some(new_qms);
+
+        let mut new_jaeger = Jaeger::default();
+        new_jaeger.ask_for_info()?;
+        self.jaeger = Some(new_jaeger);
 
         self.environment = environment;
         self.namespace = namespace;

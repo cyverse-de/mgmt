@@ -18,6 +18,12 @@ fn cli() -> Command {
                         arg!(-o --"output-file" <OUTPUT_FILE>)
                             .value_parser(clap::value_parser!(PathBuf)),
                     ),
+                )
+                .subcommand(
+                    Command::new("env-config").arg(
+                        arg!(-o --"output-file" <OUTPUT_FILE>)
+                            .value_parser(clap::value_parser!(PathBuf)),
+                    ),
                 ),
         )
         .subcommand(
@@ -46,6 +52,21 @@ fn create_defaults(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
 
     let defaults = config_values::ConfigValues::default();
     Ok(serde_yaml::to_writer(writer, &defaults)?)
+}
+
+fn create_env_config(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
+    if let Some(p) = output_file {
+        println!("output file is {}", p.display());
+    }
+
+    let writer = match output_file {
+        Some(x) => Box::new(File::create(x)?) as Box<dyn Write>,
+        None => Box::new(io::stdout()) as Box<dyn Write>,
+    };
+
+    let mut env_config = config_values::ConfigValues::default();
+    env_config.ask_for_info()?;
+    Ok(serde_yaml::to_writer(writer, &env_config)?)
 }
 
 fn validate_file(
@@ -90,6 +111,10 @@ fn main() -> anyhow::Result<()> {
                 ("defaults", sub_m) => {
                     let output_path = sub_m.get_one::<PathBuf>("output-file");
                     create_defaults(output_path)?;
+                }
+                ("env-config", sub_m) => {
+                    let output_path = sub_m.get_one::<PathBuf>("output-file");
+                    create_env_config(output_path)?;
                 }
                 (name, _) => {
                     unreachable!("Bad subcommand: {name}")
