@@ -43,36 +43,37 @@ impl Agave {
 
     pub fn ask_for_info(
         &mut self,
+        theme: &ColorfulTheme,
         base_url: &url::Url,
         irods_external: &str,
     ) -> anyhow::Result<()> {
         let df_base_url = base_url.clone().join("/de/agave-cb")?;
-        let callback_base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+        let callback_base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Agave Callback Base URI")
             .default(df_base_url.to_string())
             .interact()?;
         self.callback_base_uri = callback_base_uri;
 
         let rd_uri = base_url.clone().join("/oauth/callback/agave")?;
-        let redirect_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+        let redirect_uri = Input::<String>::with_theme(theme)
             .with_prompt("Agave Redirect URI")
             .default(rd_uri.to_string())
             .interact()?;
         self.redirect_uri = redirect_uri;
 
-        let agave_key = Input::<String>::with_theme(&ColorfulTheme::default())
+        let agave_key = Input::<String>::with_theme(theme)
             .with_prompt("Agave Key")
             .interact()?;
 
         self.key = agave_key;
 
-        let secret = Input::<String>::with_theme(&ColorfulTheme::default())
+        let secret = Input::<String>::with_theme(theme)
             .with_prompt("Agave Secret")
             .interact()?;
 
         self.secret = secret;
 
-        let storage_system = Input::<String>::with_theme(&ColorfulTheme::default())
+        let storage_system = Input::<String>::with_theme(theme)
             .with_prompt("Agave Storage System")
             .default(irods_external.into())
             .interact()?;
@@ -80,13 +81,13 @@ impl Agave {
         self.storage_system = storage_system;
         self.enabled = Some(true);
 
-        let read_timeout = Input::<u32>::with_theme(&ColorfulTheme::default())
+        let read_timeout = Input::<u32>::with_theme(theme)
             .with_prompt("Agave Read Timeout")
             .default(30000)
             .interact()?;
         self.read_timeout = Some(read_timeout);
 
-        let jobs_enabled = Select::with_theme(&ColorfulTheme::default())
+        let jobs_enabled = Select::with_theme(theme)
             .with_prompt("Agave Jobs Enabled")
             .default(0)
             .items(&["Yes", "No"])
@@ -113,25 +114,25 @@ impl Amqp {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, prefix: &str) -> anyhow::Result<()> {
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme, prefix: &str) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} AMQP User", prefix))
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt(format!("{} AMQP Password", prefix))
             .interact()?;
 
-        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+        let host = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} AMQP Host", prefix))
             .interact()?;
 
-        let port = Input::<u16>::with_theme(&ColorfulTheme::default())
+        let port = Input::<u16>::with_theme(theme)
             .with_prompt(format!("{} AMQP Port", prefix))
             .default(5672)
             .interact()?;
 
-        let vhost = Input::<String>::with_theme(&ColorfulTheme::default())
+        let vhost = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} AMQP VHost", prefix))
             .interact()?;
 
@@ -223,8 +224,8 @@ impl Website {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let url = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let url = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Website URL")
             .default("https://cyverse.org".into())
             .interact()?;
@@ -253,14 +254,14 @@ impl DashboardAggregator {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let public_group = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let public_group = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Public Group")
             .interact()?;
 
         self.public_group = public_group;
         let mut new_website = Website::default();
-        new_website.ask_for_info()?;
+        new_website.ask_for_info(theme)?;
         self.website = Some(new_website);
 
         Ok(())
@@ -281,8 +282,8 @@ impl DESubscriptions {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let checkout_url = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let checkout_url = Input::<String>::with_theme(theme)
             .with_prompt("Subscriptions Checkout URL")
             .default("https://cyverse-subscription.phoenixbioinformatics.org".into())
             .interact()?;
@@ -305,8 +306,8 @@ impl DECoge {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("CoGe Base URI")
             .default("https://genomevolution.org/coge/api/v1".into())
             .interact()?;
@@ -338,22 +339,22 @@ impl DETools {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let max_cpu_limit = Input::<u32>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let max_cpu_limit = Input::<u32>::with_theme(theme)
             .with_prompt("Max CPU Limit")
             .default(24)
             .interact()?;
 
         self.admin.max_cpu_limit = Some(max_cpu_limit);
 
-        let max_memory_limit = Input::<u64>::with_theme(&ColorfulTheme::default())
+        let max_memory_limit = Input::<u64>::with_theme(theme)
             .with_prompt("Max Memory Limit")
             .default(75161927680)
             .interact()?;
 
         self.admin.max_memory_limit = Some(max_memory_limit);
 
-        let max_disk_limit = Input::<u64>::with_theme(&ColorfulTheme::default())
+        let max_disk_limit = Input::<u64>::with_theme(theme)
             .with_prompt("Max Disk Limit")
             .default(1099511627776)
             .interact()?;
@@ -437,31 +438,31 @@ impl DE {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        self.amqp.ask_for_info("DE")?;
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        self.amqp.ask_for_info(theme, "DE")?;
 
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("DE Base URI")
             .interact()?;
 
         self.base_uri = Url::parse(&base_uri).ok();
 
         let mut new_subs = DESubscriptions::default();
-        new_subs.ask_for_info()?;
+        new_subs.ask_for_info(theme)?;
         self.subscriptions = Some(new_subs);
 
-        let default_output_folder = Input::<String>::with_theme(&ColorfulTheme::default())
+        let default_output_folder = Input::<String>::with_theme(theme)
             .with_prompt("DE Default Output Folder")
             .default("analyses".into())
             .interact()?;
         self.default_output_folder = default_output_folder;
 
         let mut new_coge = DECoge::default();
-        new_coge.ask_for_info()?;
+        new_coge.ask_for_info(theme)?;
         self.coge = Some(new_coge);
 
         let mut new_tools = DETools::default();
-        new_tools.ask_for_info()?;
+        new_tools.ask_for_info(theme)?;
         self.tools = Some(new_tools);
 
         Ok(())
@@ -492,8 +493,8 @@ impl Docker {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let tag = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let tag = Input::<String>::with_theme(theme)
             .with_prompt("Docker Tag")
             .default("latest".into())
             .interact()?;
@@ -520,20 +521,20 @@ impl ElasticSearch {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Base URI")
             .interact()?;
 
-        let username = Input::<String>::with_theme(&ColorfulTheme::default())
+        let username = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Username")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("ElasticSearch Password")
             .interact()?;
 
-        let index = Input::<String>::with_theme(&ColorfulTheme::default())
+        let index = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Index")
             .interact()?;
 
@@ -563,23 +564,23 @@ impl Email {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let src = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let src = Input::<String>::with_theme(theme)
             .with_prompt("Email Source")
             .interact()?;
 
-        let dest = Input::<String>::with_theme(&ColorfulTheme::default())
+        let dest = Input::<String>::with_theme(theme)
             .with_prompt("Email Destination")
             .interact()?;
 
         let perm_id_default = dest.clone();
-        let perm_id_request_dest = Input::<String>::with_theme(&ColorfulTheme::default())
+        let perm_id_request_dest = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Request Destination")
             .default(perm_id_default)
             .interact()?;
 
         let support_dest_default = dest.clone();
-        let support_dest = Input::<String>::with_theme(&ColorfulTheme::default())
+        let support_dest = Input::<String>::with_theme(theme)
             .with_prompt("Support Destination")
             .default(support_dest_default)
             .interact()?;
@@ -608,16 +609,16 @@ impl GrouperLoader {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let uri = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Loader URI")
             .interact()?;
 
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+        let user = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Loader User")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("Grouper Loader Password")
             .interact()?;
 
@@ -645,23 +646,23 @@ impl Grouper {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let morph_string = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let morph_string = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Morph String")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("Grouper Password")
             .interact()?;
 
-        let folder_name_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+        let folder_name_prefix = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Folder Name Prefix")
             .interact()?;
 
         self.morph_string = morph_string;
         self.password = password;
         self.folder_name_prefix = folder_name_prefix;
-        self.loader.ask_for_info()?;
+        self.loader.ask_for_info(theme)?;
         Ok(())
     }
 }
@@ -681,21 +682,21 @@ impl Icat {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let host = Input::<String>::with_theme(theme)
             .with_prompt("ICAT Host")
             .interact()?;
 
-        let port = Input::<u16>::with_theme(&ColorfulTheme::default())
+        let port = Input::<u16>::with_theme(theme)
             .with_prompt("ICAT Port")
             .default(1247)
             .interact()?;
 
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+        let user = Input::<String>::with_theme(theme)
             .with_prompt("ICAT User")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("ICAT Password")
             .interact()?;
 
@@ -729,13 +730,13 @@ impl Infosquito {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let day_num = Input::<u8>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let day_num = Input::<u8>::with_theme(theme)
             .with_prompt("Infosquito Day Number")
             .default(4)
             .interact()?;
 
-        let prefix_length = Input::<u32>::with_theme(&ColorfulTheme::default())
+        let prefix_length = Input::<u32>::with_theme(theme)
             .with_prompt("Infosquito Prefix Length")
             .default(4)
             .interact()?;
@@ -766,22 +767,22 @@ impl Intercom {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let enabled = Select::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(theme)
             .with_prompt("Intercom Enabled")
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
 
-        let app_id = Input::<String>::with_theme(&ColorfulTheme::default())
+        let app_id = Input::<String>::with_theme(theme)
             .with_prompt("Intercom App ID")
             .interact()?;
 
-        let company_id = Input::<String>::with_theme(&ColorfulTheme::default())
+        let company_id = Input::<String>::with_theme(theme)
             .with_prompt("Intercom Company ID")
             .interact()?;
 
-        let company_name = Input::<String>::with_theme(&ColorfulTheme::default())
+        let company_name = Input::<String>::with_theme(theme)
             .with_prompt("Intercom Company Name")
             .interact()?;
 
@@ -814,8 +815,8 @@ impl IrodsWebDav {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, external: &str) -> anyhow::Result<()> {
-        let anon_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme, external: &str) -> anyhow::Result<()> {
+        let anon_uri = Input::<String>::with_theme(theme)
             .with_prompt("Irods WebDav Anon URI")
             .default(format!("https://{}/dav-anon", external))
             .interact()?;
@@ -872,35 +873,35 @@ impl Irods {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        self.amqp.ask_for_info("iRODS")?;
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        self.amqp.ask_for_info(theme, "iRODS")?;
 
-        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+        let host = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Host")
             .interact()?;
 
-        let external_host = Input::<String>::with_theme(&ColorfulTheme::default())
+        let external_host = Input::<String>::with_theme(theme)
             .with_prompt("iRODS External Host")
             .default(host.clone())
             .interact()?;
 
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+        let user = Input::<String>::with_theme(theme)
             .with_prompt("iRODS User")
             .interact()?;
 
-        let zone = Input::<String>::with_theme(&ColorfulTheme::default())
+        let zone = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Zone")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("iRODS Password")
             .interact()?;
 
-        let admin_users = Input::<String>::with_theme(&ColorfulTheme::default())
+        let admin_users = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Admin Users")
             .interact()?;
 
-        let perms_filter = Input::<String>::with_theme(&ColorfulTheme::default())
+        let perms_filter = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Perms Filter")
             .interact()?;
 
@@ -915,7 +916,7 @@ impl Irods {
         let mut new_web_dav = IrodsWebDav::default();
 
         // We're okay with unwrap here since it's user input and panicking is fine.
-        new_web_dav.ask_for_info(self.external_host.as_ref().unwrap())?;
+        new_web_dav.ask_for_info(theme, self.external_host.as_ref().unwrap())?;
 
         self.web_dav = Some(new_web_dav);
 
@@ -942,8 +943,8 @@ impl Jobs {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let data_transfer_image = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let data_transfer_image = Input::<String>::with_theme(theme)
             .with_prompt("Jobs Data Transfer Image")
             .default("harbor.cyverse.org/de/porklock".into())
             .interact()?;
@@ -968,12 +969,12 @@ impl KeycloakVice {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let client_id = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client ID")
             .interact()?;
 
-        let client_secret = Password::with_theme(&ColorfulTheme::default())
+        let client_secret = Password::with_theme(theme)
             .with_prompt("Keycloak VICE Client Secret")
             .interact()?;
 
@@ -1006,20 +1007,20 @@ impl Keycloak {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let server_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let server_uri = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Server URI")
             .interact()?;
 
-        let realm = Input::<String>::with_theme(&ColorfulTheme::default())
+        let realm = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Realm")
             .interact()?;
 
-        let client_id = Input::<String>::with_theme(&ColorfulTheme::default())
+        let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Client ID")
             .interact()?;
 
-        let client_secret = Password::with_theme(&ColorfulTheme::default())
+        let client_secret = Password::with_theme(theme)
             .with_prompt("Keycloak Client Secret")
             .interact()?;
 
@@ -1028,7 +1029,7 @@ impl Keycloak {
         self.client_id = client_id;
         self.client_secret = client_secret;
 
-        self.vice.ask_for_info()?;
+        self.vice.ask_for_info(theme)?;
 
         Ok(())
     }
@@ -1046,8 +1047,8 @@ impl Pgp {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let key_password = Password::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let key_password = Password::with_theme(theme)
             .with_prompt("PGP Key Password")
             .interact()?;
 
@@ -1075,20 +1076,20 @@ impl PermanentIdDataCite {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Base URI")
             .interact()?;
 
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+        let user = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite User")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("Permanent ID DataCite Password")
             .interact()?;
 
-        let doi_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+        let doi_prefix = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite DOI Prefix")
             .interact()?;
 
@@ -1115,14 +1116,14 @@ impl PermanentId {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let curators_group = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let curators_group = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Curators Group")
             .interact()?;
 
         self.curators_group = curators_group;
 
-        self.data_cite.ask_for_info()?;
+        self.data_cite.ask_for_info(theme)?;
 
         Ok(())
     }
@@ -1159,23 +1160,23 @@ impl Unleash {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_url = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_url = Input::<String>::with_theme(theme)
             .with_prompt("Unleash Base URL")
             .default("http://unleash:4242".into())
             .interact()?;
 
-        let api_path = Input::<String>::with_theme(&ColorfulTheme::default())
+        let api_path = Input::<String>::with_theme(theme)
             .with_prompt("Unleash API Path")
             .default("/api".into())
             .interact()?;
 
-        let maintenance_flag = Input::<String>::with_theme(&ColorfulTheme::default())
+        let maintenance_flag = Input::<String>::with_theme(theme)
             .with_prompt("Unleash Maintenance Flag")
             .default("DE-Maintenance".into())
             .interact()?;
 
-        let api_token = Password::with_theme(&ColorfulTheme::default())
+        let api_token = Password::with_theme(theme)
             .with_prompt("Unleash API Token")
             .interact()?;
 
@@ -1200,8 +1201,8 @@ impl UserPortal {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("User Portal Base URI")
             .interact()?;
 
@@ -1232,13 +1233,13 @@ impl ViceFileTransfers {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let image = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let image = Input::<String>::with_theme(theme)
             .with_prompt("Vice File Transfers Image")
             .default("harbor.cyverse.org/de/vice-file-transfers".into())
             .interact()?;
 
-        let tag = Input::<String>::with_theme(&ColorfulTheme::default())
+        let tag = Input::<String>::with_theme(theme)
             .with_prompt("Vice File Transfers Tag")
             .default("latest".into())
             .interact()?;
@@ -1261,8 +1262,8 @@ impl ViceDefaultBackend {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let loading_page_template_string = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let loading_page_template_string = Input::<String>::with_theme(theme)
             .with_prompt("Vice Default Backend Loading Page Template String")
             .interact()?;
 
@@ -1335,17 +1336,17 @@ impl Vice {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Vice Base URI")
             .interact()?;
 
-        let image_pull_secret = Input::<String>::with_theme(&ColorfulTheme::default())
+        let image_pull_secret = Input::<String>::with_theme(theme)
             .with_prompt("Vice Image Pull Secret")
             .default("vice-image-pull-secret".into())
             .interact()?;
 
-        let image_cache = Input::<String>::with_theme(&ColorfulTheme::default())
+        let image_cache = Input::<String>::with_theme(theme)
             .with_prompt("Vice Image Cache")
             .default(
                 "harbor.cyverse.org/de/vice-proxy:latest,harbor.cyverse.org/de/porklock:latest,harbor.cyverse.org/de/vice-file-transfers:latest,harbor.cyverse.org/vice/cli/bash:latest,harbor.cyverse.org/legacy/datahog:beta,harbor.cyverse.org/vice/jupyter/datascience:latest,harbor.cyverse.org/vice/jupyter/rstudio:latest,harbor.cyverse.org/vice/jupyter/geospatial:latest,harbor.cyverse.org/vice/rstudio/rstudio,harbor.cyverse.org/vice/rstudio/geospatial:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/vscode:latest,harbor.cyverse.org/vice/xpra/qgis:20.04,harbor.cyverse.org/vice/rstudio/stan:latest"
@@ -1353,32 +1354,32 @@ impl Vice {
             )
             .interact()?;
 
-        let default_cas_url = Input::<String>::with_theme(&ColorfulTheme::default())
+        let default_cas_url = Input::<String>::with_theme(theme)
             .with_prompt("Vice Default CAS URL")
             .default("https://auth.cyverse.org/cas5".into())
             .interact()?;
 
-        let default_cas_validate = Input::<String>::with_theme(&ColorfulTheme::default())
+        let default_cas_validate = Input::<String>::with_theme(theme)
             .with_prompt("Vice Default CAS Validate")
             .default("validate".into())
             .interact()?;
 
-        let use_csi_data = Select::with_theme(&ColorfulTheme::default())
+        let use_csi_data = Select::with_theme(theme)
             .with_prompt("Vice Use CSI Driver")
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
 
-        let use_case_chars_min = Input::<u32>::with_theme(&ColorfulTheme::default())
+        let use_case_chars_min = Input::<u32>::with_theme(theme)
             .with_prompt("Vice Use Case Chars Min")
             .default(60)
             .interact()?;
 
         let mut new_file_transfers = ViceFileTransfers::default();
-        new_file_transfers.ask_for_info()?;
+        new_file_transfers.ask_for_info(theme)?;
         self.file_transfers = Some(new_file_transfers);
 
-        self.default_backend.ask_for_info()?;
+        self.default_backend.ask_for_info(theme)?;
         self.base_uri = Url::parse(&base_uri).ok();
         self.image_pull_secret = Some(image_pull_secret);
         self.image_cache = Some(image_cache.split(',').map(|s| s.to_string()).collect());
@@ -1418,25 +1419,25 @@ impl DatabaseConfig {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, prefix: &str) -> anyhow::Result<()> {
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme, prefix: &str) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database User", prefix))
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt(format!("{} Database Password", prefix))
             .interact()?;
 
-        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+        let host = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database Host", prefix))
             .interact()?;
 
-        let port = Input::<u32>::with_theme(&ColorfulTheme::default())
+        let port = Input::<u32>::with_theme(theme)
             .with_prompt(format!("{} Database Port", prefix))
             .default(5432)
             .interact()?;
 
-        let name = Input::<String>::with_theme(&ColorfulTheme::default())
+        let name = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database Name", prefix))
             .interact()?;
 
@@ -1481,35 +1482,35 @@ impl QMSDatabaseConfig {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database User")
             .interact()?;
 
-        let password = Password::with_theme(&ColorfulTheme::default())
+        let password = Password::with_theme(theme)
             .with_prompt("QMS Database Password")
             .interact()?;
 
-        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+        let host = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database Host")
             .interact()?;
 
-        let port = Input::<u32>::with_theme(&ColorfulTheme::default())
+        let port = Input::<u32>::with_theme(theme)
             .with_prompt("QMS Database Port")
             .default(5432)
             .interact()?;
 
-        let name = Input::<String>::with_theme(&ColorfulTheme::default())
+        let name = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database Name")
             .interact()?;
 
-        let automigrate = Select::with_theme(&ColorfulTheme::default())
+        let automigrate = Select::with_theme(theme)
             .with_prompt("QMS Database Automigrate")
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
 
-        let reinitialize = Select::with_theme(&ColorfulTheme::default())
+        let reinitialize = Select::with_theme(theme)
             .with_prompt("QMS Database Reinitialize")
             .default(0)
             .items(&["Yes", "No"])
@@ -1550,13 +1551,13 @@ impl Admin {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let groups = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let groups = Input::<String>::with_theme(theme)
             .with_prompt("Admin Groups")
             .default("core-service,tito-admins,tito-qa-admins,dev,staff".into())
             .interact()?;
 
-        let attribute = Input::<String>::with_theme(&ColorfulTheme::default())
+        let attribute = Input::<String>::with_theme(theme)
             .with_prompt("Admin Attribute")
             .default("entitlement".into())
             .interact()?;
@@ -1589,14 +1590,14 @@ impl Analytics {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let enabled = Select::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(theme)
             .with_prompt("Analytics Enabled")
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
 
-        let id = Input::<String>::with_theme(&ColorfulTheme::default())
+        let id = Input::<String>::with_theme(theme)
             .with_prompt("Analytics ID")
             .interact()?;
 
@@ -1635,17 +1636,17 @@ impl Harbor {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let url = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let url = Input::<String>::with_theme(theme)
             .with_prompt("Harbor URL")
             .default("harbor.cyverse.org".into())
             .interact()?;
 
-        let project_qa_robot_name = Input::<String>::with_theme(&ColorfulTheme::default())
+        let project_qa_robot_name = Input::<String>::with_theme(theme)
             .with_prompt("Harbor Project QA Robot Name")
             .interact()?;
 
-        let project_qa_robot_secret = Password::with_theme(&ColorfulTheme::default())
+        let project_qa_robot_secret = Password::with_theme(theme)
             .with_prompt("Harbor Project QA Robot Secret")
             .interact()?;
 
@@ -1676,8 +1677,8 @@ impl Qms {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let enabled = Select::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let enabled = Select::with_theme(theme)
             .with_prompt("QMS Enabled")
             .default(0)
             .items(&["Yes", "No"])
@@ -1713,13 +1714,13 @@ impl Jaeger {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let endpoint = Input::<String>::with_theme(&ColorfulTheme::default())
+    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+        let endpoint = Input::<String>::with_theme(theme)
             .with_prompt("Jaeger Endpoint")
             .default("http://jaeger-collector.jaeger.svc.cluster.local:14250".into())
             .interact()?;
 
-        let http_endpoint = Input::<String>::with_theme(&ColorfulTheme::default())
+        let http_endpoint = Input::<String>::with_theme(theme)
             .with_prompt("Jaeger HTTP Endpoint")
             .default("http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces".into())
             .interact()?;
@@ -2001,14 +2002,18 @@ impl ConfigValues {
     }
 
     pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let environment = Input::<String>::with_theme(&ColorfulTheme::default())
+        let theme = ColorfulTheme::default();
+
+        let environment = Input::<String>::with_theme(&theme)
             .with_prompt("Environment")
             .interact()?;
-        let namespace = Input::<String>::with_theme(&ColorfulTheme::default())
+
+        let namespace = Input::<String>::with_theme(&theme)
             .with_prompt("Namespace")
             .default(environment.clone())
             .interact()?;
-        let uid_domain = Input::<String>::with_theme(&ColorfulTheme::default())
+
+        let uid_domain = Input::<String>::with_theme(&theme)
             .with_prompt("UID Domain")
             .interact()?;
 
@@ -2018,14 +2023,14 @@ impl ConfigValues {
 
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.
-        self.de.ask_for_info()?;
-        self.irods.ask_for_info()?;
+        self.de.ask_for_info(&theme)?;
+        self.irods.ask_for_info(&theme)?;
 
         // We need the base URI and external host for other settings.
         let base_uri = self.de.base_uri.clone().unwrap();
         let irods_external = self.irods.external_host.clone().unwrap();
 
-        let agave_enabled = Select::with_theme(&ColorfulTheme::default())
+        let agave_enabled = Select::with_theme(&theme)
             .with_prompt("Include Agave?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2033,28 +2038,28 @@ impl ConfigValues {
 
         if agave_enabled == 0 {
             let mut new_agave = Agave::default();
-            new_agave.ask_for_info(&base_uri, &irods_external)?;
+            new_agave.ask_for_info(&theme, &base_uri, &irods_external)?;
             self.agave = Some(new_agave);
         }
 
         let mut new_da = DashboardAggregator::default();
-        new_da.ask_for_info()?;
+        new_da.ask_for_info(&theme)?;
         self.dashboard_aggregator = Some(new_da);
 
         let mut new_docker = Docker::default();
-        new_docker.ask_for_info()?;
+        new_docker.ask_for_info(&theme)?;
         self.docker = Some(new_docker);
 
-        self.elasticsearch.ask_for_info()?;
-        self.email.ask_for_info()?;
-        self.grouper.ask_for_info()?;
-        self.icat.ask_for_info()?;
+        self.elasticsearch.ask_for_info(&theme)?;
+        self.email.ask_for_info(&theme)?;
+        self.grouper.ask_for_info(&theme)?;
+        self.icat.ask_for_info(&theme)?;
 
         let mut new_infosquito = Infosquito::default();
-        new_infosquito.ask_for_info()?;
+        new_infosquito.ask_for_info(&theme)?;
         self.infosquito = Some(new_infosquito);
 
-        let intercom_enabled = Select::with_theme(&ColorfulTheme::default())
+        let intercom_enabled = Select::with_theme(&theme)
             .with_prompt("Include Intercom?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2062,18 +2067,18 @@ impl ConfigValues {
 
         if intercom_enabled == 0 {
             let mut new_intercom = Intercom::default();
-            new_intercom.ask_for_info()?;
+            new_intercom.ask_for_info(&theme)?;
             self.intercom = Some(new_intercom);
         }
 
         let mut new_jobs = Jobs::default();
-        new_jobs.ask_for_info()?;
+        new_jobs.ask_for_info(&theme)?;
         self.jobs = Some(new_jobs);
 
-        self.keycloak.ask_for_info()?;
-        self.pgp.ask_for_info()?;
+        self.keycloak.ask_for_info(&theme)?;
+        self.pgp.ask_for_info(&theme)?;
 
-        let permanent_id_enabled = Select::with_theme(&ColorfulTheme::default())
+        let permanent_id_enabled = Select::with_theme(&theme)
             .with_prompt("Include Permanent ID?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2081,11 +2086,11 @@ impl ConfigValues {
 
         if permanent_id_enabled == 0 {
             let mut new_permanent_id = PermanentId::default();
-            new_permanent_id.ask_for_info()?;
+            new_permanent_id.ask_for_info(&theme)?;
             self.permanent_id = Some(new_permanent_id);
         }
 
-        let unleash_enabled = Select::with_theme(&ColorfulTheme::default())
+        let unleash_enabled = Select::with_theme(&theme)
             .with_prompt("Include Unleash?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2093,40 +2098,41 @@ impl ConfigValues {
 
         if unleash_enabled == 0 {
             let mut new_unleash = Unleash::default();
-            new_unleash.ask_for_info()?;
+            new_unleash.ask_for_info(&theme)?;
             self.unleash = Some(new_unleash);
         }
 
-        self.user_portal.ask_for_info()?;
-        self.vice.ask_for_info()?;
-        self.de_db.ask_for_info("DE")?;
-        self.grouper_db.ask_for_info("Grouper")?;
+        self.user_portal.ask_for_info(&theme)?;
+        self.vice.ask_for_info(&theme)?;
+        self.de_db.ask_for_info(&theme, "DE")?;
+        self.grouper_db.ask_for_info(&theme, "Grouper")?;
         self.new_notifications_db
-            .ask_for_info("New Notifications")?;
-        self.notifications_db.ask_for_info("Notifications")?;
-        self.permissions_db.ask_for_info("Permissions")?;
+            .ask_for_info(&theme, "New Notifications")?;
+        self.notifications_db
+            .ask_for_info(&theme, "Notifications")?;
+        self.permissions_db.ask_for_info(&theme, "Permissions")?;
 
-        let qms_enabled = Select::with_theme(&ColorfulTheme::default())
+        let qms_enabled = Select::with_theme(&theme)
             .with_prompt("Include QMS?")
             .default(1)
             .items(&["Yes", "No"])
             .interact()?;
 
         if qms_enabled == 1 {
-            self.qms_db.ask_for_info()?;
+            self.qms_db.ask_for_info(&theme)?;
         }
 
-        self.metadata_db.ask_for_info("Metadata")?;
+        self.metadata_db.ask_for_info(&theme, "Metadata")?;
 
         if unleash_enabled == 0 {
-            self.unleash_db.ask_for_info("Unleash")?;
+            self.unleash_db.ask_for_info(&theme, "Unleash")?;
         }
 
         let mut new_admin = Admin::default();
-        new_admin.ask_for_info()?;
+        new_admin.ask_for_info(&theme)?;
         self.admin = Some(new_admin);
 
-        let analytics_enabled = Select::with_theme(&ColorfulTheme::default())
+        let analytics_enabled = Select::with_theme(&theme)
             .with_prompt("Include Analytics?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2134,21 +2140,21 @@ impl ConfigValues {
 
         if analytics_enabled == 0 {
             let mut new_analytics = Analytics::default();
-            new_analytics.ask_for_info()?;
+            new_analytics.ask_for_info(&theme)?;
             self.analytics = Some(new_analytics);
         }
 
         let mut new_harbor = Harbor::default();
-        new_harbor.ask_for_info()?;
+        new_harbor.ask_for_info(&theme)?;
         self.harbor = Some(new_harbor);
 
         if qms_enabled == 1 {
             let mut new_qms = Qms::default();
-            new_qms.ask_for_info()?;
+            new_qms.ask_for_info(&theme)?;
             self.qms = Some(new_qms);
         }
 
-        let jaeger_enabled = Select::with_theme(&ColorfulTheme::default())
+        let jaeger_enabled = Select::with_theme(&theme)
             .with_prompt("Include Jaeger?")
             .default(1)
             .items(&["Yes", "No"])
@@ -2156,7 +2162,7 @@ impl ConfigValues {
 
         if jaeger_enabled == 0 {
             let mut new_jaeger = Jaeger::default();
-            new_jaeger.ask_for_info()?;
+            new_jaeger.ask_for_info(&theme)?;
             self.jaeger = Some(new_jaeger);
         }
 
