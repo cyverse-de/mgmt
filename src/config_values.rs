@@ -1333,26 +1333,26 @@ impl DatabaseConfig {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+    fn ask_for_info(&mut self, prefix: &str) -> anyhow::Result<()> {
         let user = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Database User")
+            .with_prompt(format!("{} Database User", prefix))
             .interact()?;
 
         let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Database Password")
+            .with_prompt(format!("{} Database Password", prefix))
             .interact()?;
 
         let host = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Database Host")
+            .with_prompt(format!("{} Database Host", prefix))
             .interact()?;
 
         let port = Input::<u32>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Database Port")
+            .with_prompt(format!("{} Database Port", prefix))
             .default(5432)
             .interact()?;
 
         let name = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Database Name")
+            .with_prompt(format!("{} Database Name", prefix))
             .interact()?;
 
         self.user = user;
@@ -1921,14 +1921,27 @@ impl ConfigValues {
             .interact()?;
         let namespace = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Namespace")
+            .default(environment.clone())
             .interact()?;
         let uid_domain = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("UID Domain")
             .interact()?;
 
-        let mut new_agave = Agave::default();
-        new_agave.ask_for_info()?;
-        self.agave = Some(new_agave);
+        self.environment = environment;
+        self.namespace = namespace;
+        self.uid_domain = uid_domain;
+
+        let agave_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Agave?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if agave_enabled == 0 {
+            let mut new_agave = Agave::default();
+            new_agave.ask_for_info()?;
+            self.agave = Some(new_agave);
+        }
 
         let mut new_da = DashboardAggregator::default();
         new_da.ask_for_info()?;
@@ -1949,9 +1962,17 @@ impl ConfigValues {
         new_infosquito.ask_for_info()?;
         self.infosquito = Some(new_infosquito);
 
-        let mut new_intercom = Intercom::default();
-        new_intercom.ask_for_info()?;
-        self.intercom = Some(new_intercom);
+        let intercom_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Intercom?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if intercom_enabled == 0 {
+            let mut new_intercom = Intercom::default();
+            new_intercom.ask_for_info()?;
+            self.intercom = Some(new_intercom);
+        }
 
         self.irods.ask_for_info()?;
 
@@ -1962,48 +1983,92 @@ impl ConfigValues {
         self.keycloak.ask_for_info()?;
         self.pgp.ask_for_info()?;
 
-        let mut new_permanent_id = PermanentId::default();
-        new_permanent_id.ask_for_info()?;
-        self.permanent_id = Some(new_permanent_id);
+        let permanent_id_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Permanent ID?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
 
-        let mut new_unleash = Unleash::default();
-        new_unleash.ask_for_info()?;
-        self.unleash = Some(new_unleash);
+        if permanent_id_enabled == 0 {
+            let mut new_permanent_id = PermanentId::default();
+            new_permanent_id.ask_for_info()?;
+            self.permanent_id = Some(new_permanent_id);
+        }
+
+        let unleash_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Unleash?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if unleash_enabled == 0 {
+            let mut new_unleash = Unleash::default();
+            new_unleash.ask_for_info()?;
+            self.unleash = Some(new_unleash);
+        }
 
         self.user_portal.ask_for_info()?;
         self.vice.ask_for_info()?;
-        self.de_db.ask_for_info()?;
-        self.grouper_db.ask_for_info()?;
-        self.new_notifications_db.ask_for_info()?;
-        self.notifications_db.ask_for_info()?;
-        self.permissions_db.ask_for_info()?;
-        self.qms_db.ask_for_info()?;
-        self.metadata_db.ask_for_info()?;
-        self.unleash_db.ask_for_info()?;
+        self.de_db.ask_for_info("DE")?;
+        self.grouper_db.ask_for_info("Grouper")?;
+        self.new_notifications_db
+            .ask_for_info("New Notifications")?;
+        self.notifications_db.ask_for_info("Notifications")?;
+        self.permissions_db.ask_for_info("Permissions")?;
+
+        let qms_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include QMS?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if qms_enabled == 1 {
+            self.qms_db.ask_for_info()?;
+        }
+
+        self.metadata_db.ask_for_info("Metadata")?;
+
+        if unleash_enabled == 0 {
+            self.unleash_db.ask_for_info("Unleash")?;
+        }
 
         let mut new_admin = Admin::default();
         new_admin.ask_for_info()?;
         self.admin = Some(new_admin);
 
-        let mut new_analytics = Analytics::default();
-        new_analytics.ask_for_info()?;
-        self.analytics = Some(new_analytics);
+        let analytics_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Analytics?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if analytics_enabled == 0 {
+            let mut new_analytics = Analytics::default();
+            new_analytics.ask_for_info()?;
+            self.analytics = Some(new_analytics);
+        }
 
         let mut new_harbor = Harbor::default();
         new_harbor.ask_for_info()?;
         self.harbor = Some(new_harbor);
 
-        let mut new_qms = Qms::default();
-        new_qms.ask_for_info()?;
-        self.qms = Some(new_qms);
+        if qms_enabled == 1 {
+            let mut new_qms = Qms::default();
+            new_qms.ask_for_info()?;
+            self.qms = Some(new_qms);
+        }
 
-        let mut new_jaeger = Jaeger::default();
-        new_jaeger.ask_for_info()?;
-        self.jaeger = Some(new_jaeger);
+        let jaeger_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Include Jaeger?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
 
-        self.environment = environment;
-        self.namespace = namespace;
-        self.uid_domain = uid_domain;
+        if jaeger_enabled == 0 {
+            let mut new_jaeger = Jaeger::default();
+            new_jaeger.ask_for_info()?;
+            self.jaeger = Some(new_jaeger);
+        }
 
         Ok(())
     }
