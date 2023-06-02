@@ -41,7 +41,25 @@ impl Agave {
         Ok(serde_merge::omerge(self, right)?)
     }
 
-    pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
+    pub fn ask_for_info(
+        &mut self,
+        base_url: &url::Url,
+        irods_external: &str,
+    ) -> anyhow::Result<()> {
+        let df_base_url = base_url.clone().join("/de/agave-cb")?;
+        let callback_base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Callback Base URI")
+            .default(df_base_url.to_string())
+            .interact()?;
+        self.callback_base_uri = callback_base_uri;
+
+        let rd_uri = base_url.clone().join("/oauth/callback/agave")?;
+        let redirect_uri = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Redirect URI")
+            .default(rd_uri.to_string())
+            .interact()?;
+        self.redirect_uri = redirect_uri;
+
         let agave_key = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Agave Key")
             .interact()?;
@@ -56,9 +74,24 @@ impl Agave {
 
         let storage_system = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Agave Storage System")
+            .default(irods_external.into())
             .interact()?;
 
         self.storage_system = storage_system;
+        self.enabled = Some(true);
+
+        let read_timeout = Input::<u32>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Read Timeout")
+            .default(30000)
+            .interact()?;
+        self.read_timeout = Some(read_timeout);
+
+        let jobs_enabled = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Agave Jobs Enabled")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+        self.jobs_enabled = Some(jobs_enabled == 0);
 
         Ok(())
     }
@@ -78,6 +111,37 @@ pub struct Amqp {
 impl Amqp {
     fn merge(&self, right: &Amqp) -> anyhow::Result<Amqp> {
         Ok(serde_merge::omerge(&self, &right)?)
+    }
+
+    fn ask_for_info(&mut self, prefix: &str) -> anyhow::Result<()> {
+        let user = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("{} AMQP User", prefix))
+            .interact()?;
+
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("{} AMQP Password", prefix))
+            .interact()?;
+
+        let host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("{} AMQP Host", prefix))
+            .interact()?;
+
+        let port = Input::<u16>::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("{} AMQP Port", prefix))
+            .default(5672)
+            .interact()?;
+
+        let vhost = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("{} AMQP VHost", prefix))
+            .interact()?;
+
+        self.user = user;
+        self.password = password;
+        self.host = host;
+        self.port = port;
+        self.vhost = vhost;
+
+        Ok(())
     }
 }
 
@@ -162,6 +226,7 @@ impl Website {
     fn ask_for_info(&mut self) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Dashboard Website URL")
+            .default("https://cyverse.org".into())
             .interact()?;
 
         self.url = Url::parse(&url).ok();
@@ -373,6 +438,8 @@ impl DE {
     }
 
     fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        self.amqp.ask_for_info("DE")?;
+
         let base_uri = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("DE Base URI")
             .interact()?;
@@ -382,6 +449,12 @@ impl DE {
         let mut new_subs = DESubscriptions::default();
         new_subs.ask_for_info()?;
         self.subscriptions = Some(new_subs);
+
+        let default_output_folder = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("DE Default Output Folder")
+            .default("analyses".into())
+            .interact()?;
+        self.default_output_folder = default_output_folder;
 
         let mut new_coge = DECoge::default();
         new_coge.ask_for_info()?;
@@ -731,7 +804,7 @@ pub struct IrodsWebDav {
 impl Default for IrodsWebDav {
     fn default() -> Self {
         IrodsWebDav {
-            anon_uri: Url::parse("https://data.cyverse.rocksi/dav-anon").ok(),
+            anon_uri: Url::parse("https://data.cyverse.rocks/dav-anon").ok(),
         }
     }
 }
@@ -741,9 +814,10 @@ impl IrodsWebDav {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self) -> anyhow::Result<()> {
+    fn ask_for_info(&mut self, external: &str) -> anyhow::Result<()> {
         let anon_uri = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Irods WebDav Anon URI")
+            .default(format!("https://{}/dav-anon", external))
             .interact()?;
 
         self.anon_uri = Url::parse(&anon_uri).ok();
@@ -799,31 +873,39 @@ impl Irods {
     }
 
     fn ask_for_info(&mut self) -> anyhow::Result<()> {
+        self.amqp.ask_for_info("iRODS")?;
+
         let host = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods Host")
+            .with_prompt("iRODS Host")
+            .interact()?;
+
+        let external_host = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("iRODS External Host")
+            .default(host.clone())
             .interact()?;
 
         let user = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods User")
+            .with_prompt("iRODS User")
             .interact()?;
 
         let zone = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods Zone")
+            .with_prompt("iRODS Zone")
             .interact()?;
 
         let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods Password")
+            .with_prompt("iRODS Password")
             .interact()?;
 
         let admin_users = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods Admin Users")
+            .with_prompt("iRODS Admin Users")
             .interact()?;
 
         let perms_filter = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Irods Perms Filter")
+            .with_prompt("iRODS Perms Filter")
             .interact()?;
 
         self.host = host;
+        self.external_host = Some(external_host);
         self.user = user;
         self.zone = zone;
         self.password = password;
@@ -831,7 +913,10 @@ impl Irods {
         self.perms_filter = perms_filter.split(',').map(|s| s.to_string()).collect();
 
         let mut new_web_dav = IrodsWebDav::default();
-        new_web_dav.ask_for_info()?;
+
+        // We're okay with unwrap here since it's user input and panicking is fine.
+        new_web_dav.ask_for_info(self.external_host.as_ref().unwrap())?;
+
         self.web_dav = Some(new_web_dav);
 
         Ok(())
@@ -1931,6 +2016,15 @@ impl ConfigValues {
         self.namespace = namespace;
         self.uid_domain = uid_domain;
 
+        // Fill in the DE and iRODS settings first, since they have some
+        // values that can be used as defaults later.
+        self.de.ask_for_info()?;
+        self.irods.ask_for_info()?;
+
+        // We need the base URI and external host for other settings.
+        let base_uri = self.de.base_uri.clone().unwrap();
+        let irods_external = self.irods.external_host.clone().unwrap();
+
         let agave_enabled = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Include Agave?")
             .default(1)
@@ -1939,15 +2033,13 @@ impl ConfigValues {
 
         if agave_enabled == 0 {
             let mut new_agave = Agave::default();
-            new_agave.ask_for_info()?;
+            new_agave.ask_for_info(&base_uri, &irods_external)?;
             self.agave = Some(new_agave);
         }
 
         let mut new_da = DashboardAggregator::default();
         new_da.ask_for_info()?;
         self.dashboard_aggregator = Some(new_da);
-
-        self.de.ask_for_info()?;
 
         let mut new_docker = Docker::default();
         new_docker.ask_for_info()?;
@@ -1973,8 +2065,6 @@ impl ConfigValues {
             new_intercom.ask_for_info()?;
             self.intercom = Some(new_intercom);
         }
-
-        self.irods.ask_for_info()?;
 
         let mut new_jobs = Jobs::default();
         new_jobs.ask_for_info()?;
