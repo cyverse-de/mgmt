@@ -9,8 +9,8 @@ name = "mgmt"
 path = "src/main.rs"
 
 [[bin]]
-name = "mgmt-defaults"
-path = "src/bin/mgmt-defaults/main.rs"
+name = "mgmt-configs"
+path = "src/bin/mgmt-configs/main.rs"
 
 [dependencies]
 anyhow = "1.0.69"
