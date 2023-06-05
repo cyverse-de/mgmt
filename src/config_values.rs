@@ -1,6 +1,4 @@
-use core::time;
-
-use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
+use dialoguer::{console::Style, theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -526,18 +524,22 @@ impl ElasticSearch {
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Base URI")
+            .default("http://elasticsearch:9200".into())
             .interact()?;
 
         let username = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Username")
+            .allow_empty(true)
             .interact()?;
 
         let password = Password::with_theme(theme)
             .with_prompt("ElasticSearch Password")
+            .allow_empty_password(true)
             .interact()?;
 
         let index = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Index")
+            .default("data".into())
             .interact()?;
 
         self.base_uri = Url::parse(&base_uri).ok();
@@ -648,7 +650,7 @@ impl Grouper {
         Ok(merged)
     }
 
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    fn ask_for_info(&mut self, theme: &ColorfulTheme, env: &str) -> anyhow::Result<()> {
         let morph_string = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Morph String")
             .interact()?;
@@ -659,6 +661,7 @@ impl Grouper {
 
         let folder_name_prefix = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Folder Name Prefix")
+            .default(format!("cyverse:de:{}", env).into())
             .interact()?;
 
         self.morph_string = morph_string;
@@ -974,6 +977,7 @@ impl KeycloakVice {
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client ID")
+            .default("de-vice".into())
             .interact()?;
 
         let client_secret = Password::with_theme(theme)
@@ -1016,10 +1020,12 @@ impl Keycloak {
 
         let realm = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Realm")
+            .default("CyVerse".into())
             .interact()?;
 
         let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Client ID")
+            .default("de".into())
             .interact()?;
 
         let client_secret = Password::with_theme(theme)
@@ -1081,6 +1087,7 @@ impl PermanentIdDataCite {
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Base URI")
+            .default("https://api.datacite.org/".into())
             .interact()?;
 
         let user = Input::<String>::with_theme(theme)
@@ -1121,6 +1128,7 @@ impl PermanentId {
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let curators_group = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Curators Group")
+            .default("data-curators".into())
             .interact()?;
 
         self.curators_group = curators_group;
@@ -1421,17 +1429,28 @@ impl DatabaseConfig {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, theme: &ColorfulTheme, prefix: &str) -> anyhow::Result<()> {
+    fn ask_for_info(
+        &mut self,
+        theme: &ColorfulTheme,
+        prefix: &str,
+        name: &str,
+        host: &str,
+        user: &str,
+        pass: &str,
+    ) -> anyhow::Result<()> {
         let user = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database User", prefix))
+            .default(user.to_string())
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::with_theme(theme)
             .with_prompt(format!("{} Database Password", prefix))
+            .default(pass.to_string())
             .interact()?;
 
         let host = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database Host", prefix))
+            .default(host.to_string())
             .interact()?;
 
         let port = Input::<u32>::with_theme(theme)
@@ -1441,6 +1460,7 @@ impl DatabaseConfig {
 
         let name = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} Database Name", prefix))
+            .default(name.to_string())
             .interact()?;
 
         self.user = user;
@@ -1484,17 +1504,27 @@ impl QMSDatabaseConfig {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    fn ask_for_info(
+        &mut self,
+        theme: &ColorfulTheme,
+        name: &str,
+        host: &str,
+        user: &str,
+        pass: &str,
+    ) -> anyhow::Result<()> {
         let user = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database User")
+            .default(user.to_string())
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::with_theme(theme)
             .with_prompt("QMS Database Password")
+            .default(pass.to_string())
             .interact()?;
 
         let host = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database Host")
+            .default(host.to_string())
             .interact()?;
 
         let port = Input::<u32>::with_theme(theme)
@@ -1504,17 +1534,18 @@ impl QMSDatabaseConfig {
 
         let name = Input::<String>::with_theme(theme)
             .with_prompt("QMS Database Name")
+            .default(name.to_string())
             .interact()?;
 
         let automigrate = Select::with_theme(theme)
             .with_prompt("QMS Database Automigrate")
-            .default(0)
+            .default(1)
             .items(&["Yes", "No"])
             .interact()?;
 
         let reinitialize = Select::with_theme(theme)
             .with_prompt("QMS Database Reinitialize")
-            .default(0)
+            .default(1)
             .items(&["Yes", "No"])
             .interact()?;
 
@@ -1540,9 +1571,7 @@ pub struct Admin {
 impl Default for Admin {
     fn default() -> Self {
         Admin {
-            groups: Some(String::from(
-                "core-service,tito-admins,tito-qa-admins,dev,staff",
-            )),
+            groups: Some(String::from("de_admins")),
             attribute: Some(String::from("entitlement")),
         }
     }
@@ -1556,7 +1585,7 @@ impl Admin {
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let groups = Input::<String>::with_theme(theme)
             .with_prompt("Admin Groups")
-            .default("core-service,tito-admins,tito-qa-admins,dev,staff".into())
+            .default("de_admins".into())
             .interact()?;
 
         let attribute = Input::<String>::with_theme(theme)
@@ -1601,6 +1630,7 @@ impl Analytics {
 
         let id = Input::<String>::with_theme(theme)
             .with_prompt("Analytics ID")
+            .default("g-id".into())
             .interact()?;
 
         self.enabled = Some(enabled == 0);
@@ -2004,7 +2034,8 @@ impl ConfigValues {
     }
 
     pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
-        let theme = ColorfulTheme::default();
+        let mut theme = ColorfulTheme::default();
+        theme.hint_style = Style::new().yellow();
 
         let environment = Input::<String>::with_theme(&theme)
             .with_prompt("Environment")
@@ -2060,7 +2091,7 @@ impl ConfigValues {
 
         self.elasticsearch.ask_for_info(&theme)?;
         self.email.ask_for_info(&theme)?;
-        self.grouper.ask_for_info(&theme)?;
+        self.grouper.ask_for_info(&theme, &self.environment)?;
         self.icat.ask_for_info(&theme)?;
 
         let mut new_infosquito = Infosquito::default();
@@ -2098,6 +2129,40 @@ impl ConfigValues {
             self.permanent_id = Some(new_permanent_id);
         }
 
+        self.de_db.ask_for_info(&theme, "DE", "de", "", "de", "")?;
+        self.grouper_db.ask_for_info(
+            &theme,
+            "Grouper",
+            "grouper",
+            &self.de_db.host,
+            &self.de_db.user,
+            &self.de_db.password,
+        )?;
+        self.notifications_db.ask_for_info(
+            &theme,
+            "Notifications",
+            "notifications",
+            &self.de_db.host,
+            &self.de_db.user,
+            &self.de_db.password,
+        )?;
+        self.permissions_db.ask_for_info(
+            &theme,
+            "Permissions",
+            "permissions",
+            &self.de_db.host,
+            &self.de_db.user,
+            &self.de_db.password,
+        )?;
+        self.metadata_db.ask_for_info(
+            &theme,
+            "Metadata",
+            "metadata",
+            &self.de_db.host,
+            &self.de_db.user,
+            &self.de_db.password,
+        )?;
+
         let unleash_enabled = Select::with_theme(&theme)
             .with_prompt("Include Unleash?")
             .default(1)
@@ -2108,17 +2173,15 @@ impl ConfigValues {
             let mut new_unleash = Unleash::default();
             new_unleash.ask_for_info(&theme)?;
             self.unleash = Some(new_unleash);
+            self.unleash_db.ask_for_info(
+                &theme,
+                "Unleash",
+                "unleash",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )?;
         }
-
-        self.user_portal.ask_for_info(&theme)?;
-        self.vice.ask_for_info(&theme)?;
-        self.de_db.ask_for_info(&theme, "DE")?;
-        self.grouper_db.ask_for_info(&theme, "Grouper")?;
-        self.new_notifications_db
-            .ask_for_info(&theme, "New Notifications")?;
-        self.notifications_db
-            .ask_for_info(&theme, "Notifications")?;
-        self.permissions_db.ask_for_info(&theme, "Permissions")?;
 
         let qms_enabled = Select::with_theme(&theme)
             .with_prompt("Include QMS?")
@@ -2127,17 +2190,20 @@ impl ConfigValues {
             .interact()?;
 
         if qms_enabled == 0 {
-            self.qms_db.ask_for_info(&theme)?;
+            self.qms_db.ask_for_info(
+                &theme,
+                "qms",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )?;
             let mut new_qms = Qms::default();
             new_qms.ask_for_info(&theme)?;
             self.qms = Some(new_qms);
         }
 
-        self.metadata_db.ask_for_info(&theme, "Metadata")?;
-
-        if unleash_enabled == 0 {
-            self.unleash_db.ask_for_info(&theme, "Unleash")?;
-        }
+        self.user_portal.ask_for_info(&theme)?;
+        self.vice.ask_for_info(&theme)?;
 
         let mut new_admin = Admin::default();
         new_admin.ask_for_info(&theme)?;
