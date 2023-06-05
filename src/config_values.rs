@@ -904,10 +904,12 @@ impl Irods {
 
         let admin_users = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Admin Users")
+            .default("rodsadmin".to_string())
             .interact()?;
 
         let perms_filter = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Perms Filter")
+            .default("rodsadmin".to_string())
             .interact()?;
 
         self.host = host;
@@ -1272,9 +1274,11 @@ impl ViceDefaultBackend {
         Ok(serde_merge::omerge(&self, &right)?)
     }
 
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    fn ask_for_info(&mut self, theme: &ColorfulTheme, base_url: &url::Url) -> anyhow::Result<()> {
+        let lpt = base_url.join("/vice/{{.URL}}")?;
         let loading_page_template_string = Input::<String>::with_theme(theme)
             .with_prompt("Vice Default Backend Loading Page Template String")
+            .default(lpt.to_string())
             .interact()?;
 
         self.loading_page_template_string = loading_page_template_string;
@@ -1389,8 +1393,9 @@ impl Vice {
         new_file_transfers.ask_for_info(theme)?;
         self.file_transfers = Some(new_file_transfers);
 
-        self.default_backend.ask_for_info(theme)?;
         self.base_uri = Url::parse(&base_uri).ok();
+        self.default_backend
+            .ask_for_info(theme, &self.base_uri.as_ref().unwrap())?;
         self.image_pull_secret = Some(image_pull_secret);
         self.image_cache = Some(image_cache.split(',').map(|s| s.to_string()).collect());
         self.default_cas_url = Some(default_cas_url);
