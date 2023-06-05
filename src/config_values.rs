@@ -1,3 +1,5 @@
+use core::time;
+
 use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -2017,9 +2019,15 @@ impl ConfigValues {
             .with_prompt("UID Domain")
             .interact()?;
 
+        let timezone = Input::<String>::with_theme(&theme)
+            .with_prompt("Timezone")
+            .default("America/Phoenix".to_string())
+            .interact()?;
+
         self.environment = environment;
         self.namespace = namespace;
         self.uid_domain = uid_domain;
+        self.timezone = Some(timezone);
 
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.
@@ -2118,8 +2126,11 @@ impl ConfigValues {
             .items(&["Yes", "No"])
             .interact()?;
 
-        if qms_enabled == 1 {
+        if qms_enabled == 0 {
             self.qms_db.ask_for_info(&theme)?;
+            let mut new_qms = Qms::default();
+            new_qms.ask_for_info(&theme)?;
+            self.qms = Some(new_qms);
         }
 
         self.metadata_db.ask_for_info(&theme, "Metadata")?;
@@ -2147,12 +2158,6 @@ impl ConfigValues {
         let mut new_harbor = Harbor::default();
         new_harbor.ask_for_info(&theme)?;
         self.harbor = Some(new_harbor);
-
-        if qms_enabled == 1 {
-            let mut new_qms = Qms::default();
-            new_qms.ask_for_info(&theme)?;
-            self.qms = Some(new_qms);
-        }
 
         let jaeger_enabled = Select::with_theme(&theme)
             .with_prompt("Include Jaeger?")
