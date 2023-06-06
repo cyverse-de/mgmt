@@ -83,7 +83,7 @@ fn values_path(env: &str) -> Result<String> {
     ))
 }
 
-fn generate(env: &str) -> Result<bool> {
+fn generate(env: &str, defaults_path: &str) -> Result<bool> {
     let dir_buf = fs::canonicalize(dir(env)?)?;
     let cfg_dir = dir_buf
         .to_str()
@@ -97,7 +97,7 @@ fn generate(env: &str) -> Result<bool> {
     Ok(Command::new("gomplate")
         .args(["-d", "config=merge:dev|defaults"])
         .args(["-d", &format!("env={}", config_values_file)])
-        .args(["-d", &format!("defaults={}", "config_values/defaults.yaml")])
+        .args(["-d", &format!("defaults={}", defaults_path)])
         .args(["--input-dir", "templates/configs"])
         .args(["--output-dir", &cfg_dir])
         .status()?
@@ -133,11 +133,11 @@ fn list_envs() -> Result<Vec<String>> {
 ///
 /// assert!(generation_succeeded);
 /// ```
-pub fn generate_all() -> Result<bool> {
+pub fn generate_all(defaults_path: &str) -> Result<bool> {
     let mut success: bool = false;
     let envs = list_envs()?;
     for env in envs.iter() {
-        let r = generate(env)?;
+        let r = generate(env, &defaults_path)?;
         success = success && r;
         if !r {
             println!("failed to generate configs for {}", &env)

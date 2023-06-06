@@ -17,6 +17,7 @@ pub struct App {
     do_deploy: bool,
     do_check_in: bool,
     clean: bool,
+    defaults_path: String,
 }
 
 impl App {
@@ -39,6 +40,7 @@ impl App {
             do_deploy: cli.deploy && !cli.no_deploy,
             do_check_in: cli.check_in && !cli.no_check_in,
             clean: cli.clean,
+            defaults_path: cli.defaults_path.clone(),
         }
     }
 
@@ -54,6 +56,7 @@ impl App {
             do_deploy: false,
             do_check_in: false,
             clean: false,
+            defaults_path: String::from("config_values/defaults.yaml"),
         }
     }
 
@@ -235,11 +238,11 @@ impl App {
         Ok(deploy.status()?.success())
     }
 
-    fn do_build(&self, project: &str) -> Result<bool> {
+    fn do_build(&self, project: &str, defaults_path: &str) -> Result<bool> {
         let submodule_path = self.repo_path(project)?;
 
         println!("generating configs");
-        configs::generate_all()?;
+        configs::generate_all(defaults_path)?;
         println!("done generating configs");
 
         println!("updating the submodules");
@@ -306,7 +309,10 @@ impl App {
             let project_path = self.repo_path(project)?;
 
             if self.do_build {
-                if self.do_build(&project).context("do_build failed")? {
+                if self
+                    .do_build(&project, &self.defaults_path)
+                    .context("do_build failed")?
+                {
                     return Err(anyhow!("non-zero status returned from build steps"));
                 };
             }

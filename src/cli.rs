@@ -49,6 +49,9 @@ pub struct Cli {
     /// The path to the repos directory.
     pub repos_path: String,
 
+    #[arg(long, default_value_t = String::from("config_values/defaults.yaml"))]
+    pub defaults_path: String,
+
     #[arg(short = 'b', long, group = "build_group")]
     /// Build the project before deploying it.
     pub build: bool,
