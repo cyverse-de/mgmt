@@ -95,9 +95,11 @@ fn generate(env: &str) -> Result<bool> {
         .context("failed to get the absolute path to the config_values directory")?;
 
     Ok(Command::new("gomplate")
+        .args(["-d", "config=merge:dev|defaults"])
+        .args(["-d", &format!("env={}", config_values_file)])
+        .args(["-d", &format!("defaults={}", "config_values/defaults.yaml")])
         .args(["--input-dir", "templates/configs"])
         .args(["--output-dir", &cfg_dir])
-        .args(["-d", &format!("config={}", config_values_file)])
         .status()?
         .success())
 }
