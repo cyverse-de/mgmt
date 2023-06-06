@@ -1,4 +1,4 @@
-use mgmt::config_values::{self, ConfigValues};
+use mgmt::config_values::config;
 
 use clap::{arg, Command};
 use std::fs::File;
@@ -50,7 +50,7 @@ fn create_defaults(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
         None => Box::new(io::stdout()) as Box<dyn Write>,
     };
 
-    let defaults = config_values::ConfigValues::default();
+    let defaults = config::ConfigValues::default();
     Ok(serde_yaml::to_writer(writer, &defaults)?)
 }
 
@@ -64,7 +64,7 @@ fn create_env_config(output_file: Option<&PathBuf>) -> anyhow::Result<()> {
         None => Box::new(io::stdout()) as Box<dyn Write>,
     };
 
-    let mut env_config = config_values::ConfigValues::default();
+    let mut env_config = config::ConfigValues::default();
     env_config.ask_for_info()?;
     Ok(serde_yaml::to_writer(writer, &env_config)?)
 }
@@ -91,9 +91,9 @@ fn validate_file(
         None => Box::new(io::stdin()) as Box<dyn Read>,
     };
 
-    let defaults: ConfigValues = serde_yaml::from_reader(defaults_reader)?;
-    let from_values: ConfigValues = serde_yaml::from_reader(reader)?;
-    let values: ConfigValues = ConfigValues::merge(&defaults, &from_values)?;
+    let defaults: config::ConfigValues = serde_yaml::from_reader(defaults_reader)?;
+    let from_values: config::ConfigValues = serde_yaml::from_reader(reader)?;
+    let values: config::ConfigValues = config::ConfigValues::merge(&defaults, &from_values)?;
     eprintln!(" {}", serde_yaml::to_string(&values)?);
     Ok(())
 }
