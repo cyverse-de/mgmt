@@ -50,6 +50,7 @@ pub struct Cli {
     pub repos_path: String,
 
     #[arg(long, default_value_t = String::from("config_values/defaults.yaml"))]
+    /// The path to the defaults file.
     pub defaults_path: String,
 
     #[arg(short = 'b', long, group = "build_group")]
