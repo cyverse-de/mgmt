@@ -15,6 +15,7 @@ pub mod intercom;
 pub mod irods;
 pub mod keycloak;
 pub mod misc;
+pub mod qa;
 pub mod vice;
 
 // These are features that are truly optional. In other words, they do not need
