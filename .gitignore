@@ -5,5 +5,7 @@ debug/
 builds/
 .vscode/
 **/*.rs.bk
+db/de_releases
+**/.dolt/
 
 *.pdb
