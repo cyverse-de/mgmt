@@ -1,0 +1,6 @@
+USE de_releases;
+
+CREATE TABLE IF NOT EXISTS config_sections (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE
+);
