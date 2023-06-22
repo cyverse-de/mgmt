@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Result};
 use clap::{arg, Command};
+use serde::Deserialize;
 use sqlx::mysql::{MySql, MySqlPoolOptions};
 use sqlx::{Pool, Transaction};
+use std::fs;
 
 fn cli() -> Command {
     Command::new("mgmt-container-images")
@@ -148,6 +150,44 @@ async fn list_images(pool: &Pool<MySql>) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Deserialize)]
+struct BuildImage {
+    tag: String,
+}
+#[derive(Debug, Deserialize)]
+struct BuildsData {
+    builds: Vec<BuildImage>,
+}
+
+async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
+    let mut build_dirs = fs::read_dir(builds_dir)?;
+
+    while let Some(entry_result) = build_dirs.next() {
+        let entry = entry_result?;
+        let entry_os_name = entry.file_name();
+        let entry_name = entry_os_name
+            .to_str()
+            .ok_or_else(|| anyhow!("invalid entry name"))?;
+
+        if !entry_name.ends_with(".json") {
+            continue;
+        }
+
+        let service_name = entry_name.trim_end_matches(".json");
+
+        let data: String = fs::read_to_string(entry.path())?;
+        let parsed: BuildsData = serde_json::from_str(&data)?;
+        if parsed.builds.is_empty() {
+            continue;
+        }
+        let build_image = &parsed.builds[0];
+        let image = build_image.tag.clone();
+        insert_image(pool, service_name, "Dockerfile", &image).await?;
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let command = cli().get_matches();
@@ -177,6 +217,12 @@ async fn main() -> Result<()> {
                 )
             })?;
             insert_image(&pool, &service, &dockerfile, &image).await?;
+        }
+        Some(("insert-builds", sub_m)) => {
+            let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
+                anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
+            })?;
+            insert_builds(&pool, &builds_dir).await?;
         }
         Some(("list", _)) => {
             list_images(&pool).await?;
