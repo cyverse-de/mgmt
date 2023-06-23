@@ -23,7 +23,7 @@ fn cli() -> Command {
                 .arg(arg!(-f --dockerfile <DOCKERFILE>).value_parser(clap::value_parser!(String))),
         )
         .subcommand(
-            Command::new("insert-builds")
+            Command::new("upsert-builds")
                 .args_conflicts_with_subcommands(true)
                 .arg(arg!(-b --"builds-dir" <DIR>).value_parser(clap::value_parser!(String))),
         )
@@ -93,15 +93,60 @@ async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Resul
     Ok(services.count.unwrap_or(0) > 0)
 }
 
+async fn image_exists(
+    tx: &mut Transaction<'_, MySql>,
+    image: &ContainerImageParts,
+) -> Result<bool> {
+    let images = sqlx::query!(
+        r#"
+        SELECT COUNT(*) AS count 
+        FROM container_images 
+        WHERE name = (?)
+        AND tag = (?)
+        "#,
+        image.name,
+        image.tag,
+    )
+    .fetch_one(tx)
+    .await?;
+
+    Ok(images.count.unwrap_or(0) > 0)
+}
+
+async fn update_image(
+    tx: &mut Transaction<'_, MySql>,
+    repo_id: i32,
+    dockerfile: &str,
+    container_image: &ContainerImageParts,
+) -> Result<()> {
+    sqlx::query!(
+        r#"
+            UPDATE container_images 
+            SET 
+                dockerfile = (?),
+                repo_id = (?),
+                digest = (?)
+            WHERE name = (?)
+            AND tag = (?)
+        "#,
+        dockerfile,
+        repo_id,
+        container_image.digest,
+        container_image.name,
+        container_image.tag,
+    )
+    .execute(tx)
+    .await?;
+
+    Ok(())
+}
+
 async fn insert_image(
     tx: &mut Transaction<'_, MySql>,
-    service: &str,
+    repo_id: i32,
     dockerfile: &str,
-    image: &str,
-) -> Result<()> {
-    let repo_id = get_service_repo_id(tx, service).await?;
-    let container_image = parse_container_image(image)?;
-
+    container_image: &ContainerImageParts,
+) -> Result<u64> {
     let image_id = sqlx::query!(
         r#"
             INSERT INTO container_images 
@@ -119,9 +164,7 @@ async fn insert_image(
     .await?
     .last_insert_id();
 
-    println!("  inserted image with id {}", image_id);
-
-    Ok(())
+    Ok(image_id)
 }
 
 async fn list_images(pool: &Pool<MySql>) -> Result<()> {
@@ -169,7 +212,7 @@ struct BuildsData {
     builds: Vec<BuildImage>,
 }
 
-async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
+async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
     let mut build_dirs = fs::read_dir(builds_dir)?;
     let mut tx = pool.begin().await?;
 
@@ -203,8 +246,21 @@ async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
         let image = build_image.tag.clone();
 
         println!("  image: {}", image);
-        insert_image(&mut tx, service_name, "Dockerfile", &image).await?;
-        println!("  inserted image for service {}", service_name);
+
+        let repo_id = get_service_repo_id(&mut tx, service_name).await?;
+        let container_image = parse_container_image(&image)?;
+
+        if !image_exists(&mut tx, &container_image).await? {
+            let last_id =
+                insert_image(&mut tx, repo_id.clone(), "Dockerfile", &container_image).await?;
+            println!(
+                "  inserted image for service {} with id {}",
+                service_name, last_id
+            );
+        } else {
+            update_image(&mut tx, repo_id.clone(), "Dockerfile", &container_image).await?;
+            println!("  updated image for service {}", service_name);
+        }
     }
 
     tx.commit().await?;
@@ -259,14 +315,16 @@ async fn main() -> Result<()> {
                 )
             })?;
             let mut tx = pool.begin().await?;
-            insert_image(&mut tx, &service, &dockerfile, &image).await?;
+            let repo_id = get_service_repo_id(&mut tx, &service).await?;
+            let container_image = parse_container_image(&image)?;
+            insert_image(&mut tx, repo_id, &dockerfile, &container_image).await?;
             tx.commit().await?;
         }
-        Some(("insert-builds", sub_m)) => {
+        Some(("upsert-builds", sub_m)) => {
             let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
                 anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
             })?;
-            insert_builds(&pool, &builds_dir).await?;
+            upsert_builds(&pool, &builds_dir).await?;
         }
         Some(("delete", sub_m)) => {
             let id = sub_m.get_one::<i32>("id").ok_or_else(|| {
