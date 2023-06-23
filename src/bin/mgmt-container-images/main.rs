@@ -50,6 +50,9 @@ struct ContainerImageParts {
     digest: String,
 }
 
+/*
+ * Parses a container image string into its name, tag, and digest parts.
+ */
 fn parse_container_image(image: &str) -> Result<ContainerImageParts> {
     let mut parts = image.split('@');
     let name_and_tag = parts
@@ -74,6 +77,9 @@ fn parse_container_image(image: &str) -> Result<ContainerImageParts> {
     })
 }
 
+/**
+ * Returns the repo_id for a given service.
+ */
 async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str) -> Result<i32> {
     let repo_id = sqlx::query!(
         r#"
@@ -89,6 +95,9 @@ async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str) -> 
     Ok(repo_id)
 }
 
+/**
+ * Returns true if the service exists in the database.
+ */
 async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Result<bool> {
     let services = sqlx::query!(
         r#"
@@ -102,6 +111,9 @@ async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Resul
     Ok(services.count.unwrap_or(0) > 0)
 }
 
+/**
+ * Returns true if the container image exists in the database.
+ */
 async fn image_exists(
     tx: &mut Transaction<'_, MySql>,
     image: &ContainerImageParts,
@@ -122,6 +134,9 @@ async fn image_exists(
     Ok(images.count.unwrap_or(0) > 0)
 }
 
+/**
+ * Updates an image in the database.
+ */
 async fn update_image(
     tx: &mut Transaction<'_, MySql>,
     repo_id: i32,
@@ -150,6 +165,9 @@ async fn update_image(
     Ok(())
 }
 
+/**
+ * Inserts an image into the database.
+ */
 async fn insert_image(
     tx: &mut Transaction<'_, MySql>,
     repo_id: i32,
@@ -176,6 +194,9 @@ async fn insert_image(
     Ok(image_id)
 }
 
+/**
+ * Lists the images in the database.
+ */
 async fn list_images(pool: &Pool<MySql>) -> Result<()> {
     let images = sqlx::query!(
         r#"
@@ -212,15 +233,26 @@ async fn list_images(pool: &Pool<MySql>) -> Result<()> {
     Ok(())
 }
 
+/**
+ * Contains the tag portion of a JSON file in a builds directory.
+ */
 #[derive(Debug, Deserialize)]
 struct BuildImage {
     tag: String,
 }
+
+/**
+ * Contains the contents of a JSON file from a builds directory.
+ */
 #[derive(Debug, Deserialize)]
 struct BuildsData {
     builds: Vec<BuildImage>,
 }
 
+/**
+ * Upserts the container images in the database based on the contents of the JSON files
+ * in the given directory. Optionally can be forced to insert the images.
+ */
 async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool) -> Result<()> {
     let mut build_dirs = fs::read_dir(builds_dir)?;
     let mut tx = pool.begin().await?;
@@ -277,6 +309,9 @@ async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool)
     Ok(())
 }
 
+/**
+ * Upserts a single image to the database.
+ */
 async fn upsert_image(
     pool: &Pool<MySql>,
     image: &str,
@@ -305,6 +340,9 @@ async fn upsert_image(
     Ok(())
 }
 
+/**
+ * Deletes an image from the database.
+ */
 async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
     let mut tx = pool.begin().await?;
     println!("Deleting image with id {}", id);
