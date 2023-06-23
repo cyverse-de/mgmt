@@ -30,7 +30,7 @@ fn cli() -> Command {
         .subcommand(
             Command::new("delete")
                 .args_conflicts_with_subcommands(true)
-                .arg(arg!(-i --"image" <IMAGE>).value_parser(clap::value_parser!(String))),
+                .arg(arg!(-i --"id" <ID>).value_parser(clap::value_parser!(i32))),
         )
         .subcommand(Command::new("list").args_conflicts_with_subcommands(true))
 }
@@ -188,6 +188,24 @@ async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
     Ok(())
 }
 
+async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
+    let mut tx = pool.begin().await?;
+    println!("Deleting image with id {}", id);
+
+    sqlx::query!(
+        r#"
+        DELETE FROM container_images WHERE id = (?)
+        "#,
+        *id,
+    )
+    .execute(&mut tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let command = cli().get_matches();
@@ -223,6 +241,12 @@ async fn main() -> Result<()> {
                 anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
             })?;
             insert_builds(&pool, &builds_dir).await?;
+        }
+        Some(("delete", sub_m)) => {
+            let id = sub_m.get_one::<i32>("id").ok_or_else(|| {
+                anyhow!("No id specified. Use --id <id> to specify an id to delete.")
+            })?;
+            delete_image(&pool, id).await?;
         }
         Some(("list", _)) => {
             list_images(&pool).await?;
