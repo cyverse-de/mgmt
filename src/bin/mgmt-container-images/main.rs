@@ -25,7 +25,8 @@ fn cli() -> Command {
         .subcommand(
             Command::new("upsert-builds")
                 .args_conflicts_with_subcommands(true)
-                .arg(arg!(-b --"builds-dir" <DIR>).value_parser(clap::value_parser!(String))),
+                .arg(arg!(-b --"builds-dir" <DIR>).value_parser(clap::value_parser!(String)))
+                .arg(arg!(-f - -"force-insert").value_parser(clap::value_parser!(bool))),
         )
         .subcommand(
             Command::new("delete")
@@ -212,7 +213,7 @@ struct BuildsData {
     builds: Vec<BuildImage>,
 }
 
-async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
+async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool) -> Result<()> {
     let mut build_dirs = fs::read_dir(builds_dir)?;
     let mut tx = pool.begin().await?;
 
@@ -250,7 +251,7 @@ async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
         let repo_id = get_service_repo_id(&mut tx, service_name).await?;
         let container_image = parse_container_image(&image)?;
 
-        if !image_exists(&mut tx, &container_image).await? {
+        if !image_exists(&mut tx, &container_image).await? || force_insert {
             let last_id =
                 insert_image(&mut tx, repo_id.clone(), "Dockerfile", &container_image).await?;
             println!(
@@ -324,7 +325,8 @@ async fn main() -> Result<()> {
             let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
                 anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
             })?;
-            upsert_builds(&pool, &builds_dir).await?;
+            let force_insert = sub_m.get_flag("force-insert");
+            upsert_builds(&pool, &builds_dir, force_insert).await?;
         }
         Some(("delete", sub_m)) => {
             let id = sub_m.get_one::<i32>("id").ok_or_else(|| {
