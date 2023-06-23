@@ -16,6 +16,14 @@ fn cli() -> Command {
                 .value_parser(clap::value_parser!(String)),
         )
         .subcommand(
+            Command::new("upsert")
+                .about("Inserts or updates a container image based on the image's name and tag")
+                .args_conflicts_with_subcommands(true)
+                .arg(arg!(-i --"image" <IMAGE>).value_parser(clap::value_parser!(String)))
+                .arg(arg!(-s --"service" <SERVICE>).value_parser(clap::value_parser!(String)))
+                .arg(arg!(-f --dockerfile <DOCKERFILE>).value_parser(clap::value_parser!(String))),
+        )
+        .subcommand(
             Command::new("insert")
                 .args_conflicts_with_subcommands(true)
                 .arg(arg!(-i --"image" <IMAGE>).value_parser(clap::value_parser!(String)))
@@ -269,6 +277,34 @@ async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool)
     Ok(())
 }
 
+async fn upsert_image(
+    pool: &Pool<MySql>,
+    image: &str,
+    service_name: &str,
+    dockerfile: &str,
+) -> Result<()> {
+    let mut tx = pool.begin().await?;
+
+    let container_image = parse_container_image(image)?;
+    if !service_exists(&mut tx, &service_name).await? {
+        println!("Service {} does not exist", service_name);
+        return Ok(());
+    }
+    let repo_id = get_service_repo_id(&mut tx, &service_name).await?;
+
+    if !image_exists(&mut tx, &container_image).await? {
+        let last_id = insert_image(&mut tx, repo_id, dockerfile, &container_image).await?;
+        println!("Inserted image with id {}", last_id);
+    } else {
+        update_image(&mut tx, repo_id, dockerfile, &container_image).await?;
+        println!("Updated image");
+    }
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
 async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
     let mut tx = pool.begin().await?;
     println!("Deleting image with id {}", id);
@@ -320,6 +356,20 @@ async fn main() -> Result<()> {
             let container_image = parse_container_image(&image)?;
             insert_image(&mut tx, repo_id, &dockerfile, &container_image).await?;
             tx.commit().await?;
+        }
+        Some(("upsert", sub_m)) => {
+            let image = sub_m.get_one::<String>("image").ok_or_else(|| {
+                anyhow!("No image specified. Use --image <image> to specify an image to insert.")
+            })?;
+            let dockerfile = sub_m.get_one::<String>("dockerfile").ok_or_else(|| {
+                anyhow!("No dockerfile specified. Use --dockerfile <dockerfile> to specify a dockerfile to insert.")
+            })?;
+            let service = sub_m.get_one::<String>("service").ok_or_else(|| {
+                anyhow!(
+                    "No service specified. Use --service <service> to specify a service to insert."
+                )
+            })?;
+            upsert_image(&pool, &image, &service, &dockerfile).await?;
         }
         Some(("upsert-builds", sub_m)) => {
             let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
