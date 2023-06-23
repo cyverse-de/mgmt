@@ -80,14 +80,26 @@ async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str) -> 
     Ok(repo_id)
 }
 
+async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Result<bool> {
+    let services = sqlx::query!(
+        r#"
+        SELECT COUNT(*) AS count FROM services WHERE name = (?)
+        "#,
+        service,
+    )
+    .fetch_one(tx)
+    .await?;
+
+    Ok(services.count.unwrap_or(0) > 0)
+}
+
 async fn insert_image(
-    pool: &Pool<MySql>,
+    tx: &mut Transaction<'_, MySql>,
     service: &str,
     dockerfile: &str,
     image: &str,
 ) -> Result<()> {
-    let mut tx = pool.begin().await?;
-    let repo_id = get_service_repo_id(&mut tx, service).await?;
+    let repo_id = get_service_repo_id(tx, service).await?;
     let container_image = parse_container_image(image)?;
 
     let image_id = sqlx::query!(
@@ -103,13 +115,11 @@ async fn insert_image(
         repo_id,
         dockerfile,
     )
-    .execute(&mut tx)
+    .execute(tx)
     .await?
     .last_insert_id();
 
-    println!("Inserted image with id {}", image_id);
-
-    tx.commit().await?;
+    println!("  inserted image with id {}", image_id);
 
     Ok(())
 }
@@ -161,6 +171,7 @@ struct BuildsData {
 
 async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
     let mut build_dirs = fs::read_dir(builds_dir)?;
+    let mut tx = pool.begin().await?;
 
     while let Some(entry_result) = build_dirs.next() {
         let entry = entry_result?;
@@ -174,16 +185,29 @@ async fn insert_builds(pool: &Pool<MySql>, builds_dir: &str) -> Result<()> {
         }
 
         let service_name = entry_name.trim_end_matches(".json");
+        if service_exists(&mut tx, service_name).await? {
+            println!("Inserting image for service {}", service_name);
+        } else {
+            println!("Service {} does not exist", service_name);
+            continue;
+        }
 
         let data: String = fs::read_to_string(entry.path())?;
+
         let parsed: BuildsData = serde_json::from_str(&data)?;
         if parsed.builds.is_empty() {
             continue;
         }
+
         let build_image = &parsed.builds[0];
         let image = build_image.tag.clone();
-        insert_image(pool, service_name, "Dockerfile", &image).await?;
+
+        println!("  image: {}", image);
+        insert_image(&mut tx, service_name, "Dockerfile", &image).await?;
+        println!("  inserted image for service {}", service_name);
     }
+
+    tx.commit().await?;
 
     Ok(())
 }
@@ -234,7 +258,9 @@ async fn main() -> Result<()> {
                     "No service specified. Use --service <service> to specify a service to insert."
                 )
             })?;
-            insert_image(&pool, &service, &dockerfile, &image).await?;
+            let mut tx = pool.begin().await?;
+            insert_image(&mut tx, &service, &dockerfile, &image).await?;
+            tx.commit().await?;
         }
         Some(("insert-builds", sub_m)) => {
             let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
