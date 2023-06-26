@@ -1,0 +1,37 @@
+USE de_releases;
+
+DELETE FROM config_sections WHERE name = 'Admin';
+DELETE FROM config_sections WHERE name = 'Agave';
+DELETE FROM config_sections WHERE name = 'AMQP';
+DELETE FROM config_sections WHERE name = 'Analytics';
+DELETE FROM config_sections WHERE name = 'BaseURLs';
+DELETE FROM config_sections WHERE name = 'ConfigValues';
+DELETE FROM config_sections WHERE name = 'DashboardAggregator';
+DELETE FROM config_sections WHERE name = 'DatabaseConfig';
+DELETE FROM config_sections WHERE name = 'DE';
+DELETE FROM config_sections WHERE name = 'DEDB';
+DELETE FROM config_sections WHERE name = 'Docker';
+DELETE FROM config_sections WHERE name = 'Elasticsearch';
+DELETE FROM config_sections WHERE name = 'Email';
+DELETE FROM config_sections WHERE name = 'Grouper';
+DELETE FROM config_sections WHERE name = 'GrouperDB';
+DELETE FROM config_sections WHERE name = 'ICAT';
+DELETE FROM config_sections WHERE name = 'Infosquito';
+DELETE FROM config_sections WHERE name = 'Intercom';
+DELETE FROM config_sections WHERE name = 'IRODS';
+DELETE FROM config_sections WHERE name = 'Jaeger';
+DELETE FROM config_sections WHERE name = 'Jobs';
+DELETE FROM config_sections WHERE name = 'Keycloak';
+DELETE FROM config_sections WHERE name = 'MetadataDB';
+DELETE FROM config_sections WHERE name = 'NotificationsDB';
+DELETE FROM config_sections WHERE name = 'PermissionsDB';
+DELETE FROM config_sections WHERE name = 'PGP';
+DELETE FROM config_sections WHERE name = 'PermanentID';
+DELETE FROM config_sections WHERE name = 'QA';
+DELETE FROM config_sections WHERE name = 'QMS';
+DELETE FROM config_sections WHERE name = 'QMSDB';
+DELETE FROM config_sections WHERE name = 'QMSDatabaseConfig';
+DELETE FROM config_sections WHERE name = 'Unleash';
+DELETE FROM config_sections WHERE name = 'UnleashDB';
+DELETE FROM config_sections WHERE name = 'VICE';
+
