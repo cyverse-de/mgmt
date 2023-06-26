@@ -15,10 +15,11 @@ INSERT INTO config_sections (name) VALUES ('Elasticsearch');
 INSERT INTO config_sections (name) VALUES ('Email');
 INSERT INTO config_sections (name) VALUES ('Grouper');
 INSERT INTO config_sections (name) VALUES ('GrouperDB');
+INSERT INTO config_sections (name) VALUES ('Harbor');
 INSERT INTO config_sections (name) VALUES ('ICAT');
 INSERT INTO config_sections (name) VALUES ('Infosquito');
 INSERT INTO config_sections (name) VALUES ('Intercom');
-INSERT INTO config_sections (name) VALUES ('IRODS');
+INSERT INTO config_sections (name) VALUES ('Irods');
 INSERT INTO config_sections (name) VALUES ('Jaeger');
 INSERT INTO config_sections (name) VALUES ('Jobs');
 INSERT INTO config_sections (name) VALUES ('Keycloak');
@@ -33,6 +34,7 @@ INSERT INTO config_sections (name) VALUES ('QMSDB');
 INSERT INTO config_sections (name) VALUES ('QMSDatabaseConfig');
 INSERT INTO config_sections (name) VALUES ('Unleash');
 INSERT INTO config_sections (name) VALUES ('UnleashDB');
+INSERT INTO config_sections (name) VALUES ('UserPortal');
 INSERt INTO config_sections (name) VALUES ('VICE');
 
 

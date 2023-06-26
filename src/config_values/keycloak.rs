@@ -36,6 +36,7 @@ impl KeycloakVice {
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Keycloak {
+    #[serde(rename = "ServerURI")]
     server_uri: Option<Url>,
     realm: String,
 

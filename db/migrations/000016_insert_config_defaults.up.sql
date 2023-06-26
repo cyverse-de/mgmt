@@ -333,3 +333,393 @@ VALUES
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'MorphString',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'FolderNamePrefix',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'Loader.URI',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'Loader.User',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Grouper'),
+        'Loader.Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'ICAT'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'ICAT'),
+        'Port',
+        '1247',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'ICAT'),
+        'User',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'ICAT'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'ICAT'),
+        'Zone',
+        'iplant',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Infosquito'),
+        'DayNum',
+        '4',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Infosquito'),
+        'PrefixLength',
+        '4',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Intercom'),
+        'Enabled',
+        'false',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Intercom'),
+        'AppID',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Intercom'),
+        'CompanyID',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Intercom'),
+        'CompanyName',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AMQP.User',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AMQP.Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AMQP.Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AMQP.Port',
+        '5672',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AMQP.Vhost',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'User',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'Zone',
+        'iplant',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'Port',
+        '1247',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'AdminUsers',
+        'rodsadmin',
+        (SELECT id FROM config_value_types WHERE name = 'csv')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'PermsFilter',
+        'rodsadmin',
+        (SELECT id FROM config_value_types WHERE name = 'csv')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'ExternalHost',
+        'data.cyverse.rocks',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'QuotaRootResources',
+        'mainIngestRes,mainReplRes',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        'WebDav.AnonURI',
+        'https://data.cyverse.rocks/dav-anon',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'ServerURI',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'Realm',
+        'CyVerse',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'ClientID',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'ClientSecret',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'VICE.ClientID',
+        'de-vice',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Keycloak'),
+        'VICE.ClientSecret',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Jobs'),
+        'DataTransferImage',
+        'harbor.cyverse.org/de/porklock',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PGP'),
+        'KeyPassword',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermanentID'),
+        'CuratorsGroup',
+        'data-curators',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermanentID'),
+        'DataCite.BaseURI',
+        'https://api.datacite.org',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermanentID'),
+        'DataCite.User',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermanentID'),
+        'DataCite.Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermanentID'),
+        'DOIPrefix',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Unleash'),
+        'BaseURL',
+        'http://unleash:4242',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Unleash'),
+        'APIPath',
+        '/api',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Unleash'),
+        'MaintenanceFlag',
+        'DE-Maintenance',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Unleash'),
+        'APIToken',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'UserPortal'),
+        'BaseURI',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Admin'),
+        'Groups',
+        'de_admins',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Admin'),
+        'Attribute',
+        'entitlement',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Analytics'),
+        'Enabled',
+        'false',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Analytics'),
+        'Id',
+        'g-id',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'Harbor'),
+        'URL',
+        'harbor.cyverse.org',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Harbor'),
+        'ProjectQARobotName',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Harbor'),
+        'ProjectQARobotSecret',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
