@@ -32,6 +32,7 @@ INSERT INTO config_sections (name) VALUES ('QA');
 INSERT INTO config_sections (name) VALUES ('QMS');
 INSERT INTO config_sections (name) VALUES ('QMSDB');
 INSERT INTO config_sections (name) VALUES ('QMSDatabaseConfig');
+INSERT INTO config_sections (name) VALUES ('TopLevel');
 INSERT INTO config_sections (name) VALUES ('Unleash');
 INSERT INTO config_sections (name) VALUES ('UnleashDB');
 INSERT INTO config_sections (name) VALUES ('UserPortal');

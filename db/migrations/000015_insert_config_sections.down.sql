@@ -32,6 +32,7 @@ DELETE FROM config_sections WHERE name = 'QA';
 DELETE FROM config_sections WHERE name = 'QMS';
 DELETE FROM config_sections WHERE name = 'QMSDB';
 DELETE FROM config_sections WHERE name = 'QMSDatabaseConfig';
+DELETE FROM config_sections WHERE name = 'TopLevel';
 DELETE FROM config_sections WHERE name = 'Unleash';
 DELETE FROM config_sections WHERE name = 'UnleashDB';
 DELETE FROM config_sections WHERE name = 'UserPortal';

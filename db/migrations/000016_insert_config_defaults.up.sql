@@ -1,6 +1,34 @@
 USE de_releases;
 
 INSERT INTO config_defaults 
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'TopLevel'),
+        'Environment',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'TopLevel'),
+        'Namespace',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'TopLevel'),
+        'UIDDomain',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'TopLevel'),
+        'Timezone',
+        'America/Phoenix',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults 
     (section_id, cfg_key, cfg_value, value_type_id) 
 VALUES
     (
@@ -722,4 +750,340 @@ VALUES
         'ProjectQARobotSecret',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES 
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMS'),
+        'Enabled',
+        'true',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Jaeger'),
+        'Endpoint',
+        'http://jaeger-collector.jaeger.svc.cluster.local:14250',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Jaeger'),
+        'HttpEndpoint',
+        'http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'BaseURI',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'FileTransfers.Image',
+        'harbor.cyverse.org/de/vice-file-transfers',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'FileTransfers.Tag',
+        'latest',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'ImagePullSecret',
+        'vice-image-pull-secret',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'UseCSIDriver',
+        'true',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'DefaultCasUrl',
+        'https://auth.cyverse.org/cas5',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'DefaultCasValidate',
+        'validate',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'UseCaseCharsMin',
+        '60',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'DefaultBackend.LoadingPageTemplateString',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'VICE'),
+        'ImageCache',
+        'harbor.cyverse.org/de/vice-proxy:latest,harbor.cyverse.org/de/porklock:latest,harbor.cyverse.org/de/vice-file-transfers:latest,harbor.cyverse.org/vice/cli/bash:latest,harbor.cyverse.org/legacy/datahog:beta,harbor.cyverse.org/vice/jupyter/datascience:latest,harbor.cyverse.org/vice/jupyter/rstudio:latest,harbor.cyverse.org/vice/jupyter/geospatial:latest,harbor.cyverse.org/vice/rstudio/rstudio,harbor.cyverse.org/vice/rstudio/geospatial:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/rstudio/verse:latest,harbor.cyverse.org/vice/vscode:latest,harbor.cyverse.org/vice/xpra/qgis:20.04,harbor.cyverse.org/vice/rstudio/stan:latest',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'DEDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'DEDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'DEDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'DEDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'DEDB'),
+        'Name',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'GrouperDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'GrouperDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'GrouperDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'GrouperDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'GrouperDB'),
+        'Name',
+        'grouper',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'NotificationsDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'NotificationsDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'NotificationsDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'NotificationsDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'NotificationsDB'),
+        'Name',
+        'notifications',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermissionsDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermissionsDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermissionsDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermissionsDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'PermissionsDB'),
+        'Name',
+        'permissions',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'MetadataDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'MetadataDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'MetadataDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'MetadataDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'MetadataDB'),
+        'Name',
+        'metadata',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'UnleashDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'UnleashDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'UnleashDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'UnleashDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'UnleashDB'),
+        'Name',
+        'unleash',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    );
+
+INSERT INTO config_defaults
+    (section_id, cfg_key, cfg_value, value_type_id)
+VALUES
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'User',
+        'de',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Password',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Host',
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Port',
+        '5432',
+        (SELECT id FROM config_value_types WHERE name = 'int')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Name',
+        'qms',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Automigrate',
+        'false',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'QMSDB'),
+        'Reinitialize',
+        'false',
+        (SELECT id FROM config_value_types WHERE name = 'bool')
     );
