@@ -46,4 +46,5 @@ VALUES
     ('https://github.com/cyverse-de/timelord', 'master', 'timelord'),
     ('https://github.com/cyverse-de/user-info', 'master', 'user-info'),
     ('https://github.com/cyverse-de/vice-default-backend', 'master', 'vice-default-backend'),
-    ('https://github.com/cyverse-de/vice-status-listener', 'main', 'vice-status-listener');
+    ('https://github.com/cyverse-de/vice-status-listener', 'main', 'vice-status-listener'),
+    ('https://github.com/cyverse-de/de-releases', 'main', 'de-releases');
