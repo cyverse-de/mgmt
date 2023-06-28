@@ -1,3 +1,3 @@
 USE de_releases;
 
-DROP TABLE IF EXISTS services_configs;
+DROP TABLE IF EXISTS services_config_templates;
