@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS config_values (
     cfg_key TEXT NOT NULL,
     cfg_value TEXT NOT NULL,
     value_type_id INT NOT NULL,
+    default_id INT NOT NULL,
 
     FOREIGN KEY (section_id) REFERENCES config_sections(id),
-    FOREIGN KEY (value_type_id) REFERENCES config_value_types(id)
+    FOREIGN KEY (value_type_id) REFERENCES config_value_types(id),
+    FOREIGN KEY (default_id) REFERENCES config_defaults(id)
 );
