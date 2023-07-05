@@ -246,7 +246,9 @@ impl ConfigValues {
 
         if agave_enabled == 0 {
             let mut new_agave = Agave::default();
-            new_agave.ask_for_info(&theme, &base_uri, &irods_external)?;
+            new_agave
+                .ask_for_info(tx, &theme, env_id, &base_uri, &irods_external)
+                .await?;
             self.agave = Some(new_agave);
         }
 
