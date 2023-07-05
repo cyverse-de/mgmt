@@ -12,10 +12,6 @@ pub struct KeycloakVice {
 }
 
 impl KeycloakVice {
-    fn merge(&self, right: &KeycloakVice) -> anyhow::Result<KeycloakVice> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client ID")
@@ -50,12 +46,6 @@ pub struct Keycloak {
 }
 
 impl Keycloak {
-    pub fn merge(&self, right: &Keycloak) -> anyhow::Result<Keycloak> {
-        let mut merged: Keycloak = serde_merge::omerge(&self, &right)?;
-        merged.vice = self.vice.merge(&right.vice)?;
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let server_uri = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Server URI")

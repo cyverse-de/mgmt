@@ -16,10 +16,6 @@ pub struct Intercom {
 }
 
 impl Intercom {
-    pub fn merge(&self, right: &Intercom) -> anyhow::Result<Intercom> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("Intercom Enabled")

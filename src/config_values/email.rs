@@ -14,10 +14,6 @@ pub struct Email {
 }
 
 impl Email {
-    pub fn merge(&self, right: &Email) -> anyhow::Result<Email> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let src = Input::<String>::with_theme(theme)
             .with_prompt("Email Source")

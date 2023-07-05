@@ -14,10 +14,6 @@ pub struct ElasticSearch {
 }
 
 impl ElasticSearch {
-    pub fn merge(&self, right: &ElasticSearch) -> anyhow::Result<ElasticSearch> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Base URI")

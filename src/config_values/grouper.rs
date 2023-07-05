@@ -13,10 +13,6 @@ pub struct GrouperLoader {
 }
 
 impl GrouperLoader {
-    pub fn merge(&self, right: &GrouperLoader) -> anyhow::Result<GrouperLoader> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let uri = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Loader URI")
@@ -48,12 +44,6 @@ pub struct Grouper {
 }
 
 impl Grouper {
-    pub fn merge(&self, right: &Grouper) -> anyhow::Result<Grouper> {
-        let mut merged: Grouper = serde_merge::omerge(&self, &right)?;
-        merged.loader = self.loader.merge(&right.loader)?;
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme, env: &str) -> anyhow::Result<()> {
         let morph_string = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Morph String")

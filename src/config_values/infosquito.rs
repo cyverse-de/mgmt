@@ -18,10 +18,6 @@ impl Default for Infosquito {
 }
 
 impl Infosquito {
-    pub fn merge(&self, right: &Infosquito) -> anyhow::Result<Infosquito> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let day_num = Input::<u8>::with_theme(theme)
             .with_prompt("Infosquito Day Number")

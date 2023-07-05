@@ -53,9 +53,3 @@ impl Default for BaseURLs {
         }
     }
 }
-
-impl BaseURLs {
-    pub fn merge(&self, right: &BaseURLs) -> anyhow::Result<BaseURLs> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-}

@@ -13,10 +13,6 @@ pub struct Amqp {
 }
 
 impl Amqp {
-    pub fn merge(&self, right: &Amqp) -> anyhow::Result<Amqp> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme, prefix: &str) -> anyhow::Result<()> {
         let user = Input::<String>::with_theme(theme)
             .with_prompt(format!("{} AMQP User", prefix))

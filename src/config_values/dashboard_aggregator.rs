@@ -17,10 +17,6 @@ impl Default for Website {
 }
 
 impl Website {
-    fn merge(&self, right: &Website) -> anyhow::Result<Website> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Website URL")
@@ -41,16 +37,6 @@ pub struct DashboardAggregator {
 }
 
 impl DashboardAggregator {
-    pub fn merge(&self, right: &DashboardAggregator) -> anyhow::Result<DashboardAggregator> {
-        let mut merged: DashboardAggregator = serde_merge::omerge(&self, &right)?;
-        if let Some(website) = &self.website {
-            if let Some(right_website) = &right.website {
-                merged.website = Some(website.merge(right_website)?);
-            }
-        }
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let public_group = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Public Group")

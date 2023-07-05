@@ -37,10 +37,6 @@ impl Default for Agave {
 }
 
 impl Agave {
-    pub fn merge(&self, right: &Agave) -> anyhow::Result<Agave> {
-        Ok(serde_merge::omerge(self, right)?)
-    }
-
     pub fn ask_for_info(
         &mut self,
         theme: &ColorfulTheme,

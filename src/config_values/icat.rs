@@ -12,10 +12,6 @@ pub struct Icat {
 }
 
 impl Icat {
-    pub fn merge(&self, right: &Icat) -> anyhow::Result<Icat> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let host = Input::<String>::with_theme(theme)
             .with_prompt("ICAT Host")

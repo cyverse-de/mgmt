@@ -19,10 +19,6 @@ impl Default for IrodsWebDav {
 }
 
 impl IrodsWebDav {
-    fn merge(&self, right: &IrodsWebDav) -> anyhow::Result<IrodsWebDav> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme, external: &str) -> anyhow::Result<()> {
         let anon_uri = Input::<String>::with_theme(theme)
             .with_prompt("Irods WebDav Anon URI")
@@ -70,17 +66,6 @@ impl Default for Irods {
 }
 
 impl Irods {
-    pub fn merge(&self, right: &Irods) -> anyhow::Result<Irods> {
-        let mut merged: Irods = serde_merge::omerge(&self, &right)?;
-        if let Some(web_dav) = &self.web_dav {
-            if let Some(right_web_dav) = &right.web_dav {
-                merged.web_dav = Some(web_dav.merge(right_web_dav)?);
-            }
-        }
-        merged.amqp = self.amqp.merge(&right.amqp)?;
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         self.amqp.ask_for_info(theme, "iRODS")?;
 

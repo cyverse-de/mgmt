@@ -21,10 +21,6 @@ impl Default for Docker {
 }
 
 impl Docker {
-    pub fn merge(&self, right: &Docker) -> anyhow::Result<Docker> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let tag = Input::<String>::with_theme(theme)
             .with_prompt("Docker Tag")

@@ -4,8 +4,10 @@ use crate::config_values::{
     elasticsearch::ElasticSearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
 };
+use crate::db::{add_env_cfg_value, set_config_value, upsert_environment};
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
+use sqlx::{MySql, Transaction};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
@@ -185,108 +187,11 @@ impl Default for ConfigValues {
 }
 
 impl ConfigValues {
-    pub fn merge(&self, right: &ConfigValues) -> anyhow::Result<ConfigValues> {
-        let mut merged: ConfigValues = serde_merge::omerge(&self, &right)?;
-        if let Some(agave) = &self.agave {
-            if let Some(right_agave) = &right.agave {
-                merged.agave = Some(agave.merge(right_agave)?);
-            }
-        }
-        if let Some(base_urls) = &self.base_urls {
-            if let Some(right_base_urls) = &right.base_urls {
-                merged.base_urls = Some(base_urls.merge(right_base_urls)?);
-            }
-        }
-        if let Some(dashboard_aggregator) = &self.dashboard_aggregator {
-            if let Some(right_dashboard_aggregator) = &right.dashboard_aggregator {
-                merged.dashboard_aggregator =
-                    Some(dashboard_aggregator.merge(right_dashboard_aggregator)?);
-            }
-        }
-        merged.de = self.de.merge(&right.de)?;
-        if let Some(docker) = &self.docker {
-            if let Some(right_docker) = &right.docker {
-                merged.docker = Some(docker.merge(right_docker)?);
-            }
-        }
-        merged.elasticsearch = self.elasticsearch.merge(&right.elasticsearch)?;
-        merged.email = self.email.merge(&right.email)?;
-        merged.grouper = self.grouper.merge(&right.grouper)?;
-        merged.icat = self.icat.merge(&right.icat)?;
-        if let Some(infosquito) = &self.infosquito {
-            if let Some(right_infosquito) = &right.infosquito {
-                merged.infosquito = Some(infosquito.merge(right_infosquito)?);
-            }
-        }
-        if let Some(intercom) = &self.intercom {
-            if let Some(right_intercom) = &right.intercom {
-                merged.intercom = Some(intercom.merge(right_intercom)?);
-            }
-        }
-        merged.irods = self.irods.merge(&right.irods)?;
-        if let Some(jobs) = &self.jobs {
-            if let Some(right_jobs) = &right.jobs {
-                merged.jobs = Some(jobs.merge(right_jobs)?);
-            }
-        }
-        merged.keycloak = self.keycloak.merge(&right.keycloak)?;
-        merged.pgp = self.pgp.merge(&right.pgp)?;
-        if let Some(permanent_id) = &self.permanent_id {
-            if let Some(right_permanent_id) = &right.permanent_id {
-                merged.permanent_id = Some(permanent_id.merge(right_permanent_id)?);
-            }
-        }
-        if let Some(unleash) = &self.unleash {
-            if let Some(right_unleash) = &right.unleash {
-                merged.unleash = Some(unleash.merge(right_unleash)?);
-            }
-        }
-        merged.user_portal = self.user_portal.merge(&right.user_portal)?;
-        merged.vice = self.vice.merge(&right.vice)?;
-        merged.de_db = self.de_db.merge(&right.de_db)?;
-        merged.grouper_db = self.grouper_db.merge(&right.grouper_db)?;
-        merged.new_notifications_db = self
-            .new_notifications_db
-            .merge(&right.new_notifications_db)?;
-        merged.notifications_db = self.notifications_db.merge(&right.notifications_db)?;
-        merged.permissions_db = self.permissions_db.merge(&right.permissions_db)?;
-        merged.qms_db = self.qms_db.merge(&right.qms_db)?;
-        merged.metadata_db = self.metadata_db.merge(&right.metadata_db)?;
-        merged.unleash_db = self.unleash_db.merge(&right.unleash_db)?;
-        if let Some(admin) = &self.admin {
-            if let Some(right_admin) = &right.admin {
-                merged.admin = Some(admin.merge(right_admin)?);
-            }
-        }
-        if let Some(analytics) = &self.analytics {
-            if let Some(right_analytics) = &right.analytics {
-                merged.analytics = Some(analytics.merge(right_analytics)?);
-            }
-        }
-        if let Some(harbor) = &self.harbor {
-            if let Some(right_harbor) = &right.harbor {
-                merged.harbor = Some(harbor.merge(right_harbor)?);
-            }
-        }
-        if let Some(qa) = &self.qa {
-            if let Some(right_qa) = &right.qa {
-                merged.qa = Some(qa.merge(right_qa)?);
-            }
-        }
-        if let Some(qms) = &self.qms {
-            if let Some(right_qms) = &right.qms {
-                merged.qms = Some(qms.merge(right_qms)?);
-            }
-        }
-        if let Some(jaeger) = &self.jaeger {
-            if let Some(right_jaeger) = &right.jaeger {
-                merged.jaeger = Some(jaeger.merge(right_jaeger)?);
-            }
-        }
-        Ok(merged)
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
+    pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
         let mut theme = ColorfulTheme::default();
         theme.hint_style = Style::new().yellow();
 
@@ -308,10 +213,21 @@ impl ConfigValues {
             .default("America/Phoenix".to_string())
             .interact()?;
 
-        self.environment = environment;
-        self.namespace = namespace;
-        self.uid_domain = uid_domain;
-        self.timezone = Some(timezone);
+        let env_id = upsert_environment(tx, &environment, &namespace).await?;
+
+        let env_cfg_id =
+            set_config_value(tx, "TopLevel", "Environment", &environment, "string").await?;
+        add_env_cfg_value(tx, env_id, env_cfg_id).await?;
+
+        let namespace_id =
+            set_config_value(tx, "TopLevel", "Namespace", &namespace, "string").await?;
+        add_env_cfg_value(tx, env_id, namespace_id).await?;
+
+        let uid_id = set_config_value(tx, "TopLevel", "UIDDomain", &uid_domain, "string").await?;
+        add_env_cfg_value(tx, env_id, uid_id).await?;
+
+        let timezone_id = set_config_value(tx, "TopLevel", "Timezone", &timezone, "string").await?;
+        add_env_cfg_value(tx, env_id, timezone_id).await?;
 
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.

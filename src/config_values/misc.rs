@@ -17,10 +17,6 @@ impl Default for Jobs {
 }
 
 impl Jobs {
-    pub fn merge(&self, right: &Jobs) -> anyhow::Result<Jobs> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let data_transfer_image = Input::<String>::with_theme(theme)
             .with_prompt("Jobs Data Transfer Image")
@@ -41,10 +37,6 @@ pub struct Pgp {
 }
 
 impl Pgp {
-    pub fn merge(&self, right: &Pgp) -> anyhow::Result<Pgp> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let key_password = Password::with_theme(theme)
             .with_prompt("PGP Key Password")
@@ -70,10 +62,6 @@ pub struct PermanentIdDataCite {
 }
 
 impl PermanentIdDataCite {
-    fn merge(&self, right: &PermanentIdDataCite) -> anyhow::Result<PermanentIdDataCite> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Base URI")
@@ -109,12 +97,6 @@ pub struct PermanentId {
 }
 
 impl PermanentId {
-    pub fn merge(&self, right: &PermanentId) -> anyhow::Result<PermanentId> {
-        let mut merged: PermanentId = serde_merge::omerge(&self, &right)?;
-        merged.data_cite = self.data_cite.merge(&right.data_cite)?;
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let curators_group = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Curators Group")
@@ -156,10 +138,6 @@ impl Default for Unleash {
 }
 
 impl Unleash {
-    pub fn merge(&self, right: &Unleash) -> anyhow::Result<Unleash> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_url = Input::<String>::with_theme(theme)
             .with_prompt("Unleash Base URL")
@@ -197,10 +175,6 @@ pub struct UserPortal {
 }
 
 impl UserPortal {
-    pub fn merge(&self, right: &UserPortal) -> anyhow::Result<UserPortal> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("User Portal Base URI")
@@ -229,10 +203,6 @@ impl Default for Admin {
 }
 
 impl Admin {
-    pub fn merge(&self, right: &Admin) -> anyhow::Result<Admin> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let groups = Input::<String>::with_theme(theme)
             .with_prompt("Admin Groups")
@@ -268,10 +238,6 @@ impl Default for Analytics {
 }
 
 impl Analytics {
-    pub fn merge(&self, right: &Analytics) -> anyhow::Result<Analytics> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("Analytics Enabled")
@@ -315,10 +281,6 @@ impl Default for Harbor {
 }
 
 impl Harbor {
-    pub fn merge(&self, right: &Harbor) -> anyhow::Result<Harbor> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Harbor URL")
@@ -356,10 +318,6 @@ impl Default for Qms {
 }
 
 impl Qms {
-    pub fn merge(&self, right: &Qms) -> anyhow::Result<Qms> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("QMS Enabled")
@@ -393,10 +351,6 @@ impl Default for Jaeger {
 }
 
 impl Jaeger {
-    pub fn merge(&self, right: &Jaeger) -> anyhow::Result<Jaeger> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let endpoint = Input::<String>::with_theme(theme)
             .with_prompt("Jaeger Endpoint")

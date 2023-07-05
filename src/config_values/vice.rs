@@ -19,10 +19,6 @@ impl Default for ViceFileTransfers {
 }
 
 impl ViceFileTransfers {
-    fn merge(&self, right: &ViceFileTransfers) -> anyhow::Result<ViceFileTransfers> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let image = Input::<String>::with_theme(theme)
             .with_prompt("Vice File Transfers Image")
@@ -48,10 +44,6 @@ pub struct ViceDefaultBackend {
 }
 
 impl ViceDefaultBackend {
-    fn merge(&self, right: &ViceDefaultBackend) -> anyhow::Result<ViceDefaultBackend> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme, base_url: &url::Url) -> anyhow::Result<()> {
         let lpt = base_url.join("/vice/{{.URL}}")?;
         let loading_page_template_string = Input::<String>::with_theme(theme)
@@ -117,17 +109,6 @@ impl Default for Vice {
 }
 
 impl Vice {
-    pub fn merge(&self, right: &Vice) -> anyhow::Result<Vice> {
-        let mut merged: Vice = serde_merge::omerge(&self, &right)?;
-        if let Some(ft) = &merged.file_transfers {
-            if let Some(right_ft) = &right.file_transfers {
-                merged.file_transfers = Some(ft.merge(right_ft)?);
-            }
-        }
-        merged.default_backend = self.default_backend.merge(&right.default_backend)?;
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Vice Base URI")

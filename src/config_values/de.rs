@@ -13,10 +13,6 @@ pub struct DESubscriptions {
 }
 
 impl DESubscriptions {
-    fn merge(&self, right: &DESubscriptions) -> anyhow::Result<DESubscriptions> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let checkout_url = Input::<String>::with_theme(theme)
             .with_prompt("Subscriptions Checkout URL")
@@ -37,10 +33,6 @@ pub struct DECoge {
 }
 
 impl DECoge {
-    fn merge(&self, right: &DECoge) -> anyhow::Result<DECoge> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("CoGe Base URI")
@@ -68,12 +60,6 @@ pub struct DETools {
 }
 
 impl DETools {
-    fn merge(&self, right: &DETools) -> anyhow::Result<DETools> {
-        let mut merged: DETools = serde_merge::omerge(&self, &right)?;
-        merged.admin = self.admin.merge(&right.admin)?;
-        Ok(merged)
-    }
-
     fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         let max_cpu_limit = Input::<u32>::with_theme(theme)
             .with_prompt("Max CPU Limit")
@@ -118,12 +104,6 @@ impl Default for DEToolsAdmin {
     }
 }
 
-impl DEToolsAdmin {
-    fn merge(&self, right: &DEToolsAdmin) -> anyhow::Result<DEToolsAdmin> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DE {
@@ -153,26 +133,6 @@ impl Default for DE {
 }
 
 impl DE {
-    pub fn merge(&self, right: &DE) -> anyhow::Result<DE> {
-        let mut merged: DE = serde_merge::omerge(&self, &right)?;
-        if let Some(subscriptions) = &self.subscriptions {
-            if let Some(right_subscriptions) = &right.subscriptions {
-                merged.subscriptions = Some(subscriptions.merge(right_subscriptions)?);
-            }
-        }
-        if let Some(coge) = &self.coge {
-            if let Some(right_coge) = &right.coge {
-                merged.coge = Some(coge.merge(&right_coge)?);
-            }
-        }
-        if let Some(tools) = &self.tools {
-            if let Some(right_tools) = &right.tools {
-                merged.tools = Some(tools.merge(&right_tools)?);
-            }
-        }
-        Ok(merged)
-    }
-
     pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
         self.amqp.ask_for_info(theme, "DE")?;
 

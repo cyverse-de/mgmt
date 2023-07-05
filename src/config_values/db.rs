@@ -24,10 +24,6 @@ impl Default for DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    pub fn merge(&self, right: &DatabaseConfig) -> anyhow::Result<DatabaseConfig> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(
         &mut self,
         theme: &ColorfulTheme,
@@ -99,10 +95,6 @@ impl Default for QMSDatabaseConfig {
 }
 
 impl QMSDatabaseConfig {
-    pub fn merge(&self, right: &QMSDatabaseConfig) -> anyhow::Result<QMSDatabaseConfig> {
-        Ok(serde_merge::omerge(&self, &right)?)
-    }
-
     pub fn ask_for_info(
         &mut self,
         theme: &ColorfulTheme,
