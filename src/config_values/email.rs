@@ -1,6 +1,7 @@
 use crate::db::{add_env_cfg_value, set_config_value};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
+use sqlx::{MySql, Transaction};
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
