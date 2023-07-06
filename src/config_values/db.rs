@@ -26,10 +26,13 @@ impl Default for DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    pub fn ask_for_info(
+    pub async fn ask_for_info(
         &mut self,
+        tx: &mut Transaction<'_, MySql>,
         theme: &ColorfulTheme,
+        env_id: u64,
         prefix: &str,
+        section: &str,
         name: &str,
         host: &str,
         user: &str,
@@ -60,10 +63,24 @@ impl DatabaseConfig {
             .default(name.to_string())
             .interact()?;
 
+        let user_id = set_config_value(tx, section, "User", &user, "string").await?;
+        add_env_cfg_value(tx, env_id, user_id).await?;
         self.user = user;
+
+        let password_id = set_config_value(tx, section, "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let host_id = set_config_value(tx, section, "Host", &host, "string").await?;
+        add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
+
+        let port_id = set_config_value(tx, section, "Port", &port.to_string(), "integer").await?;
+        add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = port;
+
+        let name_id = set_config_value(tx, section, "Name", &name, "string").await?;
+        add_env_cfg_value(tx, env_id, name_id).await?;
         self.name = name;
 
         Ok(())
@@ -97,9 +114,11 @@ impl Default for QMSDatabaseConfig {
 }
 
 impl QMSDatabaseConfig {
-    pub fn ask_for_info(
+    pub async fn ask_for_info(
         &mut self,
+        tx: &mut Transaction<'_, MySql>,
         theme: &ColorfulTheme,
+        env_id: u64,
         name: &str,
         host: &str,
         user: &str,
@@ -142,12 +161,46 @@ impl QMSDatabaseConfig {
             .items(&["Yes", "No"])
             .interact()?;
 
+        let user_id = set_config_value(tx, "QMSDB", "User", &user, "string").await?;
+        add_env_cfg_value(tx, env_id, user_id).await?;
         self.user = user;
+
+        let password_id = set_config_value(tx, "QMSDB", "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let host_id = set_config_value(tx, "QMSDB", "Host", &host, "string").await?;
+        add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
+
+        let port_id = set_config_value(tx, "QMSDB", "Port", &port.to_string(), "integer").await?;
+        add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = Some(port);
+
+        let name_id = set_config_value(tx, "QMSDB", "Name", &name, "string").await?;
+        add_env_cfg_value(tx, env_id, name_id).await?;
         self.name = Some(name);
+
+        let automigrate_id = set_config_value(
+            tx,
+            "QMSDB",
+            "Automigrate",
+            &format!("{}", automigrate == 0),
+            "boolean",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, automigrate_id).await?;
         self.automigrate = Some(automigrate == 0);
+
+        let reinitialize_id = set_config_value(
+            tx,
+            "QMSDB",
+            "Reinitialize",
+            &format!("{}", reinitialize == 0),
+            "boolean",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, reinitialize_id).await?;
         self.reinitialize = Some(reinitialize == 0);
 
         Ok(())

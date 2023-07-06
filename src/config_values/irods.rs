@@ -21,12 +21,21 @@ impl Default for IrodsWebDav {
 }
 
 impl IrodsWebDav {
-    fn ask_for_info(&mut self, theme: &ColorfulTheme, external: &str) -> anyhow::Result<()> {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+        external: &str,
+    ) -> anyhow::Result<()> {
         let anon_uri = Input::<String>::with_theme(theme)
             .with_prompt("Irods WebDav Anon URI")
             .default(format!("https://{}/dav-anon", external))
             .interact()?;
 
+        let anon_uri_id =
+            set_config_value(tx, "IRODS", "WebDAV.AnonURI", &anon_uri, "string").await?;
+        add_env_cfg_value(tx, env_id, anon_uri_id).await?;
         self.anon_uri = Url::parse(&anon_uri).ok();
 
         Ok(())
@@ -68,8 +77,13 @@ impl Default for Irods {
 }
 
 impl Irods {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
-        self.amqp.ask_for_info(theme, "iRODS")?;
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
+        self.amqp.ask_for_info(tx, theme, env_id, "iRODS").await?;
 
         let host = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Host")
@@ -102,18 +116,43 @@ impl Irods {
             .default("rodsadmin".to_string())
             .interact()?;
 
+        let host_id = set_config_value(tx, "IRODS", "Host", &host, "string").await?;
+        add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
+
+        let external_host_id =
+            set_config_value(tx, "IRODS", "ExternalHost", &external_host, "string").await?;
+        add_env_cfg_value(tx, env_id, external_host_id).await?;
         self.external_host = Some(external_host);
+
+        let user_id = set_config_value(tx, "IRODS", "User", &user, "string").await?;
         self.user = user;
+        add_env_cfg_value(tx, env_id, user_id).await?;
+
+        let zone_id = set_config_value(tx, "IRODS", "Zone", &zone, "string").await?;
+        add_env_cfg_value(tx, env_id, zone_id).await?;
         self.zone = zone;
+
+        let password_id = set_config_value(tx, "IRODS", "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let admin_users_id =
+            set_config_value(tx, "IRODS", "AdminUsers", &admin_users, "string").await?;
+        add_env_cfg_value(tx, env_id, admin_users_id).await?;
         self.admin_users = admin_users.split(',').map(|s| s.to_string()).collect();
+
+        let perms_filter_id =
+            set_config_value(tx, "IRODS", "PermsFilter", &perms_filter, "string").await?;
+        add_env_cfg_value(tx, env_id, perms_filter_id).await?;
         self.perms_filter = perms_filter.split(',').map(|s| s.to_string()).collect();
 
         let mut new_web_dav = IrodsWebDav::default();
 
         // We're okay with unwrap here since it's user input and panicking is fine.
-        new_web_dav.ask_for_info(theme, self.external_host.as_ref().unwrap())?;
+        new_web_dav
+            .ask_for_info(tx, theme, env_id, self.external_host.as_ref().unwrap())
+            .await?;
 
         self.web_dav = Some(new_web_dav);
 

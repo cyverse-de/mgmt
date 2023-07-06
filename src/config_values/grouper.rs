@@ -15,7 +15,12 @@ pub struct GrouperLoader {
 }
 
 impl GrouperLoader {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let uri = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Loader URI")
             .interact()?;
@@ -28,8 +33,17 @@ impl GrouperLoader {
             .with_prompt("Grouper Loader Password")
             .interact()?;
 
+        let uri_id = set_config_value(tx, "Grouper", "Loader.URI", &uri, "string").await?;
+        add_env_cfg_value(tx, env_id, uri_id).await?;
         self.uri = Url::parse(&uri).ok();
+
+        let user_id = set_config_value(tx, "Grouper", "Loader.User", &user, "string").await?;
+        add_env_cfg_value(tx, env_id, user_id).await?;
         self.user = user;
+
+        let password_id =
+            set_config_value(tx, "Grouper", "Loader.Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
 
         Ok(())
@@ -46,7 +60,13 @@ pub struct Grouper {
 }
 
 impl Grouper {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme, env: &str) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+        env: &str,
+    ) -> anyhow::Result<()> {
         let morph_string = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Morph String")
             .interact()?;
@@ -60,10 +80,27 @@ impl Grouper {
             .default(format!("cyverse:de:{}", env).into())
             .interact()?;
 
+        let morph_string_id =
+            set_config_value(tx, "Grouper", "MorphString", &morph_string, "string").await?;
+        add_env_cfg_value(tx, env_id, morph_string_id).await?;
         self.morph_string = morph_string;
+
+        let password_id = set_config_value(tx, "Grouper", "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let folder_name_prefix_id = set_config_value(
+            tx,
+            "Grouper",
+            "FolderNamePrefix",
+            &folder_name_prefix,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, folder_name_prefix_id).await?;
         self.folder_name_prefix = folder_name_prefix;
-        self.loader.ask_for_info(theme)?;
+
+        self.loader.ask_for_info(tx, theme, env_id).await?;
         Ok(())
     }
 }

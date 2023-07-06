@@ -19,12 +19,19 @@ impl Default for Website {
 }
 
 impl Website {
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Website URL")
             .default("https://cyverse.org".into())
             .interact()?;
 
+        let url_id = set_config_value(tx, "DashboardAggregator", "URL", &url, "string").await?;
+        add_env_cfg_value(tx, env_id, url_id).await?;
         self.url = Url::parse(&url).ok();
 
         Ok(())
@@ -39,14 +46,28 @@ pub struct DashboardAggregator {
 }
 
 impl DashboardAggregator {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let public_group = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Public Group")
             .interact()?;
-
+        let public_group_id = set_config_value(
+            tx,
+            "DashboardAggregator",
+            "PublicGroup",
+            &public_group,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, 0, public_group_id).await?;
         self.public_group = public_group;
+
         let mut new_website = Website::default();
-        new_website.ask_for_info(theme)?;
+        new_website.ask_for_info(tx, theme, env_id).await?;
         self.website = Some(new_website);
 
         Ok(())

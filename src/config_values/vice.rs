@@ -21,7 +21,12 @@ impl Default for ViceFileTransfers {
 }
 
 impl ViceFileTransfers {
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let image = Input::<String>::with_theme(theme)
             .with_prompt("Vice File Transfers Image")
             .default("harbor.cyverse.org/de/vice-file-transfers".into())
@@ -31,6 +36,12 @@ impl ViceFileTransfers {
             .with_prompt("Vice File Transfers Tag")
             .default("latest".into())
             .interact()?;
+
+        let image_id = set_config_value(tx, "ViceFileTransfers", "Image", &image, "string").await?;
+        add_env_cfg_value(tx, env_id, image_id).await?;
+
+        let tag_id = set_config_value(tx, "ViceFileTransfers", "Tag", &tag, "string").await?;
+        add_env_cfg_value(tx, env_id, tag_id).await?;
 
         self.image = Some(image);
         self.tag = Some(tag);
@@ -46,13 +57,28 @@ pub struct ViceDefaultBackend {
 }
 
 impl ViceDefaultBackend {
-    fn ask_for_info(&mut self, theme: &ColorfulTheme, base_url: &url::Url) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+        base_url: &url::Url,
+    ) -> anyhow::Result<()> {
         let lpt = base_url.join("/vice/{{.URL}}")?;
         let loading_page_template_string = Input::<String>::with_theme(theme)
             .with_prompt("Vice Default Backend Loading Page Template String")
             .default(lpt.to_string())
             .interact()?;
 
+        let lpt_id = set_config_value(
+            tx,
+            "ViceDefaultBackend",
+            "LoadingPageTemplateString",
+            &loading_page_template_string,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, lpt_id).await?;
         self.loading_page_template_string = loading_page_template_string;
 
         Ok(())
@@ -111,7 +137,12 @@ impl Default for Vice {
 }
 
 impl Vice {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Vice Base URI")
             .interact()?;
@@ -151,17 +182,63 @@ impl Vice {
             .interact()?;
 
         let mut new_file_transfers = ViceFileTransfers::default();
-        new_file_transfers.ask_for_info(theme)?;
+        new_file_transfers.ask_for_info(tx, theme, env_id).await?;
         self.file_transfers = Some(new_file_transfers);
 
+        let base_uri_id = set_config_value(tx, "VICE", "BaseURI", &base_uri, "string").await?;
+        add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Url::parse(&base_uri).ok();
+
         self.default_backend
-            .ask_for_info(theme, &self.base_uri.as_ref().unwrap())?;
+            .ask_for_info(tx, theme, env_id, &self.base_uri.as_ref().unwrap())
+            .await?;
+
+        let image_pull_secret_id =
+            set_config_value(tx, "VICE", "ImagePullSecret", &image_pull_secret, "string").await?;
+        add_env_cfg_value(tx, env_id, image_pull_secret_id).await?;
         self.image_pull_secret = Some(image_pull_secret);
+
+        let image_cache_id =
+            set_config_value(tx, "VICE", "ImageCache", &image_cache, "string").await?;
+        add_env_cfg_value(tx, env_id, image_cache_id).await?;
         self.image_cache = Some(image_cache.split(',').map(|s| s.to_string()).collect());
+
+        let default_cas_url_id =
+            set_config_value(tx, "VICE", "DefaultCasUrl", &default_cas_url, "string").await?;
+        add_env_cfg_value(tx, env_id, default_cas_url_id).await?;
         self.default_cas_url = Some(default_cas_url);
+
+        let default_cas_validate_id = set_config_value(
+            tx,
+            "VICE",
+            "DefaultCasValidate",
+            &default_cas_validate,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, default_cas_validate_id).await?;
         self.default_cas_validate = Some(default_cas_validate);
+
+        let use_case_chars_min_id = set_config_value(
+            tx,
+            "VICE",
+            "UseCaseCharsMin",
+            &format!("{}", use_case_chars_min),
+            "integer",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, use_case_chars_min_id).await?;
         self.use_case_chars_min = Some(use_case_chars_min);
+
+        let use_csi_data_id = set_config_value(
+            tx,
+            "VICE",
+            "UseCSIDriver",
+            &format!("{}", use_csi_data == 0),
+            "boolean",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, use_csi_data_id).await?;
         self.use_csi_driver = Some(use_csi_data == 0);
 
         Ok(())

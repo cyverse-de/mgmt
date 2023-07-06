@@ -19,12 +19,26 @@ impl Default for Jobs {
 }
 
 impl Jobs {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let data_transfer_image = Input::<String>::with_theme(theme)
             .with_prompt("Jobs Data Transfer Image")
             .default("harbor.cyverse.org/de/porklock".into())
             .interact()?;
 
+        let data_transfer_image_id = set_config_value(
+            tx,
+            "Jobs",
+            "DataTransferImage",
+            &data_transfer_image,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, data_transfer_image_id).await?;
         self.data_transfer_image = data_transfer_image;
 
         Ok(())
@@ -39,11 +53,18 @@ pub struct Pgp {
 }
 
 impl Pgp {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let key_password = Password::with_theme(theme)
             .with_prompt("PGP Key Password")
             .interact()?;
-
+        let key_password_id =
+            set_config_value(tx, "PGP", "KeyPassword", &key_password, "string").await?;
+        add_env_cfg_value(tx, env_id, key_password_id).await?;
         self.key_password = key_password;
 
         Ok(())
@@ -64,7 +85,12 @@ pub struct PermanentIdDataCite {
 }
 
 impl PermanentIdDataCite {
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Base URI")
             .default("https://api.datacite.org/".into())
@@ -82,9 +108,29 @@ impl PermanentIdDataCite {
             .with_prompt("Permanent ID DataCite DOI Prefix")
             .interact()?;
 
+        let base_uri_id =
+            set_config_value(tx, "PermanentID", "DataCite.BaseURI", &base_uri, "url").await?;
+        add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Url::parse(&base_uri).ok();
+
+        let user_id = set_config_value(tx, "PermanentID", "DataCite.User", &user, "string").await?;
+        add_env_cfg_value(tx, env_id, user_id).await?;
         self.user = user;
+
+        let password_id =
+            set_config_value(tx, "PermanentID", "DataCite.Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let doi_prefix_id = set_config_value(
+            tx,
+            "PermanentID",
+            "DataCite.DOIPrefix",
+            &doi_prefix,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, doi_prefix_id).await?;
         self.doi_prefix = doi_prefix;
 
         Ok(())
@@ -99,15 +145,28 @@ pub struct PermanentId {
 }
 
 impl PermanentId {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let curators_group = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Curators Group")
             .default("data-curators".into())
             .interact()?;
-
+        let curators_group_id = set_config_value(
+            tx,
+            "PermanentID",
+            "CuratorsGroup",
+            &curators_group,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, curators_group_id).await?;
         self.curators_group = curators_group;
 
-        self.data_cite.ask_for_info(theme)?;
+        self.data_cite.ask_for_info(tx, theme, env_id).await?;
 
         Ok(())
     }
@@ -140,7 +199,12 @@ impl Default for Unleash {
 }
 
 impl Unleash {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let base_url = Input::<String>::with_theme(theme)
             .with_prompt("Unleash Base URL")
             .default("http://unleash:4242".into())
@@ -160,9 +224,28 @@ impl Unleash {
             .with_prompt("Unleash API Token")
             .interact()?;
 
+        let base_url_id = set_config_value(tx, "Unleash", "BaseURL", &base_url, "string").await?;
+        add_env_cfg_value(tx, env_id, base_url_id).await?;
         self.base_url = Url::parse(&base_url).ok();
+
+        let api_path_id = set_config_value(tx, "Unleash", "APIPath", &api_path, "string").await?;
+        add_env_cfg_value(tx, env_id, api_path_id).await?;
         self.api_path = Some(api_path);
+
+        let maintenance_flag_id = set_config_value(
+            tx,
+            "Unleash",
+            "MaintenanceFlag",
+            &maintenance_flag,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, maintenance_flag_id).await?;
         self.maintenance_flag = Some(maintenance_flag);
+
+        let api_token_id =
+            set_config_value(tx, "Unleash", "APIToken", &api_token, "string").await?;
+        add_env_cfg_value(tx, env_id, api_token_id).await?;
         self.api_token = api_token;
 
         Ok(())
@@ -177,11 +260,19 @@ pub struct UserPortal {
 }
 
 impl UserPortal {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("User Portal Base URI")
             .interact()?;
 
+        let base_uri_id =
+            set_config_value(tx, "UserPortal", "BaseURI", &base_uri, "string").await?;
+        add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Some(base_uri);
 
         Ok(())
@@ -205,7 +296,12 @@ impl Default for Admin {
 }
 
 impl Admin {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let groups = Input::<String>::with_theme(theme)
             .with_prompt("Admin Groups")
             .default("de_admins".into())
@@ -216,7 +312,12 @@ impl Admin {
             .default("entitlement".into())
             .interact()?;
 
+        let groups_id = set_config_value(tx, "Admin", "Groups", &groups, "string").await?;
+        add_env_cfg_value(tx, env_id, groups_id).await?;
         self.groups = Some(groups);
+
+        let attribute_id = set_config_value(tx, "Admin", "Attribute", &attribute, "string").await?;
+        add_env_cfg_value(tx, env_id, attribute_id).await?;
         self.attribute = Some(attribute);
 
         Ok(())
@@ -240,7 +341,12 @@ impl Default for Analytics {
 }
 
 impl Analytics {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("Analytics Enabled")
             .default(0)
@@ -252,7 +358,19 @@ impl Analytics {
             .default("g-id".into())
             .interact()?;
 
+        let enabled_id = set_config_value(
+            tx,
+            "Analytics",
+            "Enabled",
+            &format!("{}", enabled == 0),
+            "boolean",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, enabled_id).await?;
         self.enabled = Some(enabled == 0);
+
+        let id_id = set_config_value(tx, "Analytics", "Id", &id, "string").await?;
+        add_env_cfg_value(tx, env_id, id_id).await?;
         self.id = Some(id);
 
         Ok(())
@@ -283,7 +401,12 @@ impl Default for Harbor {
 }
 
 impl Harbor {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Harbor URL")
             .default("harbor.cyverse.org".into())
@@ -297,8 +420,30 @@ impl Harbor {
             .with_prompt("Harbor Project QA Robot Secret")
             .interact()?;
 
+        let url_id = set_config_value(tx, "Harbor", "URL", &url, "string").await?;
+        add_env_cfg_value(tx, env_id, url_id).await?;
         self.url = Some(url);
+
+        let project_qa_robot_name_id = set_config_value(
+            tx,
+            "Harbor",
+            "ProjectQARobotName",
+            &project_qa_robot_name,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, project_qa_robot_name_id).await?;
         self.project_qa_robot_name = project_qa_robot_name;
+
+        let project_qa_robot_secret_id = set_config_value(
+            tx,
+            "Harbor",
+            "ProjectQARobotSecret",
+            &project_qa_robot_secret,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, project_qa_robot_secret_id).await?;
         self.project_qa_robot_secret = project_qa_robot_secret;
 
         Ok(())
@@ -320,13 +465,26 @@ impl Default for Qms {
 }
 
 impl Qms {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("QMS Enabled")
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
-
+        let enabled_id = set_config_value(
+            tx,
+            "QMS",
+            "Enabled",
+            &format!("{}", enabled == 0),
+            "boolean",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, enabled_id).await?;
         self.enabled = Some(enabled == 0);
 
         Ok(())
@@ -353,7 +511,12 @@ impl Default for Jaeger {
 }
 
 impl Jaeger {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let endpoint = Input::<String>::with_theme(theme)
             .with_prompt("Jaeger Endpoint")
             .default("http://jaeger-collector.jaeger.svc.cluster.local:14250".into())
@@ -364,7 +527,13 @@ impl Jaeger {
             .default("http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces".into())
             .interact()?;
 
+        let endpoint_id = set_config_value(tx, "Jaeger", "Endpoint", &endpoint, "string").await?;
+        add_env_cfg_value(tx, env_id, endpoint_id).await?;
         self.endpoint = Url::parse(&endpoint).ok();
+
+        let http_endpoint_id =
+            set_config_value(tx, "Jaeger", "HttpEndpoint", &http_endpoint, "string").await?;
+        add_env_cfg_value(tx, env_id, http_endpoint_id).await?;
         self.http_endpoint = Url::parse(&http_endpoint).ok();
 
         Ok(())

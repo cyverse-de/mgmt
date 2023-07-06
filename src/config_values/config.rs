@@ -231,8 +231,8 @@ impl ConfigValues {
 
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.
-        self.de.ask_for_info(&theme)?;
-        self.irods.ask_for_info(&theme)?;
+        self.de.ask_for_info(tx, &theme, env_id).await?;
+        self.irods.ask_for_info(tx, &theme, env_id).await?;
 
         // We need the base URI and external host for other settings.
         let base_uri = self.de.base_uri.clone().unwrap();
@@ -253,20 +253,22 @@ impl ConfigValues {
         }
 
         let mut new_da = DashboardAggregator::default();
-        new_da.ask_for_info(&theme)?;
+        new_da.ask_for_info(tx, &theme, env_id).await?;
         self.dashboard_aggregator = Some(new_da);
 
         let mut new_docker = Docker::default();
-        new_docker.ask_for_info(&theme)?;
+        new_docker.ask_for_info(tx, &theme, env_id).await?;
         self.docker = Some(new_docker);
 
-        self.elasticsearch.ask_for_info(&theme)?;
-        self.email.ask_for_info(&theme)?;
-        self.grouper.ask_for_info(&theme, &self.environment)?;
-        self.icat.ask_for_info(&theme)?;
+        self.elasticsearch.ask_for_info(tx, &theme, env_id).await?;
+        self.email.ask_for_info(tx, &theme, env_id).await?;
+        self.grouper
+            .ask_for_info(tx, &theme, env_id, &self.environment)
+            .await?;
+        self.icat.ask_for_info(tx, &theme, env_id).await?;
 
         let mut new_infosquito = Infosquito::default();
-        new_infosquito.ask_for_info(&theme)?;
+        new_infosquito.ask_for_info(tx, &theme, env_id).await?;
         self.infosquito = Some(new_infosquito);
 
         let intercom_enabled = Select::with_theme(&theme)
@@ -277,16 +279,16 @@ impl ConfigValues {
 
         if intercom_enabled == 0 {
             let mut new_intercom = config_values::intercom::Intercom::default();
-            new_intercom.ask_for_info(&theme)?;
+            new_intercom.ask_for_info(tx, &theme, env_id).await?;
             self.intercom = Some(new_intercom);
         }
 
         let mut new_jobs = config_values::misc::Jobs::default();
-        new_jobs.ask_for_info(&theme)?;
+        new_jobs.ask_for_info(tx, &theme, env_id).await?;
         self.jobs = Some(new_jobs);
 
-        self.keycloak.ask_for_info(&theme)?;
-        self.pgp.ask_for_info(&theme)?;
+        self.keycloak.ask_for_info(tx, &theme, env_id).await?;
+        self.pgp.ask_for_info(tx, &theme, env_id).await?;
 
         let permanent_id_enabled = Select::with_theme(&theme)
             .with_prompt("Include Permanent ID?")
@@ -296,43 +298,65 @@ impl ConfigValues {
 
         if permanent_id_enabled == 0 {
             let mut new_permanent_id = config_values::misc::PermanentId::default();
-            new_permanent_id.ask_for_info(&theme)?;
+            new_permanent_id.ask_for_info(tx, &theme, env_id).await?;
             self.permanent_id = Some(new_permanent_id);
         }
 
-        self.de_db.ask_for_info(&theme, "DE", "de", "", "de", "")?;
-        self.grouper_db.ask_for_info(
-            &theme,
-            "Grouper",
-            "grouper",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.notifications_db.ask_for_info(
-            &theme,
-            "Notifications",
-            "notifications",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.permissions_db.ask_for_info(
-            &theme,
-            "Permissions",
-            "permissions",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.metadata_db.ask_for_info(
-            &theme,
-            "Metadata",
-            "metadata",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
+        self.de_db
+            .ask_for_info(tx, &theme, env_id, "DE", "DEDB", "de", "", "de", "")
+            .await?;
+        self.grouper_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Grouper",
+                "GrouperDB",
+                "grouper",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.notifications_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Notifications",
+                "NotificationsDB",
+                "notifications",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.permissions_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Permissions",
+                "PermissionsDB",
+                "permissions",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.metadata_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Metadata",
+                "MetadataDB",
+                "metadata",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
 
         let unleash_enabled = Select::with_theme(&theme)
             .with_prompt("Include Unleash?")
@@ -342,16 +366,21 @@ impl ConfigValues {
 
         if unleash_enabled == 0 {
             let mut new_unleash = config_values::misc::Unleash::default();
-            new_unleash.ask_for_info(&theme)?;
+            new_unleash.ask_for_info(tx, &theme, env_id).await?;
             self.unleash = Some(new_unleash);
-            self.unleash_db.ask_for_info(
-                &theme,
-                "Unleash",
-                "unleash",
-                &self.de_db.host,
-                &self.de_db.user,
-                &self.de_db.password,
-            )?;
+            self.unleash_db
+                .ask_for_info(
+                    tx,
+                    &theme,
+                    env_id,
+                    "Unleash",
+                    "UnleashDB",
+                    "unleash",
+                    &self.de_db.host,
+                    &self.de_db.user,
+                    &self.de_db.password,
+                )
+                .await?;
         }
 
         let qa_enabled = Select::with_theme(&theme)
@@ -373,23 +402,27 @@ impl ConfigValues {
             .interact()?;
 
         if qms_enabled == 0 {
-            self.qms_db.ask_for_info(
-                &theme,
-                "qms",
-                &self.de_db.host,
-                &self.de_db.user,
-                &self.de_db.password,
-            )?;
+            self.qms_db
+                .ask_for_info(
+                    tx,
+                    &theme,
+                    env_id,
+                    "qms",
+                    &self.de_db.host,
+                    &self.de_db.user,
+                    &self.de_db.password,
+                )
+                .await?;
             let mut new_qms = config_values::misc::Qms::default();
-            new_qms.ask_for_info(&theme)?;
+            new_qms.ask_for_info(tx, &theme, env_id).await?;
             self.qms = Some(new_qms);
         }
 
-        self.user_portal.ask_for_info(&theme)?;
-        self.vice.ask_for_info(&theme)?;
+        self.user_portal.ask_for_info(tx, &theme, env_id).await?;
+        self.vice.ask_for_info(tx, &theme, env_id).await?;
 
         let mut new_admin = config_values::misc::Admin::default();
-        new_admin.ask_for_info(&theme)?;
+        new_admin.ask_for_info(tx, &theme, env_id).await?;
         self.admin = Some(new_admin);
 
         let analytics_enabled = Select::with_theme(&theme)
@@ -400,12 +433,12 @@ impl ConfigValues {
 
         if analytics_enabled == 0 {
             let mut new_analytics = config_values::misc::Analytics::default();
-            new_analytics.ask_for_info(&theme)?;
+            new_analytics.ask_for_info(tx, &theme, env_id).await?;
             self.analytics = Some(new_analytics);
         }
 
         let mut new_harbor = config_values::misc::Harbor::default();
-        new_harbor.ask_for_info(&theme)?;
+        new_harbor.ask_for_info(tx, &theme, env_id).await?;
         self.harbor = Some(new_harbor);
 
         let jaeger_enabled = Select::with_theme(&theme)
@@ -416,7 +449,7 @@ impl ConfigValues {
 
         if jaeger_enabled == 0 {
             let mut new_jaeger = config_values::misc::Jaeger::default();
-            new_jaeger.ask_for_info(&theme)?;
+            new_jaeger.ask_for_info(tx, &theme, env_id).await?;
             self.jaeger = Some(new_jaeger);
         }
 

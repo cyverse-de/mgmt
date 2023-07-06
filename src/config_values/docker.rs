@@ -23,13 +23,39 @@ impl Default for Docker {
 }
 
 impl Docker {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let tag = Input::<String>::with_theme(theme)
             .with_prompt("Docker Tag")
             .default("latest".into())
             .interact()?;
-
+        let tag_id = set_config_value(tx, "Docker", "Tag", &tag, "string").await?;
+        add_env_cfg_value(tx, env_id, tag_id).await?;
         self.tag = tag;
+
+        let trusted_registries = Input::<String>::with_theme(theme)
+            .with_prompt("Docker Trusted Registries")
+            .default("harbor.cyverse.org,docker.cyverse.org".into())
+            .interact()?;
+        let trusted_registries_id = set_config_value(
+            tx,
+            "Docker",
+            "TrustedRegistries",
+            &trusted_registries,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, trusted_registries_id).await?;
+        self.trusted_registries = Some(
+            trusted_registries
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
+        );
 
         Ok(())
     }

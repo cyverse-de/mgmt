@@ -16,7 +16,12 @@ pub struct ElasticSearch {
 }
 
 impl ElasticSearch {
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Base URI")
             .default("http://elasticsearch:9200".into())
@@ -37,9 +42,23 @@ impl ElasticSearch {
             .default("data".into())
             .interact()?;
 
+        let base_uri_id =
+            set_config_value(tx, "ElasticSearch", "BaseURI", &base_uri, "string").await?;
+        add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Url::parse(&base_uri).ok();
+
+        let username_id =
+            set_config_value(tx, "ElasticSearch", "Username", &username, "string").await?;
+        add_env_cfg_value(tx, env_id, username_id).await?;
         self.username = username;
+
+        let password_id =
+            set_config_value(tx, "ElasticSearch", "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
+
+        let index_id = set_config_value(tx, "ElasticSearch", "Index", &index, "string").await?;
+        add_env_cfg_value(tx, env_id, index_id).await?;
         self.index = index;
 
         Ok(())
