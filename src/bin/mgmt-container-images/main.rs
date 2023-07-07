@@ -87,7 +87,7 @@ async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str) -> 
         "#,
         service,
     )
-    .fetch_one(tx)
+    .fetch_one(&mut **tx)
     .await?
     .repo_id
     .ok_or_else(|| anyhow::anyhow!("repo_id not found"))?;
@@ -105,7 +105,7 @@ async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Resul
         "#,
         service,
     )
-    .fetch_one(tx)
+    .fetch_one(&mut **tx)
     .await?;
 
     Ok(services.count.unwrap_or(0) > 0)
@@ -128,7 +128,7 @@ async fn image_exists(
         image.name,
         image.tag,
     )
-    .fetch_one(tx)
+    .fetch_one(&mut **tx)
     .await?;
 
     Ok(images.count.unwrap_or(0) > 0)
@@ -159,7 +159,7 @@ async fn update_image(
         container_image.name,
         container_image.tag,
     )
-    .execute(tx)
+    .execute(&mut **tx)
     .await?;
 
     Ok(())
@@ -187,7 +187,7 @@ async fn insert_image(
         repo_id,
         dockerfile,
     )
-    .execute(tx)
+    .execute(&mut **tx)
     .await?
     .last_insert_id();
 
@@ -353,7 +353,7 @@ async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
         "#,
         *id,
     )
-    .execute(&mut tx)
+    .execute(&mut *tx)
     .await?;
 
     tx.commit().await?;

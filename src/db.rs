@@ -12,7 +12,7 @@ pub async fn upsert_environment(
             environment,
             namespace
         )
-        .execute(tx)
+        .execute(&mut **tx)
         .await?
         .last_insert_id())
 }
@@ -41,7 +41,7 @@ pub async fn set_config_value(
             value,
             value_type
         )
-        .execute(tx)
+        .execute(&mut **tx)
         .await?
         .last_insert_id())
 }
@@ -58,7 +58,7 @@ pub async fn add_env_cfg_value(
             env_id,
             cfg_id
         )
-        .execute(tx)
+        .execute(&mut **tx)
         .await?
         .last_insert_id())
 }

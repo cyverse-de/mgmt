@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT COUNT(*) AS count \n        FROM container_images \n        WHERE name = (?)\n        AND tag = (?)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "918c67fdebf2b4454b700e23a6f4facd45aec15799ad7250e807708cee55c30d"
+}
