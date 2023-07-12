@@ -33,7 +33,7 @@ VALUES
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/data-ussage-api.yml'
+        'templates/configs/data-usage-api.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
