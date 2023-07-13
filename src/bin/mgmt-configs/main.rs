@@ -5,7 +5,7 @@ use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, Pool};
 
 fn cli() -> Command {
-    Command::new("mgmt-defaults")
+    Command::new("mgmt-configs")
         .about("Manages config values files for the DE")
         .args_conflicts_with_subcommands(true)
         .subcommand_required(true)
@@ -15,67 +15,71 @@ fn cli() -> Command {
                 .value_parser(clap::value_parser!(String)),
         )
         .subcommand(
-            Command::new("create")
+            Command::new("env")
                 .args_conflicts_with_subcommands(true)
-                .subcommand(Command::new("env")),
+                .subcommand(Command::new("create")),
         )
         .subcommand(
-            Command::new("set")
+            Command::new("values")
                 .args_conflicts_with_subcommands(true)
-                .args([
-                    arg!(-e --"environment" <ENVIRONMENT>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-k --"key" <KEY>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-v --"value" <VALUE>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-t --"type" <TYPE>)
-                        .required(true)
-                        .value_parser(clap::builder::PossibleValuesParser::new([
-                            "string", "int", "bigint", "float", "bool", "json", "csv", "tsv",
-                            "yaml", "xml",
-                        ]))
-                        .help("The type of the value"),
-                ]),
-        )
-        .subcommand(
-            Command::new("get")
-                .args_conflicts_with_subcommands(true)
-                .args([
-                    arg!(-e --"environment" <ENVIRONMENT>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-k --"key" <KEY>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                ]),
-        )
-        .subcommand(
-            Command::new("delete")
-                .args_conflicts_with_subcommands(true)
-                .args([
-                    arg!(-e --"environment" <ENVIRONMENT>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-k --"key" <KEY>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                ]),
-        )
-        .subcommand(
-            Command::new("list")
-                .args_conflicts_with_subcommands(true)
-                .args([
-                    arg!(-e --"environment" <ENVIRONMENT>)
-                        .required(false)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-k --"key" <KEY>)
-                        .required(false)
-                        .value_parser(clap::value_parser!(String)),
-                ]),
+                .subcommand(
+                    Command::new("set")
+                        .args_conflicts_with_subcommands(true)
+                        .args([
+                            arg!(-e --"environment" <ENVIRONMENT>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-k --"key" <KEY>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-v --"value" <VALUE>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-t --"type" <TYPE>)
+                                .required(true)
+                                .value_parser(clap::builder::PossibleValuesParser::new([
+                                    "string", "int", "bigint", "float", "bool", "json", "csv",
+                                    "tsv", "yaml", "xml",
+                                ]))
+                                .help("The type of the value"),
+                        ]),
+                )
+                .subcommand(
+                    Command::new("get")
+                        .args_conflicts_with_subcommands(true)
+                        .args([
+                            arg!(-e --"environment" <ENVIRONMENT>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-k --"key" <KEY>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                        ]),
+                )
+                .subcommand(
+                    Command::new("delete")
+                        .args_conflicts_with_subcommands(true)
+                        .args([
+                            arg!(-e --"environment" <ENVIRONMENT>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-k --"key" <KEY>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                        ]),
+                )
+                .subcommand(
+                    Command::new("list")
+                        .args_conflicts_with_subcommands(true)
+                        .args([
+                            arg!(-e --"environment" <ENVIRONMENT>)
+                                .required(false)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-k --"key" <KEY>)
+                                .required(false)
+                                .value_parser(clap::value_parser!(String)),
+                        ]),
+                ),
         )
 }
 
@@ -103,13 +107,13 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     match command.subcommand() {
-        Some(("create", sub_m)) => {
+        Some(("env", sub_m)) => {
             let create_cmd = sub_m
                 .subcommand()
                 .ok_or_else(|| anyhow::anyhow!("bad command"))?;
 
             match create_cmd {
-                ("env", _) => {
+                ("create", _) => {
                     create_env(&pool).await?;
                 }
                 (name, _) => {
