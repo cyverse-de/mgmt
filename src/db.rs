@@ -1,4 +1,4 @@
-use sqlx::{MySql, Transaction};
+use sqlx::{MySql, Row, Transaction};
 
 pub async fn upsert_environment(
     tx: &mut Transaction<'_, MySql>,
@@ -96,6 +96,135 @@ pub async fn set_config_value(
         .execute(&mut **tx)
         .await?
         .last_insert_id())
+}
+
+#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Configuration {
+    pub section: Option<String>,
+    pub key: Option<String>,
+    pub value: Option<String>,
+    pub value_type: Option<String>,
+}
+
+pub async fn get_config_value(
+    tx: &mut Transaction<'_, MySql>,
+    environment: &str,
+    section: &str,
+    key: &str,
+) -> anyhow::Result<Configuration> {
+    let cfg = sqlx::query_as!(
+        Configuration,
+        r#"
+                SELECT 
+                    config_sections.name AS `section: String`,
+                    config_values.cfg_key AS `key: String`,
+                    config_values.cfg_value AS `value: String`,
+                    config_value_types.name AS `value_type: String`
+                FROM environments
+                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
+                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
+                INNER JOIN config_sections ON config_values.section_id = config_sections.id
+                INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id
+                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?
+        "#,
+        environment,
+        section,
+        key
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+    Ok(cfg)
+}
+
+pub async fn delete_config_value(
+    tx: &mut Transaction<'_, MySql>,
+    environment: &str,
+    section: &str,
+    key: &str,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+            r#"
+                DELETE config_values FROM environments
+                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
+                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
+                INNER JOIN config_sections ON config_values.section_id = config_sections.id
+                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?
+            "#,
+            environment,
+            section,
+            key
+        )
+        .execute(&mut **tx)
+        .await?
+        .last_insert_id())
+}
+
+pub async fn list_config_values(
+    tx: &mut Transaction<'_, MySql>,
+    environment: Option<&str>,
+    section: Option<&str>,
+    key: Option<&str>,
+) -> anyhow::Result<Vec<Configuration>> {
+    let query = String::from(
+        r#"
+                SELECT 
+                    config_sections.name AS `section: String`,
+                    config_values.cfg_key AS `key: String`,
+                    config_values.cfg_value AS `value: String`,
+                    config_value_types.name AS `value_type: String`
+                FROM environments
+                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
+                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
+                INNER JOIN config_sections ON config_values.section_id = config_sections.id
+                INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id
+        "#,
+    );
+
+    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
+    let mut params = Vec::new();
+
+    if let Some(environment) = environment {
+        builder.push("WHERE environments.name = ?");
+        params.push(environment);
+    }
+
+    if let Some(section) = section {
+        if params.is_empty() {
+            builder.push("WHERE config_sections.name = ?");
+        } else {
+            builder.push(" AND config_sections.name = ?");
+        }
+        params.push(section);
+    }
+
+    if let Some(key) = key {
+        if params.is_empty() {
+            builder.push("WHERE config_values.cfg_key = ?");
+        } else {
+            builder.push(" AND config_values.cfg_key = ?");
+        }
+        params.push(key);
+    }
+
+    for param in params {
+        builder.push_bind(param);
+    }
+
+    let cfgs = sqlx::query(builder.sql());
+
+    let results = cfgs
+        .fetch_all(&mut **tx)
+        .await?
+        .iter()
+        .map(|r| Configuration {
+            section: r.get("section"),
+            key: r.get("key"),
+            value: r.get("value"),
+            value_type: r.get("value_type"),
+        })
+        .collect();
+
+    Ok(results)
 }
 
 pub async fn add_env_cfg_value(

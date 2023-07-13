@@ -49,6 +49,9 @@ fn cli() -> Command {
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
+                            arg!(-s --"section" <SECTION>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
                             arg!(-k --"key" <KEY>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
@@ -71,6 +74,9 @@ fn cli() -> Command {
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
+                            arg!(-s --"section" <SECTION>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
                             arg!(-k --"key" <KEY>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
@@ -83,6 +89,9 @@ fn cli() -> Command {
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
+                            arg!(-s --"section" <SECTION>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
                             arg!(-k --"key" <KEY>)
                                 .required(true)
                                 .value_parser(clap::value_parser!(String)),
@@ -93,6 +102,9 @@ fn cli() -> Command {
                         .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-e --"environment" <ENVIRONMENT>)
+                                .required(false)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-s --"section" <SECTION>)
                                 .required(false)
                                 .value_parser(clap::value_parser!(String)),
                             arg!(-k --"key" <KEY>)
@@ -184,10 +196,15 @@ async fn main() -> anyhow::Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("bad command"))?;
 
             match values_cmd {
-                ("add", sub_m) => {
+                ("set", sub_m) => {
                     let environment = sub_m.get_one::<String>("environment").unwrap_or_else(|| {
                         panic!(
                             "No environment specified. Use --environment <environment> to specify an environment."
+                        )
+                    });
+                    let section = sub_m.get_one::<String>("section").unwrap_or_else(|| {
+                        panic!(
+                            "No section specified. Use --section <section> to specify a section."
                         )
                     });
                     let key = sub_m.get_one::<String>("key").unwrap_or_else(|| {
@@ -206,10 +223,65 @@ async fn main() -> anyhow::Result<()> {
                             anyhow::anyhow!("No environment found with name: {environment}")
                         })?;
                     let cfg_id =
-                        db::set_config_value(&mut tx, &environment, &key, &value, &value_type)
-                            .await?;
+                        db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
                     db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
                     tx.commit().await?;
+                }
+                ("get", sub_m) => {
+                    let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No environment specified. Use --environment <environment> to specify an environment."
+                        )
+                    })?;
+                    let section = sub_m.get_one::<String>("section").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No section specified. Use --section <section> to specify a section."
+                        )
+                    })?;
+                    let key = sub_m.get_one::<String>("key").ok_or_else(|| {
+                        anyhow::anyhow!("No key specified. Use --key <key> to specify a key.")
+                    })?;
+                    let mut tx = pool.begin().await?;
+                    let cfg = db::get_config_value(&mut tx, environment, section, key).await?;
+                    tx.commit().await?;
+                    println!("{:?}", cfg);
+                }
+                ("delete", sub_m) => {
+                    let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No environment specified. Use --environment <environment> to specify an environment."
+                        )
+                    })?;
+                    let section = sub_m.get_one::<String>("section").ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "No section specified. Use --section <section> to specify a section."
+                        )
+                    })?;
+                    let key = sub_m.get_one::<String>("key").ok_or_else(|| {
+                        anyhow::anyhow!("No key specified. Use --key <key> to specify a key.")
+                    })?;
+                    let mut tx = pool.begin().await?;
+                    let cfg = db::delete_config_value(&mut tx, environment, section, key).await?;
+                    tx.commit().await?;
+                    println!("Deleted {:?}", cfg);
+                }
+                ("list", sub_m) => {
+                    let environment = match sub_m.get_one::<String>("environment") {
+                        Some(env) => Some(env.as_str()),
+                        None => None,
+                    };
+                    let section = match sub_m.get_one::<String>("section") {
+                        Some(section) => Some(section.as_str()),
+                        None => None,
+                    };
+                    let key = match sub_m.get_one::<String>("key") {
+                        Some(key) => Some(key.as_str()),
+                        None => None,
+                    };
+                    let mut tx = pool.begin().await?;
+                    let cfgs = db::list_config_values(&mut tx, environment, section, key).await?;
+                    tx.commit().await?;
+                    println!("{:?}", cfgs);
                 }
                 (name, _) => {
                     unreachable!("Bad subcommand: {name}")
