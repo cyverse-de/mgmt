@@ -19,7 +19,64 @@ fn cli() -> Command {
                 .args_conflicts_with_subcommands(true)
                 .subcommand(Command::new("env")),
         )
-        .subcommand(Command::new("validate").args_conflicts_with_subcommands(true))
+        .subcommand(
+            Command::new("set")
+                .args_conflicts_with_subcommands(true)
+                .args([
+                    arg!(-e --"environment" <ENVIRONMENT>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-k --"key" <KEY>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-v --"value" <VALUE>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-t --"type" <TYPE>)
+                        .required(true)
+                        .value_parser(clap::builder::PossibleValuesParser::new([
+                            "string", "int", "bigint", "float", "bool", "json", "csv", "tsv",
+                            "yaml", "xml",
+                        ]))
+                        .help("The type of the value"),
+                ]),
+        )
+        .subcommand(
+            Command::new("get")
+                .args_conflicts_with_subcommands(true)
+                .args([
+                    arg!(-e --"environment" <ENVIRONMENT>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-k --"key" <KEY>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                ]),
+        )
+        .subcommand(
+            Command::new("delete")
+                .args_conflicts_with_subcommands(true)
+                .args([
+                    arg!(-e --"environment" <ENVIRONMENT>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-k --"key" <KEY>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                ]),
+        )
+        .subcommand(
+            Command::new("list")
+                .args_conflicts_with_subcommands(true)
+                .args([
+                    arg!(-e --"environment" <ENVIRONMENT>)
+                        .required(false)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-k --"key" <KEY>)
+                        .required(false)
+                        .value_parser(clap::value_parser!(String)),
+                ]),
+        )
 }
 
 async fn create_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
