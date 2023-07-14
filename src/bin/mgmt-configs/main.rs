@@ -1,6 +1,7 @@
 use mgmt::config_values::config;
 use mgmt::db;
 
+use anyhow::anyhow;
 use clap::{arg, Command};
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, Pool};
@@ -123,6 +124,85 @@ async fn create_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn add_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    db::add_section(&mut tx, &section).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn delete_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    db::delete_section(&mut tx, &section).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let sections = db::list_sections(&mut tx).await?;
+    tx.commit().await?;
+    println!("{:?}", sections);
+    Ok(())
+}
+
+async fn set_value(
+    pool: &Pool<MySql>,
+    environment: &str,
+    section: &str,
+    key: &str,
+    value: &str,
+    value_type: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let env_id = db::get_env_id(&mut tx, &environment)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("No environment found with name: {environment}"))?;
+    let cfg_id = db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
+    db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn get_value(
+    pool: &Pool<MySql>,
+    environment: &str,
+    section: &str,
+    key: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let cfg = db::get_config_value(&mut tx, environment, section, key).await?;
+    tx.commit().await?;
+    println!("{:?}", cfg);
+    Ok(())
+}
+
+async fn delete_value(
+    pool: &Pool<MySql>,
+    environment: &str,
+    section: &str,
+    key: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let cfg = db::delete_config_value(&mut tx, environment, section, key).await?;
+    tx.commit().await?;
+    println!("Deleted {:?}", cfg);
+    Ok(())
+}
+
+async fn list_values(
+    pool: &Pool<MySql>,
+    environment: Option<&str>,
+    section: Option<&str>,
+    key: Option<&str>,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let cfgs = db::list_config_values(&mut tx, environment, section, key).await?;
+    tx.commit().await?;
+    println!("{:?}", cfgs);
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let command = cli().get_matches();
@@ -161,29 +241,23 @@ async fn main() -> anyhow::Result<()> {
             match section_cmd {
                 ("add", sub_m) => {
                     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
-                        anyhow::anyhow!(
+                        anyhow!(
                             "No section specified. Use --section <section> to specify a section."
                         )
                     })?;
-                    let mut tx = pool.begin().await?;
-                    db::add_section(&mut tx, &section).await?;
-                    tx.commit().await?;
+
+                    add_section(&pool, &section).await?;
                 }
                 ("delete", sub_m) => {
-                    let section = sub_m.get_one::<String>("section").unwrap_or_else(|| {
-                        panic!(
+                    let section = sub_m.get_one::<String>("section").ok_or_else(|| {
+                        anyhow!(
                             "No section specified. Use --section <section> to specify a section."
                         )
-                    });
-                    let mut tx = pool.begin().await?;
-                    db::delete_section(&mut tx, &section).await?;
-                    tx.commit().await?;
+                    })?;
+                    delete_section(&pool, &section).await?;
                 }
                 ("list", _) => {
-                    let mut tx = pool.begin().await?;
-                    let sections = db::list_sections(&mut tx).await?;
-                    tx.commit().await?;
-                    println!("{:?}", sections);
+                    list_sections(&pool).await?;
                 }
                 (name, _) => {
                     unreachable!("Bad subcommand: {name}")
@@ -197,91 +271,90 @@ async fn main() -> anyhow::Result<()> {
 
             match values_cmd {
                 ("set", sub_m) => {
-                    let environment = sub_m.get_one::<String>("environment").unwrap_or_else(|| {
-                        panic!(
+                    let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
+                        anyhow!(
                             "No environment specified. Use --environment <environment> to specify an environment."
                         )
-                    });
-                    let section = sub_m.get_one::<String>("section").unwrap_or_else(|| {
-                        panic!(
+                    })?;
+
+                    let section = sub_m.get_one::<String>("section").ok_or_else(|| {
+                        anyhow!(
                             "No section specified. Use --section <section> to specify a section."
                         )
-                    });
-                    let key = sub_m.get_one::<String>("key").unwrap_or_else(|| {
-                        panic!("No key specified. Use --key <key> to specify a key.")
-                    });
-                    let value = sub_m.get_one::<String>("value").unwrap_or_else(|| {
-                        panic!("No value specified. Use --value <value> to specify a value.")
-                    });
-                    let value_type = sub_m.get_one::<String>("type").unwrap_or_else(|| {
-                        panic!("No type specified. Use --type <type> to specify a type.")
-                    });
-                    let mut tx = pool.begin().await?;
-                    let env_id = db::get_env_id(&mut tx, &environment)
-                        .await?
-                        .ok_or_else(|| {
-                            anyhow::anyhow!("No environment found with name: {environment}")
-                        })?;
-                    let cfg_id =
-                        db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
-                    db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
-                    tx.commit().await?;
+                    })?;
+
+                    let key = sub_m.get_one::<String>("key").ok_or_else(|| {
+                        anyhow!("No key specified. Use --key <key> to specify a key.")
+                    })?;
+
+                    let value = sub_m.get_one::<String>("value").ok_or_else(|| {
+                        anyhow!("No value specified. Use --value <value> to specify a value.")
+                    })?;
+
+                    let value_type = sub_m.get_one::<String>("type").ok_or_else(|| {
+                        anyhow!("No type specified. Use --type <type> to specify a type.")
+                    })?;
+
+                    set_value(&pool, &environment, &section, &key, &value, &value_type).await?;
                 }
+
                 ("get", sub_m) => {
                     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
-                        anyhow::anyhow!(
+                        anyhow!(
                             "No environment specified. Use --environment <environment> to specify an environment."
                         )
                     })?;
+
                     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
-                        anyhow::anyhow!(
+                        anyhow!(
                             "No section specified. Use --section <section> to specify a section."
                         )
                     })?;
+
                     let key = sub_m.get_one::<String>("key").ok_or_else(|| {
-                        anyhow::anyhow!("No key specified. Use --key <key> to specify a key.")
+                        anyhow!("No key specified. Use --key <key> to specify a key.")
                     })?;
-                    let mut tx = pool.begin().await?;
-                    let cfg = db::get_config_value(&mut tx, environment, section, key).await?;
-                    tx.commit().await?;
-                    println!("{:?}", cfg);
+
+                    get_value(&pool, &environment, &section, &key).await?;
                 }
+
                 ("delete", sub_m) => {
                     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
-                        anyhow::anyhow!(
+                        anyhow!(
                             "No environment specified. Use --environment <environment> to specify an environment."
                         )
                     })?;
+
                     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
-                        anyhow::anyhow!(
+                        anyhow!(
                             "No section specified. Use --section <section> to specify a section."
                         )
                     })?;
+
                     let key = sub_m.get_one::<String>("key").ok_or_else(|| {
-                        anyhow::anyhow!("No key specified. Use --key <key> to specify a key.")
+                        anyhow!("No key specified. Use --key <key> to specify a key.")
                     })?;
-                    let mut tx = pool.begin().await?;
-                    let cfg = db::delete_config_value(&mut tx, environment, section, key).await?;
-                    tx.commit().await?;
-                    println!("Deleted {:?}", cfg);
+
+                    delete_value(&pool, &environment, &section, &key).await?;
                 }
+
                 ("list", sub_m) => {
                     let environment = match sub_m.get_one::<String>("environment") {
                         Some(env) => Some(env.as_str()),
                         None => None,
                     };
+
                     let section = match sub_m.get_one::<String>("section") {
                         Some(section) => Some(section.as_str()),
                         None => None,
                     };
+
                     let key = match sub_m.get_one::<String>("key") {
                         Some(key) => Some(key.as_str()),
                         None => None,
                     };
-                    let mut tx = pool.begin().await?;
-                    let cfgs = db::list_config_values(&mut tx, environment, section, key).await?;
-                    tx.commit().await?;
-                    println!("{:?}", cfgs);
+
+                    list_values(&pool, environment, section, key).await?;
                 }
                 (name, _) => {
                     unreachable!("Bad subcommand: {name}")
