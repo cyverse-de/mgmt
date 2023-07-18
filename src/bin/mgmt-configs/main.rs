@@ -44,68 +44,6 @@ fn cli() -> Command {
                 .subcommand(Command::new("list").args_conflicts_with_subcommands(true)),
         )
         .subcommand(
-            Command::new("defaults")
-                .args_conflicts_with_subcommands(true)
-                .subcommand(
-                    Command::new("set")
-                        .args_conflicts_with_subcommands(true)
-                        .args([
-                            arg!(-s --"section" <SECTION>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-k --"key" <KEY>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-v --"value" <VALUE>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-t --"type" <TYPE>)
-                                .required(true)
-                                .value_parser(clap::builder::PossibleValuesParser::new([
-                                    "string", "int", "bigint", "float", "bool", "json", "csv",
-                                    "tsv", "yaml", "xml",
-                                ]))
-                                .help("The type of the value"),
-                        ]),
-                )
-                .subcommand(
-                    Command::new("get")
-                        .args_conflicts_with_subcommands(true)
-                        .args([
-                            arg!(-s --"section" <SECTION>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-k --"key" <KEY>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                        ]),
-                )
-                .subcommand(
-                    Command::new("delete")
-                        .args_conflicts_with_subcommands(true)
-                        .args([
-                            arg!(-s --"section" <SECTION>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-k --"key" <KEY>)
-                                .required(true)
-                                .value_parser(clap::value_parser!(String)),
-                        ]),
-                )
-                .subcommand(
-                    Command::new("list")
-                        .args_conflicts_with_subcommands(true)
-                        .args([
-                            arg!(-s --"section" <SECTION>)
-                                .required(false)
-                                .value_parser(clap::value_parser!(String)),
-                            arg!(-k --"key" <KEY>)
-                                .required(false)
-                                .value_parser(clap::value_parser!(String)),
-                        ]),
-                ),
-        )
-        .subcommand(
             Command::new("values")
                 .args_conflicts_with_subcommands(true)
                 .subcommand(

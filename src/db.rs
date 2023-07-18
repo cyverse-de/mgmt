@@ -84,7 +84,7 @@ pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Ve
 
 #[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Configuration {
-    pub id: Option<u64>,
+    pub id: Option<i64>,
     pub section: Option<String>,
     pub key: Option<String>,
     pub value: Option<String>,
@@ -100,7 +100,7 @@ pub async fn get_default_config_value(
         Configuration,
         r#"
                 SELECT
-                    config_defaults.id AS `id: u64`,
+                    config_defaults.id AS `id: i64`,
                     config_sections.name AS `section: String`,
                     config_defaults.cfg_key AS `key: String`, 
                     config_defaults.cfg_value AS `value: String`,
@@ -192,11 +192,11 @@ pub async fn list_default_config_values(
     let query = String::from(
         r#"
                 SELECT 
-                    config_defaults.id AS `id: u64`,
-                    config_sections.name AS `section: String`,
-                    config_defaults.cfg_key AS `key: String`,
-                    config_defaults.cfg_value AS `value: String`,
-                    config_value_types.name AS `value_type: String`
+                    config_defaults.id AS id,
+                    config_sections.name AS section,
+                    config_defaults.cfg_key AS 'key',
+                    config_defaults.cfg_value AS 'value',
+                    config_value_types.name AS value_type
                 FROM config_defaults
                 INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
                 INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id
@@ -224,18 +224,22 @@ pub async fn list_default_config_values(
         builder.push_bind(param);
     }
 
-    let defaults = sqlx::query(builder.sql());
+    let s = builder.sql();
+
+    println!("{}", s);
+
+    let defaults = sqlx::query(s);
 
     let results = defaults
         .fetch_all(&mut **tx)
         .await?
         .iter()
         .map(|r| Configuration {
-            id: r.get("id"),
-            section: r.get("section"),
-            key: r.get("key"),
-            value: r.get("value"),
-            value_type: r.get("value_type"),
+            id: Some(r.get("id")),
+            section: Some(r.get("section")),
+            key: Some(r.get("key")),
+            value: Some(r.get("value")),
+            value_type: Some(r.get("value_type")),
         })
         .collect();
 
@@ -306,7 +310,7 @@ pub async fn get_config_value(
         Configuration,
         r#"
                 SELECT 
-                    config_values.id AS `id: u64`,
+                    config_values.id AS `id: i64`,
                     config_sections.name AS `section: String`,
                     config_values.cfg_key AS `key: String`,
                     config_values.cfg_value AS `value: String`,
@@ -359,11 +363,11 @@ pub async fn list_config_values(
     let query = String::from(
         r#"
                 SELECT 
-                    config_values.id AS `id: u64`,
-                    config_sections.name AS `section: String`,
-                    config_values.cfg_key AS `key: String`,
-                    config_values.cfg_value AS `value: String`,
-                    config_value_types.name AS `value_type: String`
+                    config_values.id AS id,
+                    config_sections.name AS section,
+                    config_values.cfg_key AS 'key',
+                    config_values.cfg_value AS 'value',
+                    config_value_types.name AS value_type
                 FROM environments
                 INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
                 INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
