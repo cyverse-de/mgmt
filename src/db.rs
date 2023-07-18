@@ -220,13 +220,13 @@ pub async fn list_default_config_values(
         params.push(key);
     }
 
+    builder.push("ORDER BY config_sections.name, config_defaults.cfg_key ASC");
+
     for param in params {
         builder.push_bind(param);
     }
 
     let s = builder.sql();
-
-    println!("{}", s);
 
     let defaults = sqlx::query(s);
 

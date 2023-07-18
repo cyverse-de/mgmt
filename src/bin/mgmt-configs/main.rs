@@ -218,7 +218,10 @@ async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let sections = db::list_sections(&mut tx).await?;
     tx.commit().await?;
-    println!("{:?}", sections);
+
+    for section in sections {
+        println!("{}", section);
+    }
     Ok(())
 }
 
@@ -309,7 +312,12 @@ async fn list_default_values(
     let mut tx = pool.begin().await?;
     let cfgs = db::list_default_config_values(&mut tx, section, key).await?;
     tx.commit().await?;
-    println!("{:?}", cfgs);
+    for cfg in cfgs {
+        if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
+            println!("{}.{} = {}", section, key, value);
+        }
+    }
+
     Ok(())
 }
 
@@ -405,7 +413,11 @@ async fn list_values(
     let mut tx = pool.begin().await?;
     let cfgs = db::list_config_values(&mut tx, environment, section, key).await?;
     tx.commit().await?;
-    println!("{:?}", cfgs);
+    for cfg in cfgs {
+        if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
+            println!("{}.{} = {}", section, key, value);
+        }
+    }
     Ok(())
 }
 
