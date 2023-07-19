@@ -245,26 +245,41 @@ pub async fn set_config_value(
     value: &str,
     value_type: &str,
 ) -> anyhow::Result<u64> {
+    let section_record = sqlx::query!(
+        r#"
+                SELECT id as `id: u64` FROM config_sections WHERE name = ?
+        "#,
+        section
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+
+    let section_id = section_record
+        .id
+        .ok_or_else(|| anyhow::anyhow!("Failed to get section id for section {}", section))?;
+
     Ok(sqlx::query!(
-            r#"
+        r#"
                 INSERT INTO config_values
                     (section_id, cfg_key, cfg_value, value_type_id, default_id) 
                 VALUES (
-                    (SELECT id FROM config_sections WHERE name = ?),
+                    ?,
                     ?,
                     ?,
                     (SELECT id FROM config_value_types WHERE name = ?),
-                    (SELECT id FROM config_defaults WHERE cfg_key = VALUES(cfg_key) AND section_id = VALUES(section_id))
+                    (SELECT id FROM config_defaults WHERE cfg_key = ? AND section_id = ?)
                 )
             "#,
-            section,
-            key,
-            value,
-            value_type
-        )
-        .execute(&mut **tx)
-        .await?
-        .last_insert_id())
+        section_id,
+        key,
+        value,
+        value_type,
+        key,
+        section_id,
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
 }
 
 pub async fn has_config_value(

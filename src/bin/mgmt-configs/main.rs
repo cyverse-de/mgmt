@@ -381,7 +381,9 @@ async fn get_value(
         }
     }
     tx.commit().await?;
-    println!("{:?}", cfg);
+    if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
+        println!("{}.{} = {}", section, key, value);
+    }
     Ok(())
 }
 
