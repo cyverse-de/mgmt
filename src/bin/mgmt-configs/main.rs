@@ -22,7 +22,27 @@ fn cli() -> Command {
         .subcommand(
             Command::new("env")
                 .args_conflicts_with_subcommands(true)
-                .subcommand(Command::new("create")),
+                .subcommand(
+                    Command::new("populate")
+                        .args_conflicts_with_subcommands(true)
+                        .about("Populates the environments table with a new environment"),
+                )
+                .subcommand(
+                    Command::new("create").args([
+                        arg!(--"name" <NAME>)
+                            .required(true)
+                            .value_parser(clap::value_parser!(String)),
+                        arg!(--"namespace" <NAMESPACE>)
+                            .required(true)
+                            .value_parser(clap::value_parser!(String)),
+                    ]),
+                )
+                .subcommand(Command::new("list"))
+                .subcommand(
+                    Command::new("delete").args([arg!(--"name" <NAME>)
+                        .required(true)
+                        .value_parser(clap::value_parser!(String))]),
+                ),
         )
         .subcommand(
             Command::new("sections")
@@ -182,9 +202,9 @@ fn cli() -> Command {
 }
 
 /**
- * Handler for the `mgmt-configs env create` command.
+ * Handler for the `mgmt-configs env populate` command.
  */
-async fn create_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
+async fn populate_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut env_config = config::ConfigValues::default();
     env_config.ask_for_info(&mut tx).await?;
@@ -444,8 +464,45 @@ async fn main() -> anyhow::Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("bad command"))?;
 
             match create_cmd {
-                ("create", _) => {
-                    create_env(&pool).await?;
+                ("populate", _) => {
+                    populate_env(&pool).await?;
+                }
+
+                ("create", sub_m) => {
+                    let name = sub_m.get_one::<String>("name").ok_or_else(|| {
+                        anyhow!("No name specified. Use --name <name> to specify a name.")
+                    })?;
+
+                    let namespace = sub_m.get_one::<String>("namespace").ok_or_else(|| {
+                        anyhow!("No namespace specified. Use --namespace <namespace> to specify a namespace.")
+                    })?;
+
+                    let mut tx = pool.begin().await?;
+                    db::upsert_environment(&mut tx, &name, &namespace).await?;
+                    tx.commit().await?;
+
+                    println!("Created environment: {}", name);
+                }
+
+                ("list", _) => {
+                    let mut tx = pool.begin().await?;
+                    let envs = db::list_envs(&mut tx).await?;
+                    tx.commit().await?;
+                    for env in envs {
+                        println!("{}", env);
+                    }
+                }
+
+                ("delete", sub_m) => {
+                    let name = sub_m.get_one::<String>("name").ok_or_else(|| {
+                        anyhow!("No name specified. Use --name <name> to specify a name.")
+                    })?;
+
+                    let mut tx = pool.begin().await?;
+                    db::delete_env(&mut tx, &name).await?;
+                    tx.commit().await?;
+
+                    println!("Deleted environment: {}", name);
                 }
 
                 (name, _) => {

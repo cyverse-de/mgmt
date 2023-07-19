@@ -17,6 +17,30 @@ pub async fn upsert_environment(
         .last_insert_id())
 }
 
+pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<String>> {
+    let envs = sqlx::query!(
+        r#"
+            SELECT name FROM environments
+        "#
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(envs.into_iter().filter_map(|e| e.name).collect())
+}
+
+pub async fn delete_env(tx: &mut Transaction<'_, MySql>, environment: &str) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+                DELETE FROM environments WHERE name = ?
+        "#,
+        environment
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
+}
+
 pub async fn get_env_id(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
