@@ -191,44 +191,36 @@ pub async fn list_default_config_values(
 ) -> anyhow::Result<Vec<Configuration>> {
     let query = String::from(
         r#"
-                SELECT 
-                    config_defaults.id AS id,
-                    config_sections.name AS section,
-                    config_defaults.cfg_key AS 'key',
-                    config_defaults.cfg_value AS 'value',
-                    config_value_types.name AS value_type
-                FROM config_defaults
-                INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
-                INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id
-        "#,
+SELECT 
+    config_defaults.id AS id,
+    config_sections.name AS section,
+    config_defaults.cfg_key AS 'key',
+    config_defaults.cfg_value AS 'value',
+    config_value_types.name AS value_type
+FROM config_defaults
+INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
+INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id"#,
     );
 
     let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
-    let mut params = Vec::new();
 
     if let Some(section) = section {
-        builder.push("WHERE config_sections.name = ?");
-        params.push(section);
+        builder.push("\nWHERE config_sections.name = ");
+        builder.push_bind(section);
     }
 
     if let Some(key) = key {
-        if params.is_empty() {
-            builder.push("WHERE config_defaults.cfg_key = ?");
+        if !builder.sql().contains("WHERE") {
+            builder.push("\nWHERE config_defaults.cfg_key = ");
         } else {
-            builder.push(" AND config_defaults.cfg_key = ?");
+            builder.push(" AND config_defaults.cfg_key = ");
         }
-        params.push(key);
+        builder.push_bind(key);
     }
 
-    builder.push("ORDER BY config_sections.name, config_defaults.cfg_key ASC");
+    builder.push("\nORDER BY config_sections.name, config_defaults.cfg_key ASC;");
 
-    for param in params {
-        builder.push_bind(param);
-    }
-
-    let s = builder.sql();
-
-    let defaults = sqlx::query(s);
+    let defaults = builder.build();
 
     let results = defaults
         .fetch_all(&mut **tx)
@@ -362,51 +354,45 @@ pub async fn list_config_values(
 ) -> anyhow::Result<Vec<Configuration>> {
     let query = String::from(
         r#"
-                SELECT 
-                    config_values.id AS id,
-                    config_sections.name AS section,
-                    config_values.cfg_key AS 'key',
-                    config_values.cfg_value AS 'value',
-                    config_value_types.name AS value_type
-                FROM environments
-                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
-                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
-                INNER JOIN config_sections ON config_values.section_id = config_sections.id
-                INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id
-        "#,
+SELECT 
+    config_values.id AS id,
+    config_sections.name AS section,
+    config_values.cfg_key AS 'key',
+    config_values.cfg_value AS 'value',
+    config_value_types.name AS value_type
+FROM environments
+INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
+INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
+INNER JOIN config_sections ON config_values.section_id = config_sections.id
+INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id"#,
     );
 
     let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
-    let mut params = Vec::new();
 
     if let Some(environment) = environment {
-        builder.push("WHERE environments.name = ?");
-        params.push(environment);
+        builder.push("\nWHERE environments.name = ");
+        builder.push_bind(environment);
     }
 
     if let Some(section) = section {
-        if params.is_empty() {
-            builder.push("WHERE config_sections.name = ?");
+        if !builder.sql().contains("WHERE") {
+            builder.push("\nWHERE config_sections.name = ");
         } else {
-            builder.push(" AND config_sections.name = ?");
+            builder.push(" AND config_sections.name = ");
         }
-        params.push(section);
+        builder.push_bind(section);
     }
 
     if let Some(key) = key {
-        if params.is_empty() {
-            builder.push("WHERE config_values.cfg_key = ?");
+        if builder.sql().contains("WHERE") {
+            builder.push("\nWHERE config_values.cfg_key = ");
         } else {
-            builder.push(" AND config_values.cfg_key = ?");
+            builder.push(" AND config_values.cfg_key = ");
         }
-        params.push(key);
+        builder.push_bind(key);
     }
 
-    for param in params {
-        builder.push_bind(param);
-    }
-
-    let cfgs = sqlx::query(builder.sql());
+    let cfgs = builder.build();
 
     let results = cfgs
         .fetch_all(&mut **tx)
