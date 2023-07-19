@@ -218,7 +218,6 @@ async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let sections = db::list_sections(&mut tx).await?;
     tx.commit().await?;
-
     for section in sections {
         println!("{}", section);
     }
@@ -236,7 +235,6 @@ async fn set_default_value(
     value_type: &str,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-
     let has_section = db::has_section(&mut tx, section).await?;
     if has_section {
         let cfg_id =
@@ -245,9 +243,7 @@ async fn set_default_value(
     } else {
         return Err(anyhow!("No section found with name: {section}"));
     }
-
     tx.commit().await?;
-
     Ok(())
 }
 
@@ -257,7 +253,6 @@ async fn set_default_value(
 async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let cfg: db::Configuration;
-
     let has_section = db::has_section(&mut tx, section).await?;
     if has_section {
         let has_default_value = db::has_default_config_value(&mut tx, section, key).await?;
@@ -271,7 +266,6 @@ async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyh
     } else {
         return Err(anyhow!("No section found with name: {section}"));
     }
-
     tx.commit().await?;
     println!("{:?}", cfg);
     Ok(())
@@ -282,12 +276,11 @@ async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyh
  */
 async fn delete_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-    let cfg: u64;
     let has_section = db::has_section(&mut tx, section).await?;
     if has_section {
         let has_default_value = db::has_default_config_value(&mut tx, section, key).await?;
         if has_default_value {
-            cfg = db::delete_default_config_value(&mut tx, section, key).await?;
+            db::delete_default_config_value(&mut tx, section, key).await?;
         } else {
             return Err(anyhow!(
                 "No default value found for section: {section}, key: {key}"
@@ -297,7 +290,7 @@ async fn delete_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> a
         return Err(anyhow!("No section found with name: {section}"));
     }
     tx.commit().await?;
-    println!("Deleted {:?}", cfg);
+    println!("Deleted default value: {}.{}", section, key);
     Ok(())
 }
 
@@ -317,7 +310,6 @@ async fn list_default_values(
             println!("{}.{} = {}", section, key, value);
         }
     }
-
     Ok(())
 }
 
@@ -342,6 +334,10 @@ async fn set_value(
     if has_default {
         let cfg_id = db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
         db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
+        println!(
+            "Added config value to environment '{}': {}.{} = {}",
+            environment, section, key, value
+        );
     } else {
         tx.rollback().await?;
         return Err(anyhow!(
@@ -397,9 +393,12 @@ async fn delete_value(
     key: &str,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-    let cfg = db::delete_config_value(&mut tx, environment, section, key).await?;
+    db::delete_config_value(&mut tx, environment, section, key).await?;
     tx.commit().await?;
-    println!("Deleted {:?}", cfg);
+    println!(
+        "Deleted config value from environment '{}': {}.{}",
+        environment, section, key
+    );
     Ok(())
 }
 
