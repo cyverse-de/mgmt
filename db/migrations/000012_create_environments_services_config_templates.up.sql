@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS environments_services_config_templates (
     --- The path to the rendered config file.
     path TEXT NOT NULL,
 
-    FOREIGN KEY (environment_service_id) REFERENCES environments_services(id),
-    FOREIGN KEY (config_template_id) REFERENCES config_templates(id)
+    FOREIGN KEY (environment_service_id) REFERENCES environments_services(id) ON DELETE CASCADE,
+    FOREIGN KEY (config_template_id) REFERENCES config_templates(id) ON DELETE CASCADE
 );

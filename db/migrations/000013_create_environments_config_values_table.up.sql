@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS environments_config_values (
     environment_id INT NOT NULL,
     config_value_id INT NOT NULL,
 
-    FOREIGN KEY (environment_id) REFERENCES environments(id),
-    FOREIGN KEY (config_value_id) REFERENCES config_values(id),
+    FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE,
+    FOREIGN KEY (config_value_id) REFERENCES config_values(id) ON DELETE CASCADE,
     UNIQUE (environment_id, config_value_id)
 );

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS environments_services (
     environment_id INT NOT NULL,
     service_id INT NOT NULL,
 
-    FOREIGN KEY (environment_id) REFERENCES environments(id),
-    FOREIGN KEY (service_id) REFERENCES services(id),
+    FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
     UNIQUE (environment_id, service_id)
 );
