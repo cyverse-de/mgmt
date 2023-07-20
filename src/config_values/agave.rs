@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use sqlx::{MySql, Transaction};
 
@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Agave {
+    #[serde(skip)]
+    section: String,
+
     key: String,
     secret: String,
 
@@ -26,6 +29,7 @@ pub struct Agave {
 impl Default for Agave {
     fn default() -> Self {
         Agave {
+            section: "Agave".to_string(),
             key: String::new(),
             secret: String::new(),
             redirect_uri: String::new(),
@@ -35,6 +39,29 @@ impl Default for Agave {
             enabled: Some(false),
             jobs_enabled: Some(false),
         }
+    }
+}
+
+impl LoadFromConfiguration for Agave {
+    fn get_section(&self) -> String {
+        self.section.clone()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Key" => self.key = value,
+                "Secret" => self.secret = value,
+                "RedirectURI" => self.redirect_uri = value,
+                "StorageSystem" => self.storage_system = value,
+                "CallbackBaseURI" => self.callback_base_uri = value,
+                "ReadTimeout" => self.read_timeout = Some(value.parse::<u32>()?),
+                "Enabled" => self.enabled = Some(value.parse::<bool>()?),
+                "JobsEnabled" => self.jobs_enabled = Some(value.parse::<bool>()?),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 

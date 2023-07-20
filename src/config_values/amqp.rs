@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -12,6 +12,26 @@ pub struct Amqp {
     host: String,
     port: u16,
     vhost: String,
+}
+
+impl LoadFromConfiguration for Amqp {
+    fn get_section(&self) -> String {
+        "AMQP".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "User" => self.user = value,
+                "Password" => self.password = value,
+                "Host" => self.host = value,
+                "Port" => self.port = value.parse::<u16>()?,
+                "Vhost" => self.vhost = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Amqp {

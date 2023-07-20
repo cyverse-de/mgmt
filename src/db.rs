@@ -1,5 +1,17 @@
 use sqlx::{MySql, Row, Transaction};
 
+pub trait LoadFromConfiguration {
+    fn get_section(&self) -> String;
+
+    fn cfg_set_key(&mut self, cfg: &Configuration) -> anyhow::Result<()>;
+
+    fn cfg_set_keys(&mut self, cfgs: Vec<Configuration>) -> anyhow::Result<()> {
+        cfgs.into_iter()
+            .try_for_each(|cfg| self.cfg_set_key(&cfg))?;
+        Ok(())
+    }
+}
+
 pub async fn upsert_environment(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,

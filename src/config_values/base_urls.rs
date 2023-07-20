@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use crate::db::LoadFromConfiguration;
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct BaseURLs {
@@ -26,6 +28,41 @@ pub struct BaseURLs {
     search: Option<Url>,
     terrain: Option<Url>,
     user_info: Option<Url>,
+}
+
+impl LoadFromConfiguration for BaseURLs {
+    fn get_section(&self) -> String {
+        "BaseURLs".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Analyses" => self.analyses = Url::parse(&value).ok(),
+                "AppExposer" => self.app_exposer = Url::parse(&value).ok(),
+                "Apps" => self.apps = Url::parse(&value).ok(),
+                "AsyncTasks" => self.async_tasks = Url::parse(&value).ok(),
+                "DashboardAggregator" => self.dashboard_aggregator = Url::parse(&value).ok(),
+                "DataInfo" => self.data_info = Url::parse(&value).ok(),
+                "GrouperWebServices" => self.grouper_web_services = Url::parse(&value).ok(),
+                "IplantEmail" => self.iplant_email = Url::parse(&value).ok(),
+                "IplantGroups" => self.iplant_groups = Url::parse(&value).ok(),
+                "JexAdapter" => self.jex_adapter = Url::parse(&value).ok(),
+                "JobStatusListener" => self.job_status_listener = Url::parse(&value).ok(),
+                "Metadata" => self.metadata = Url::parse(&value).ok(),
+                "Notifications" => self.notifications = Url::parse(&value).ok(),
+                "Permissions" => self.permissions = Url::parse(&value).ok(),
+                "QMS" => self.qms = Url::parse(&value).ok(),
+                "Requests" => self.requests = Url::parse(&value).ok(),
+                "Search" => self.search = Url::parse(&value).ok(),
+                "Terrain" => self.terrain = Url::parse(&value).ok(),
+                "UserInfo" => self.user_info = Url::parse(&value).ok(),
+                _ => (),
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Default for BaseURLs {
