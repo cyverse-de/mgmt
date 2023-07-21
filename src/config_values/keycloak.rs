@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -11,6 +11,23 @@ pub struct KeycloakVice {
     client_id: String,
 
     client_secret: String,
+}
+
+impl LoadFromConfiguration for KeycloakVice {
+    fn get_section(&self) -> String {
+        "Keycloak".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "VICE.ClientID" => self.client_id = value,
+                "VICE.ClientSecret" => self.client_secret = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl KeycloakVice {
@@ -63,6 +80,29 @@ pub struct Keycloak {
 
     #[serde(rename = "VICE")]
     vice: KeycloakVice,
+}
+
+impl LoadFromConfiguration for Keycloak {
+    fn get_section(&self) -> String {
+        "Keycloak".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "ServerURI" => self.server_uri = Url::parse(&value).ok(),
+                "Realm" => self.realm = value,
+                "ClientID" => self.client_id = value,
+                "ClientSecret" => self.client_secret = value,
+                _ => (),
+            }
+
+            if key.starts_with("VICE.") {
+                self.vice.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Keycloak {

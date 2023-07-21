@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -8,6 +8,30 @@ use sqlx::{MySql, Transaction};
 pub struct Docker {
     trusted_registries: Option<Vec<String>>,
     tag: String,
+}
+
+impl LoadFromConfiguration for Docker {
+    fn get_section(&self) -> String {
+        "Docker".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Tag" => self.tag = value,
+                "TrustedRegistries" => {
+                    self.trusted_registries = Some(
+                        value
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .collect::<Vec<String>>(),
+                    )
+                }
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for Docker {

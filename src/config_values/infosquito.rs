@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -16,6 +16,23 @@ impl Default for Infosquito {
             day_num: Some(4),
             prefix_length: Some(4),
         }
+    }
+}
+
+impl LoadFromConfiguration for Infosquito {
+    fn get_section(&self) -> String {
+        "Infosquito".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "DayNum" => self.day_num = Some(value.parse::<u8>()?),
+                "PrefixLength" => self.prefix_length = Some(value.parse::<u32>()?),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 

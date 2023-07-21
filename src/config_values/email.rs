@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -13,6 +13,25 @@ pub struct Email {
     perm_id_request_dest: String,
 
     support_dest: String,
+}
+
+impl LoadFromConfiguration for Email {
+    fn get_section(&self) -> String {
+        "Email".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Src" => self.src = value,
+                "Dest" => self.dest = value,
+                "PermIDRequestDest" => self.perm_id_request_dest = value,
+                "SupportDest" => self.support_dest = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Email {

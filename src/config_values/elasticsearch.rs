@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -13,6 +13,25 @@ pub struct ElasticSearch {
     username: String,
     password: String,
     index: String,
+}
+
+impl LoadFromConfiguration for ElasticSearch {
+    fn get_section(&self) -> String {
+        "ElasticSearch".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+                "Username" => self.username = value,
+                "Password" => self.password = value,
+                "Index" => self.index = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl ElasticSearch {

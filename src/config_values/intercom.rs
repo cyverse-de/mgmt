@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -15,6 +15,25 @@ pub struct Intercom {
     company_id: String,
 
     company_name: String,
+}
+
+impl LoadFromConfiguration for Intercom {
+    fn get_section(&self) -> String {
+        "Intercom".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Enabled" => self.enabled = value.parse::<bool>()?,
+                "AppID" => self.app_id = value,
+                "CompanyID" => self.company_id = value,
+                "CompanyName" => self.company_name = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Intercom {

@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -12,6 +12,24 @@ pub struct GrouperLoader {
 
     user: String,
     password: String,
+}
+
+impl LoadFromConfiguration for GrouperLoader {
+    fn get_section(&self) -> String {
+        "Grouper".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Loader.URI" => self.uri = Url::parse(&value).ok(),
+                "Loader.User" => self.user = value,
+                "Loader.Password" => self.password = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl GrouperLoader {
@@ -57,6 +75,28 @@ pub struct Grouper {
     password: String,
     folder_name_prefix: String,
     loader: GrouperLoader,
+}
+
+impl LoadFromConfiguration for Grouper {
+    fn get_section(&self) -> String {
+        "Grouper".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "MorphString" => self.morph_string = value,
+                "Password" => self.password = value,
+                "FolderNamePrefix" => self.folder_name_prefix = value,
+                _ => (),
+            }
+
+            if key.starts_with("Loader.") {
+                self.loader.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Grouper {

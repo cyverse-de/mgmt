@@ -1,5 +1,5 @@
 use crate::config_values::amqp::Amqp;
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -10,6 +10,22 @@ use url::Url;
 pub struct IrodsWebDav {
     #[serde(rename = "AnonURI")]
     anon_uri: Option<Url>,
+}
+
+impl LoadFromConfiguration for IrodsWebDav {
+    fn get_section(&self) -> String {
+        "IRODS".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "WebDAV.AnonURI" => self.anon_uri = Url::parse(&value).ok(),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for IrodsWebDav {
@@ -57,6 +73,43 @@ pub struct Irods {
     pub external_host: Option<String>,
     web_dav: Option<IrodsWebDav>,
     quota_root_resources: Option<String>,
+}
+
+impl LoadFromConfiguration for Irods {
+    fn get_section(&self) -> String {
+        "IRODS".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Host" => self.host = value,
+                "User" => self.user = value,
+                "Zone" => self.zone = value,
+                "Password" => self.password = value,
+                "AdminUsers" => {
+                    self.admin_users = value.split(',').map(|s| s.to_string()).collect()
+                }
+                "PermsFilter" => {
+                    self.perms_filter = value.split(',').map(|s| s.to_string()).collect()
+                }
+                "ExternalHost" => self.external_host = Some(value),
+                "QuotaRootResources" => self.quota_root_resources = Some(value),
+                _ => (),
+            }
+
+            if key.starts_with("WebDAV") {
+                if let Some(web_dav) = self.web_dav.as_mut() {
+                    web_dav.cfg_set_key(cfg)?;
+                }
+            }
+
+            if key.starts_with("AMQP") {
+                self.amqp.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for Irods {

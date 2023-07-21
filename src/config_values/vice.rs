@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -17,6 +17,23 @@ impl Default for ViceFileTransfers {
             image: Some(String::from("harbor.cyverse.org/de/vice-file-transfers")),
             tag: Some(String::from("latest")),
         }
+    }
+}
+
+impl LoadFromConfiguration for ViceFileTransfers {
+    fn get_section(&self) -> String {
+        "VICE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "FileTransfers.Image" => self.image = Some(value),
+                "FileTransfers.Tag" => self.tag = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -54,6 +71,24 @@ impl ViceFileTransfers {
 #[serde(rename_all = "PascalCase")]
 pub struct ViceDefaultBackend {
     loading_page_template_string: String,
+}
+
+impl LoadFromConfiguration for ViceDefaultBackend {
+    fn get_section(&self) -> String {
+        "VICE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "DefaultBackend.LoadingPageTemplateString" => {
+                    self.loading_page_template_string = value
+                }
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl ViceDefaultBackend {
@@ -133,6 +168,43 @@ impl Default for Vice {
             use_case_chars_min: Some(60),
             default_backend: ViceDefaultBackend::default(),
         }
+    }
+}
+
+impl LoadFromConfiguration for Vice {
+    fn get_section(&self) -> String {
+        "VICE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+                "FileTransfers.Image" => {
+                    if let Some(ft) = &mut self.file_transfers {
+                        ft.image = Some(value);
+                    }
+                }
+                "FileTransfers.Tag" => {
+                    if let Some(ft) = &mut self.file_transfers {
+                        ft.tag = Some(value);
+                    }
+                }
+                "ImagePullSecret" => self.image_pull_secret = Some(value),
+                "ImageCache" => {
+                    self.image_cache = Some(value.split(',').map(|s| s.to_string()).collect())
+                }
+                "UseCSIDriver" => self.use_csi_driver = Some(value.parse::<bool>()?),
+                "DefaultCasUrl" => self.default_cas_url = Some(value),
+                "DefaultCasValidate" => self.default_cas_validate = Some(value),
+                "UseCaseCharsMin" => self.use_case_chars_min = Some(value.parse::<u32>()?),
+                "DefaultBackend.LoadingPageTemplateString" => {
+                    self.default_backend.loading_page_template_string = value
+                }
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 

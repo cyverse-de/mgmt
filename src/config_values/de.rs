@@ -1,5 +1,5 @@
 use crate::config_values::amqp::Amqp;
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -12,6 +12,23 @@ pub struct DESubscriptions {
     checkout_url: Option<Url>,
 
     enforce: bool,
+}
+
+impl LoadFromConfiguration for DESubscriptions {
+    fn get_section(&self) -> String {
+        "DE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Subscriptions.CheckoutURL" => self.checkout_url = Url::parse(&value).ok(),
+                "Subscriptions.Enforce" => self.enforce = value.parse::<bool>()?,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl DESubscriptions {
@@ -68,6 +85,22 @@ impl DECoge {
     }
 }
 
+impl LoadFromConfiguration for DECoge {
+    fn get_section(&self) -> String {
+        "DE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Coge.BaseURI" => self.base_uri = Url::parse(&value).ok(),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Default for DECoge {
     fn default() -> Self {
         DECoge {
@@ -80,6 +113,24 @@ impl Default for DECoge {
 #[serde(rename_all = "PascalCase")]
 pub struct DETools {
     admin: DEToolsAdmin,
+}
+
+impl LoadFromConfiguration for DETools {
+    fn get_section(&self) -> String {
+        "DE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Tools.Admin.MaxCpuLimit" => self.admin.max_cpu_limit = Some(value.parse()?),
+                "Tools.Admin.MaxMemoryLimit" => self.admin.max_memory_limit = Some(value.parse()?),
+                "Tools.Admin.MaxDiskLimit" => self.admin.max_disk_limit = Some(value.parse()?),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl DETools {
@@ -172,6 +223,44 @@ pub struct DE {
     default_output_folder: String,
     coge: Option<DECoge>,
     tools: Option<DETools>,
+}
+
+impl LoadFromConfiguration for DE {
+    fn get_section(&self) -> String {
+        "DE".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+                "DefaultOutputFolder" => self.default_output_folder = value,
+                _ => (),
+            }
+            if key.starts_with("Subscriptions") {
+                if let Some(subs) = &mut self.subscriptions {
+                    subs.cfg_set_key(cfg)?;
+                }
+            }
+
+            if key.starts_with("Coge") {
+                if let Some(coge) = &mut self.coge {
+                    coge.cfg_set_key(cfg)?;
+                }
+            }
+
+            if key.starts_with("Tools") {
+                if let Some(tools) = &mut self.tools {
+                    tools.cfg_set_key(cfg)?;
+                }
+            }
+
+            if key.starts_with("AMQP") {
+                self.amqp.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for DE {

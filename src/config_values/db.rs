@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -22,6 +22,26 @@ impl Default for DatabaseConfig {
             port: 5432,
             name: String::new(),
         }
+    }
+}
+
+impl LoadFromConfiguration for DatabaseConfig {
+    fn get_section(&self) -> String {
+        "Database".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "User" => self.user = value,
+                "Password" => self.password = value,
+                "Host" => self.host = value,
+                "Port" => self.port = value.parse::<u32>()?,
+                "Name" => self.name = value,
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -97,6 +117,28 @@ pub struct QMSDatabaseConfig {
     name: Option<String>,
     automigrate: Option<bool>,
     reinitialize: Option<bool>,
+}
+
+impl LoadFromConfiguration for QMSDatabaseConfig {
+    fn get_section(&self) -> String {
+        "QMSDB".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "User" => self.user = value,
+                "Password" => self.password = value,
+                "Host" => self.host = value,
+                "Port" => self.port = Some(value.parse::<u32>()?),
+                "Name" => self.name = Some(value),
+                "Automigrate" => self.automigrate = Some(value.parse::<bool>()?),
+                "Reinitialize" => self.reinitialize = Some(value.parse::<bool>()?),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for QMSDatabaseConfig {
