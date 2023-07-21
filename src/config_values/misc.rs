@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value};
+use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -15,6 +15,22 @@ impl Default for Jobs {
         Jobs {
             data_transfer_image: String::from("harbor.cyverse.org/de/porklock"),
         }
+    }
+}
+
+impl LoadFromConfiguration for Jobs {
+    fn get_section(&self) -> String {
+        "Jobs".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "DataTransferImage" => self.data_transfer_image = value,
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -67,6 +83,22 @@ impl Pgp {
         add_env_cfg_value(tx, env_id, key_password_id).await?;
         self.key_password = key_password;
 
+        Ok(())
+    }
+}
+
+impl LoadFromConfiguration for Pgp {
+    fn get_section(&self) -> String {
+        "PGP".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "KeyPassword" => self.key_password = value,
+                _ => (),
+            }
+        }
         Ok(())
     }
 }
@@ -137,6 +169,25 @@ impl PermanentIdDataCite {
     }
 }
 
+impl LoadFromConfiguration for PermanentIdDataCite {
+    fn get_section(&self) -> String {
+        "PermanentID".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "DataCite.BaseURI" => self.base_uri = Url::parse(&value).ok(),
+                "DataCite.User" => self.user = value,
+                "DataCite.Password" => self.password = value,
+                "DataCite.DOIPrefix" => self.doi_prefix = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentId {
@@ -172,6 +223,27 @@ impl PermanentId {
     }
 }
 
+impl LoadFromConfiguration for PermanentId {
+    fn get_section(&self) -> String {
+        "PermanentID".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "CuratorsGroup" => self.curators_group = value,
+                _ => (),
+            }
+
+            if key.starts_with("DataCite.") {
+                self.data_cite.cfg_set_key(cfg)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Unleash {
@@ -195,6 +267,25 @@ impl Default for Unleash {
             maintenance_flag: Some(String::from("DE-Maintenance")),
             api_token: String::new(),
         }
+    }
+}
+
+impl LoadFromConfiguration for Unleash {
+    fn get_section(&self) -> String {
+        "Unleash".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "BaseURL" => self.base_url = Url::parse(&value).ok(),
+                "APIPath" => self.api_path = Some(value),
+                "APIToken" => self.api_token = value,
+                "MaintenanceFlag" => self.maintenance_flag = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -279,6 +370,22 @@ impl UserPortal {
     }
 }
 
+impl LoadFromConfiguration for UserPortal {
+    fn get_section(&self) -> String {
+        "UserPortal".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "BaseURI" => self.base_uri = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Admin {
@@ -292,6 +399,23 @@ impl Default for Admin {
             groups: Some(String::from("de_admins")),
             attribute: Some(String::from("entitlement")),
         }
+    }
+}
+
+impl LoadFromConfiguration for Admin {
+    fn get_section(&self) -> String {
+        "Admin".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Groups" => self.groups = Some(value),
+                "Attribute" => self.attribute = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -340,6 +464,23 @@ impl Default for Analytics {
     }
 }
 
+impl LoadFromConfiguration for Analytics {
+    fn get_section(&self) -> String {
+        "Analytics".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
+                "Id" => self.id = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Analytics {
     pub async fn ask_for_info(
         &mut self,
@@ -383,6 +524,9 @@ pub struct Harbor {
     #[serde(rename = "URL")]
     url: Option<String>, // called a URL, but it's actually a host name.
 
+    #[serde(rename = "ProjectQAImagePullSecretName")]
+    project_qa_image_pull_secret_name: String,
+
     #[serde(rename = "ProjectQARobotName")]
     project_qa_robot_name: String,
 
@@ -394,9 +538,29 @@ impl Default for Harbor {
     fn default() -> Self {
         Harbor {
             url: Some(String::from("harbor.cyverse.org")),
+            project_qa_image_pull_secret_name: String::new(),
             project_qa_robot_name: String::new(),
             project_qa_robot_secret: String::new(),
         }
+    }
+}
+
+impl LoadFromConfiguration for Harbor {
+    fn get_section(&self) -> String {
+        "Harbor".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "URL" => self.url = Some(value),
+                "ProjectQAImagePullSecretName" => self.project_qa_image_pull_secret_name = value,
+                "ProjectQARobotName" => self.project_qa_robot_name = value,
+                "ProjectQARobotSecret" => self.project_qa_robot_secret = value,
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -464,6 +628,22 @@ impl Default for Qms {
     }
 }
 
+impl LoadFromConfiguration for Qms {
+    fn get_section(&self) -> String {
+        "QMS".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Qms {
     pub async fn ask_for_info(
         &mut self,
@@ -507,6 +687,23 @@ impl Default for Jaeger {
             )
             .ok(),
         }
+    }
+}
+
+impl LoadFromConfiguration for Jaeger {
+    fn get_section(&self) -> String {
+        "Jaeger".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Endpoint" => self.endpoint = Url::parse(&value).ok(),
+                "HttpEndpoint" => self.http_endpoint = Url::parse(&value).ok(),
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 

@@ -4,7 +4,7 @@ use crate::config_values::{
     elasticsearch::ElasticSearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
 };
-use crate::db::{add_env_cfg_value, set_config_value, upsert_environment};
+use crate::db::{add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration};
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -183,6 +183,24 @@ impl Default for ConfigValues {
             qms: Some(config_values::misc::Qms::default()),
             jaeger: Some(config_values::misc::Jaeger::default()),
         }
+    }
+}
+
+impl LoadFromConfiguration for ConfigValues {
+    fn get_section(&self) -> String {
+        "TopLevel".to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Environment" => self.environment = value,
+                "Namespace" => self.namespace = value,
+                "UIDDomain" => self.uid_domain = value,
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }
 
