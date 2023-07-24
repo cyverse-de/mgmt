@@ -202,6 +202,138 @@ impl LoadFromConfiguration for ConfigValues {
         }
         Ok(())
     }
+
+    fn cfg_set_keys(&mut self, cfgs: Vec<crate::db::Configuration>) -> anyhow::Result<()> {
+        cfgs.iter().for_each(|cfg| {
+            if let Some(section) = cfg.section.clone() {
+                match section.as_str() {
+                    "Agave" => {
+                        if let Some(agave) = &mut self.agave {
+                            agave.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "BaseURLs" => {
+                        if let Some(base_urls) = &mut self.base_urls {
+                            base_urls.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "DashboardAggregator" => {
+                        if let Some(dashboard_aggregator) = &mut self.dashboard_aggregator {
+                            dashboard_aggregator.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "DE" => {
+                        self.de.cfg_set_key(cfg).ok();
+                    }
+                    "Docker" => {
+                        if let Some(docker) = &mut self.docker {
+                            docker.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "ElasticSearch" => {
+                        self.elasticsearch.cfg_set_key(cfg).ok();
+                    }
+                    "Email" => {
+                        self.email.cfg_set_key(cfg).ok();
+                    }
+                    "Grouper" => {
+                        self.grouper.cfg_set_key(cfg).ok();
+                    }
+                    "ICAT" => {
+                        self.icat.cfg_set_key(cfg).ok();
+                    }
+                    "Infosquito" => {
+                        if let Some(infosquito) = &mut self.infosquito {
+                            infosquito.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Intercom" => {
+                        if let Some(intercom) = &mut self.intercom {
+                            intercom.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "IRODS" => {
+                        self.irods.cfg_set_key(cfg).ok();
+                    }
+                    "Jobs" => {
+                        if let Some(jobs) = &mut self.jobs {
+                            jobs.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Keycloak" => {
+                        self.keycloak.cfg_set_key(cfg).ok();
+                    }
+                    "PGP" => {
+                        self.pgp.cfg_set_key(cfg).ok();
+                    }
+                    "PermanentID" => {
+                        if let Some(permanent_id) = &mut self.permanent_id {
+                            permanent_id.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Unleash" => {
+                        if let Some(unleash) = &mut self.unleash {
+                            unleash.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "UserPortal" => {
+                        self.user_portal.cfg_set_key(cfg).ok();
+                    }
+                    "VICE" => {
+                        self.vice.cfg_set_key(cfg).ok();
+                    }
+                    "DEDB" => {
+                        self.de_db.cfg_set_key(cfg).ok();
+                    }
+                    "GrouperDB" => {
+                        self.grouper_db.cfg_set_key(cfg).ok();
+                    }
+                    "NotificationsDB" => {
+                        self.notifications_db.cfg_set_key(cfg).ok();
+                    }
+                    "PermissionsDB" => {
+                        self.permissions_db.cfg_set_key(cfg).ok();
+                    }
+                    "QMSDB" => {
+                        self.qms_db.cfg_set_key(cfg).ok();
+                    }
+                    "MetadataDB" => {
+                        self.metadata_db.cfg_set_key(cfg).ok();
+                    }
+                    "UnleashDB" => {
+                        self.unleash_db.cfg_set_key(cfg).ok();
+                    }
+                    "Admin" => {
+                        if let Some(admin) = &mut self.admin {
+                            admin.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Analytics" => {
+                        if let Some(analytics) = &mut self.analytics {
+                            analytics.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Harbor" => {
+                        if let Some(harbor) = &mut self.harbor {
+                            harbor.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "QMS" => {
+                        if let Some(qms) = &mut self.qms {
+                            qms.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Jaeger" => {
+                        if let Some(jaeger) = &mut self.jaeger {
+                            jaeger.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        });
+        Ok(())
+    }
 }
 
 impl ConfigValues {
