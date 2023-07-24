@@ -1,5 +1,5 @@
 use mgmt::config_values::config;
-use mgmt::db;
+use mgmt::db::{self, Configuration, LoadFromConfiguration};
 
 use anyhow::anyhow;
 use clap::{arg, Command};
@@ -135,6 +135,14 @@ fn cli() -> Command {
                                 .required(false)
                                 .value_parser(clap::value_parser!(String)),
                         ]),
+                )
+                .subcommand(
+                    Command::new("render")
+                        .args_conflicts_with_subcommands(true)
+                        .args([arg!(
+                            -e --"environment" <ENVIRONMENT>
+                                "The environment to render the config values for"
+                        )]),
                 ),
         )
         .subcommand(
@@ -442,6 +450,40 @@ async fn list_values(
     Ok(())
 }
 
+/**
+ * Handler  for the `mgmt-configs values render` command.
+ */
+async fn render_values(pool: &Pool<MySql>, environment: &str) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let mut all_cfgs: Vec<Configuration> = Vec::new();
+
+    let all_default_cfgs = db::list_default_config_values(&mut tx, None, None).await?;
+    for default in all_default_cfgs.into_iter() {
+        if let (Some(section), Some(key)) = (default.section.clone(), default.key.clone()) {
+            if db::has_config_value(&mut tx, environment, &section, &key)
+                .await
+                .unwrap_or(false)
+            {
+                all_cfgs.push(
+                    db::get_config_value(&mut tx, environment, &section, &key)
+                        .await
+                        .unwrap(),
+                );
+            } else {
+                all_cfgs.push(default);
+            }
+        }
+    }
+
+    let mut cv = config::ConfigValues::default();
+    cv.cfg_set_keys(all_cfgs)?;
+
+    let yaml = serde_yaml::to_string(&cv)?;
+    println!("{}", yaml);
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let command = cli().get_matches();
@@ -721,6 +763,16 @@ async fn main() -> anyhow::Result<()> {
                     };
 
                     list_values(&pool, environment, section, key).await?;
+                }
+
+                ("render", sub_m) => {
+                    let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
+                        anyhow!(
+                            "No environment specified. Use --environment <environment> to specify an environment."
+                        )
+                    })?;
+
+                    render_values(&pool, &environment).await?;
                 }
 
                 (name, _) => {
