@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -7,12 +7,16 @@ use url::Url;
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jobs {
+    #[serde(skip)]
+    section: String,
+
     data_transfer_image: String,
 }
 
 impl Default for Jobs {
     fn default() -> Self {
         Jobs {
+            section: "Jobs".to_string(),
             data_transfer_image: String::from("harbor.cyverse.org/de/porklock"),
         }
     }
@@ -20,7 +24,7 @@ impl Default for Jobs {
 
 impl LoadFromConfiguration for Jobs {
     fn get_section(&self) -> String {
-        "Jobs".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -31,6 +35,21 @@ impl LoadFromConfiguration for Jobs {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Jobs> for Vec<db::Configuration> {
+    fn from(job: Jobs) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = job.section.clone();
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("DataTransferImage".to_string()),
+            value: Some(job.data_transfer_image),
+            value_type: Some("string".to_string()),
+        });
+        vec
     }
 }
 
@@ -61,11 +80,23 @@ impl Jobs {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "PGP")]
 pub struct Pgp {
+    #[serde(skip)]
+    section: String,
+
     key_password: String,
+}
+
+impl Default for Pgp {
+    fn default() -> Self {
+        Pgp {
+            section: "PGP".to_string(),
+            key_password: String::new(),
+        }
+    }
 }
 
 impl Pgp {
@@ -89,7 +120,7 @@ impl Pgp {
 
 impl LoadFromConfiguration for Pgp {
     fn get_section(&self) -> String {
-        "PGP".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -103,9 +134,27 @@ impl LoadFromConfiguration for Pgp {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+impl From<Pgp> for Vec<db::Configuration> {
+    fn from(p: Pgp) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = p.section.clone();
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("KeyPassword".to_string()),
+            value: Some(p.key_password),
+            value_type: Some("string".to_string()),
+        });
+        vec
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentIdDataCite {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURI")]
     base_uri: Option<Url>,
 
@@ -114,6 +163,18 @@ pub struct PermanentIdDataCite {
 
     #[serde(rename = "DOIPrefix")]
     doi_prefix: String,
+}
+
+impl Default for PermanentIdDataCite {
+    fn default() -> Self {
+        PermanentIdDataCite {
+            section: "PermanentID".to_string(),
+            base_uri: Url::parse("https://api.datacite.org/").ok(),
+            user: String::new(),
+            password: String::new(),
+            doi_prefix: String::new(),
+        }
+    }
 }
 
 impl PermanentIdDataCite {
@@ -171,7 +232,7 @@ impl PermanentIdDataCite {
 
 impl LoadFromConfiguration for PermanentIdDataCite {
     fn get_section(&self) -> String {
-        "PermanentID".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -188,11 +249,67 @@ impl LoadFromConfiguration for PermanentIdDataCite {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+impl From<PermanentIdDataCite> for Vec<db::Configuration> {
+    fn from(p: PermanentIdDataCite) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = p.section.clone();
+
+        if let Some(base_uri) = p.base_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DataCite.BaseURI".to_string()),
+                value: Some(base_uri.to_string()),
+                value_type: Some("url".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("DataCite.User".to_string()),
+            value: Some(p.user),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("DataCite.Password".to_string()),
+            value: Some(p.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("DataCite.DOIPrefix".to_string()),
+            value: Some(p.doi_prefix),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentId {
+    #[serde(skip)]
+    section: String,
+
     curators_group: String,
     data_cite: PermanentIdDataCite,
+}
+
+impl Default for PermanentId {
+    fn default() -> Self {
+        PermanentId {
+            section: "PermanentID".to_string(),
+            curators_group: String::new(),
+            data_cite: PermanentIdDataCite::default(),
+        }
+    }
 }
 
 impl PermanentId {
@@ -225,7 +342,7 @@ impl PermanentId {
 
 impl LoadFromConfiguration for PermanentId {
     fn get_section(&self) -> String {
-        "PermanentID".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -244,9 +361,31 @@ impl LoadFromConfiguration for PermanentId {
     }
 }
 
+impl From<PermanentId> for Vec<db::Configuration> {
+    fn from(p: PermanentId) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = p.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("CuratorsGroup".to_string()),
+            value: Some(p.curators_group),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.extend::<Vec<db::Configuration>>(p.data_cite.into());
+
+        vec
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Unleash {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURL")]
     base_url: Option<Url>,
 
@@ -262,6 +401,7 @@ pub struct Unleash {
 impl Default for Unleash {
     fn default() -> Self {
         Unleash {
+            section: "Unleash".to_string(),
             base_url: Url::parse("http://unleash:4242").ok(),
             api_path: Some(String::from("/api")),
             maintenance_flag: Some(String::from("DE-Maintenance")),
@@ -272,7 +412,7 @@ impl Default for Unleash {
 
 impl LoadFromConfiguration for Unleash {
     fn get_section(&self) -> String {
-        "Unleash".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -286,6 +426,53 @@ impl LoadFromConfiguration for Unleash {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Unleash> for Vec<db::Configuration> {
+    fn from(u: Unleash) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = u.section.clone();
+
+        if let Some(base_url) = u.base_url {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("BaseURL".to_string()),
+                value: Some(base_url.to_string()),
+                value_type: Some("url".to_string()),
+            });
+        }
+
+        if let Some(api_path) = u.api_path {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("APIPath".to_string()),
+                value: Some(api_path),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("APIToken".to_string()),
+            value: Some(u.api_token),
+            value_type: Some("string".to_string()),
+        });
+
+        if let Some(maintenance_flag) = u.maintenance_flag {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("MaintenanceFlag".to_string()),
+                value: Some(maintenance_flag),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec
     }
 }
 
@@ -343,11 +530,23 @@ impl Unleash {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct UserPortal {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURI")]
     base_uri: Option<String>,
+}
+
+impl Default for UserPortal {
+    fn default() -> Self {
+        UserPortal {
+            section: "UserPortal".to_string(),
+            base_uri: Some(String::new()),
+        }
+    }
 }
 
 impl UserPortal {
@@ -372,7 +571,7 @@ impl UserPortal {
 
 impl LoadFromConfiguration for UserPortal {
     fn get_section(&self) -> String {
-        "UserPortal".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -386,9 +585,31 @@ impl LoadFromConfiguration for UserPortal {
     }
 }
 
+impl From<UserPortal> for Vec<db::Configuration> {
+    fn from(u: UserPortal) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = u.section.clone();
+
+        if let Some(base_uri) = u.base_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("BaseURI".to_string()),
+                value: Some(base_uri),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Admin {
+    #[serde(skip)]
+    section: String,
+
     groups: Option<String>,
     attribute: Option<String>,
 }
@@ -396,6 +617,7 @@ pub struct Admin {
 impl Default for Admin {
     fn default() -> Self {
         Admin {
+            section: "Admin".to_string(),
             groups: Some(String::from("de_admins")),
             attribute: Some(String::from("entitlement")),
         }
@@ -404,7 +626,7 @@ impl Default for Admin {
 
 impl LoadFromConfiguration for Admin {
     fn get_section(&self) -> String {
-        "Admin".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -416,6 +638,35 @@ impl LoadFromConfiguration for Admin {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Admin> for Vec<db::Configuration> {
+    fn from(a: Admin) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = a.section.clone();
+
+        if let Some(groups) = a.groups {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Groups".to_string()),
+                value: Some(groups),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(attribute) = a.attribute {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Attribute".to_string()),
+                value: Some(attribute),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec
     }
 }
 
@@ -451,6 +702,9 @@ impl Admin {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Analytics {
+    #[serde(skip)]
+    section: String,
+
     enabled: Option<bool>,
     id: Option<String>,
 }
@@ -458,6 +712,7 @@ pub struct Analytics {
 impl Default for Analytics {
     fn default() -> Self {
         Analytics {
+            section: "Analytics".to_string(),
             enabled: Some(false),
             id: Some(String::from("g-id")),
         }
@@ -466,7 +721,7 @@ impl Default for Analytics {
 
 impl LoadFromConfiguration for Analytics {
     fn get_section(&self) -> String {
-        "Analytics".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -478,6 +733,35 @@ impl LoadFromConfiguration for Analytics {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Analytics> for Vec<db::Configuration> {
+    fn from(a: Analytics) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = a.section.clone();
+
+        if let Some(enabled) = a.enabled {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Enabled".to_string()),
+                value: Some(format!("{}", enabled)),
+                value_type: Some("bool".to_string()),
+            });
+        }
+
+        if let Some(id) = a.id {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Id".to_string()),
+                value: Some(id),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec
     }
 }
 
@@ -521,6 +805,9 @@ impl Analytics {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Harbor {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "URL")]
     url: Option<String>, // called a URL, but it's actually a host name.
 
@@ -537,6 +824,7 @@ pub struct Harbor {
 impl Default for Harbor {
     fn default() -> Self {
         Harbor {
+            section: "Harbor".to_string(),
             url: Some(String::from("harbor.cyverse.org")),
             project_qa_image_pull_secret_name: String::new(),
             project_qa_robot_name: String::new(),
@@ -547,7 +835,7 @@ impl Default for Harbor {
 
 impl LoadFromConfiguration for Harbor {
     fn get_section(&self) -> String {
-        "Harbor".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -561,6 +849,49 @@ impl LoadFromConfiguration for Harbor {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Harbor> for Vec<db::Configuration> {
+    fn from(h: Harbor) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = h.section.clone();
+
+        if let Some(url) = h.url {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("URL".to_string()),
+                value: Some(url),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ProjectQAImagePullSecretName".to_string()),
+            value: Some(h.project_qa_image_pull_secret_name),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ProjectQARobotName".to_string()),
+            value: Some(h.project_qa_robot_name),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ProjectQARobotSecret".to_string()),
+            value: Some(h.project_qa_robot_secret),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
     }
 }
 
@@ -617,12 +948,16 @@ impl Harbor {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Qms {
+    #[serde(skip)]
+    section: String,
+
     enabled: Option<bool>,
 }
 
 impl Default for Qms {
     fn default() -> Self {
         Qms {
+            section: "QMS".to_string(),
             enabled: Some(true),
         }
     }
@@ -630,7 +965,7 @@ impl Default for Qms {
 
 impl LoadFromConfiguration for Qms {
     fn get_section(&self) -> String {
-        "QMS".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -641,6 +976,25 @@ impl LoadFromConfiguration for Qms {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Qms> for Vec<db::Configuration> {
+    fn from(q: Qms) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = q.section.clone();
+
+        if let Some(enabled) = q.enabled {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Enabled".to_string()),
+                value: Some(format!("{}", enabled)),
+                value_type: Some("bool".to_string()),
+            });
+        }
+
+        vec
     }
 }
 
@@ -674,6 +1028,9 @@ impl Qms {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jaeger {
+    #[serde(skip)]
+    section: String,
+
     endpoint: Option<Url>,
     http_endpoint: Option<Url>,
 }
@@ -681,6 +1038,7 @@ pub struct Jaeger {
 impl Default for Jaeger {
     fn default() -> Self {
         Jaeger {
+            section: "Jaeger".to_string(),
             endpoint: Url::parse("http://jaeger-collector.jaeger.svc.cluster.local:14250").ok(),
             http_endpoint: Url::parse(
                 "http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces",
@@ -692,7 +1050,7 @@ impl Default for Jaeger {
 
 impl LoadFromConfiguration for Jaeger {
     fn get_section(&self) -> String {
-        "Jaeger".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -704,6 +1062,35 @@ impl LoadFromConfiguration for Jaeger {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Jaeger> for Vec<db::Configuration> {
+    fn from(j: Jaeger) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = j.section.clone();
+
+        if let Some(endpoint) = j.endpoint {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Endpoint".to_string()),
+                value: Some(endpoint.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(http_endpoint) = j.http_endpoint {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("HttpEndpoint".to_string()),
+                value: Some(http_endpoint.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec
     }
 }
 
