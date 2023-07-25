@@ -7,5 +7,6 @@ builds/
 **/*.rs.bk
 db/de_releases
 **/.dolt/
-
+.clj-kondo
+.lsp
 *.pdb
