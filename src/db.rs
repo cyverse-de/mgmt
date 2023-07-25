@@ -12,6 +12,10 @@ pub trait LoadFromConfiguration {
     }
 }
 
+pub trait ToConfiguration {
+    fn to_cfg(&self) -> anyhow::Result<Configuration>;
+}
+
 pub async fn upsert_environment(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,

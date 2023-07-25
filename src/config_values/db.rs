@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -6,6 +6,9 @@ use sqlx::{MySql, Transaction};
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DatabaseConfig {
+    #[serde(skip)]
+    section: String,
+
     pub user: String,
     pub password: String,
     pub host: String,
@@ -16,6 +19,7 @@ pub struct DatabaseConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         DatabaseConfig {
+            section: "Database".to_string(),
             user: String::new(),
             password: String::new(),
             host: String::new(),
@@ -27,7 +31,7 @@ impl Default for DatabaseConfig {
 
 impl LoadFromConfiguration for DatabaseConfig {
     fn get_section(&self) -> String {
-        "Database".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -42,6 +46,55 @@ impl LoadFromConfiguration for DatabaseConfig {
             }
         }
         Ok(())
+    }
+}
+
+impl From<DatabaseConfig> for Vec<db::Configuration> {
+    fn from(db_cfg: DatabaseConfig) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = db_cfg.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("User".to_string()),
+            value: Some(db_cfg.user),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Password".to_string()),
+            value: Some(db_cfg.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Host".to_string()),
+            value: Some(db_cfg.host),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Port".to_string()),
+            value: Some(db_cfg.port.to_string()),
+            value_type: Some("integer".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Name".to_string()),
+            value: Some(db_cfg.name),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
     }
 }
 
@@ -110,6 +163,9 @@ impl DatabaseConfig {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct QMSDatabaseConfig {
+    #[serde(skip)]
+    section: String,
+
     pub user: String,
     pub password: String,
     pub host: String,
@@ -121,7 +177,7 @@ pub struct QMSDatabaseConfig {
 
 impl LoadFromConfiguration for QMSDatabaseConfig {
     fn get_section(&self) -> String {
-        "QMSDB".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -144,6 +200,7 @@ impl LoadFromConfiguration for QMSDatabaseConfig {
 impl Default for QMSDatabaseConfig {
     fn default() -> Self {
         QMSDatabaseConfig {
+            section: "QMSDB".to_string(),
             user: String::new(),
             password: String::new(),
             host: String::new(),
@@ -152,6 +209,71 @@ impl Default for QMSDatabaseConfig {
             automigrate: Some(false),
             reinitialize: Some(false),
         }
+    }
+}
+
+impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
+    fn from(qmsdb: QMSDatabaseConfig) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = qmsdb.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("User".to_string()),
+            value: Some(qmsdb.user),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Password".to_string()),
+            value: Some(qmsdb.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Host".to_string()),
+            value: Some(qmsdb.host),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Port".to_string()),
+            value: Some(qmsdb.port.unwrap().to_string()),
+            value_type: Some("integer".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Name".to_string()),
+            value: Some(qmsdb.name.unwrap()),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Automigrate".to_string()),
+            value: Some(qmsdb.automigrate.unwrap().to_string()),
+            value_type: Some("boolean".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Reinitialize".to_string()),
+            value: Some(qmsdb.reinitialize.unwrap().to_string()),
+            value_type: Some("boolean".to_string()),
+        });
+
+        vec
     }
 }
 

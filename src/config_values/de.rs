@@ -1,5 +1,5 @@
 use crate::config_values::amqp::Amqp;
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -8,6 +8,9 @@ use url::Url;
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DESubscriptions {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "CheckoutURL")]
     checkout_url: Option<Url>,
 
@@ -16,7 +19,7 @@ pub struct DESubscriptions {
 
 impl LoadFromConfiguration for DESubscriptions {
     fn get_section(&self) -> String {
-        "DE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -28,6 +31,29 @@ impl LoadFromConfiguration for DESubscriptions {
             }
         }
         Ok(())
+    }
+}
+
+impl From<DESubscriptions> for Vec<db::Configuration> {
+    fn from(subs: DESubscriptions) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(url) = subs.checkout_url {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(subs.section.clone()),
+                key: Some("CheckoutURL".to_string()),
+                value: Some(url.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(subs.section.clone()),
+            key: Some("Enforce".to_string()),
+            value: Some(subs.enforce.to_string()),
+            value_type: Some("boolean".to_string()),
+        });
+        cfgs
     }
 }
 
@@ -61,6 +87,9 @@ impl DESubscriptions {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DECoge {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURI")]
     base_uri: Option<Url>,
 }
@@ -87,7 +116,7 @@ impl DECoge {
 
 impl LoadFromConfiguration for DECoge {
     fn get_section(&self) -> String {
-        "DE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -101,9 +130,26 @@ impl LoadFromConfiguration for DECoge {
     }
 }
 
+impl From<DECoge> for Vec<db::Configuration> {
+    fn from(coge: DECoge) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(url) = coge.base_uri {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(coge.section.clone()),
+                key: Some("BaseURI".to_string()),
+                value: Some(url.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+        cfgs
+    }
+}
+
 impl Default for DECoge {
     fn default() -> Self {
         DECoge {
+            section: "DE".to_string(),
             base_uri: Url::parse("https://genomevolution.org/coge/api/v1").ok(),
         }
     }
@@ -112,12 +158,15 @@ impl Default for DECoge {
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DETools {
+    #[serde(skip)]
+    section: String,
+
     admin: DEToolsAdmin,
 }
 
 impl LoadFromConfiguration for DETools {
     fn get_section(&self) -> String {
-        "DE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -130,6 +179,40 @@ impl LoadFromConfiguration for DETools {
             }
         }
         Ok(())
+    }
+}
+
+impl From<DETools> for Vec<db::Configuration> {
+    fn from(tools: DETools) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(max_cpu_limit) = tools.admin.max_cpu_limit {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(tools.section.clone()),
+                key: Some("Tools.Admin.MaxCpuLimit".to_string()),
+                value: Some(max_cpu_limit.to_string()),
+                value_type: Some("integer".to_string()),
+            });
+        }
+        if let Some(max_memory_limit) = tools.admin.max_memory_limit {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(tools.section.clone()),
+                key: Some("Tools.Admin.MaxMemoryLimit".to_string()),
+                value: Some(max_memory_limit.to_string()),
+                value_type: Some("integer".to_string()),
+            });
+        }
+        if let Some(max_disk_limit) = tools.admin.max_disk_limit {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(tools.section.clone()),
+                key: Some("Tools.Admin.MaxDiskLimit".to_string()),
+                value: Some(max_disk_limit.to_string()),
+                value_type: Some("integer".to_string()),
+            });
+        }
+        cfgs
     }
 }
 
@@ -213,6 +296,9 @@ impl Default for DEToolsAdmin {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DE {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "AMQP")]
     amqp: Amqp,
 
@@ -227,7 +313,7 @@ pub struct DE {
 
 impl LoadFromConfiguration for DE {
     fn get_section(&self) -> String {
-        "DE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -266,6 +352,7 @@ impl LoadFromConfiguration for DE {
 impl Default for DE {
     fn default() -> Self {
         DE {
+            section: "DE".to_string(),
             amqp: Amqp::default(),
             base_uri: Url::parse("https://de.cyverse.org").ok(),
             subscriptions: Some(DESubscriptions::default()),
@@ -273,6 +360,39 @@ impl Default for DE {
             coge: Some(DECoge::default()),
             tools: Some(DETools::default()),
         }
+    }
+}
+
+impl From<DE> for Vec<db::Configuration> {
+    fn from(de: DE) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(url) = de.base_uri {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(de.section.clone()),
+                key: Some("BaseURI".to_string()),
+                value: Some(url.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(de.section.clone()),
+            key: Some("DefaultOutputFolder".to_string()),
+            value: Some(de.default_output_folder.to_string()),
+            value_type: Some("string".to_string()),
+        });
+        if let Some(subs) = de.subscriptions {
+            cfgs.extend::<Vec<db::Configuration>>(subs.into());
+        }
+        if let Some(coge) = de.coge {
+            cfgs.extend::<Vec<db::Configuration>>(coge.into());
+        }
+        if let Some(tools) = de.tools {
+            cfgs.extend::<Vec<db::Configuration>>(tools.into());
+        }
+        cfgs.extend::<Vec<db::Configuration>>(de.amqp.into());
+        cfgs
     }
 }
 

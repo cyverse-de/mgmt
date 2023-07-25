@@ -42,6 +42,79 @@ impl Default for Agave {
     }
 }
 
+impl From<Agave> for Vec<db::Configuration> {
+    fn from(agave: Agave) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = agave.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Key".to_string()),
+            value: Some(agave.key),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Secret".to_string()),
+            value: Some(agave.secret),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("RedirectURI".to_string()),
+            value: Some(agave.redirect_uri),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("StorageSystem".to_string()),
+            value: Some(agave.storage_system),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("CallbackBaseURI".to_string()),
+            value: Some(agave.callback_base_uri),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ReadTimeout".to_string()),
+            value: Some(format!("{}", agave.read_timeout.unwrap())),
+            value_type: Some("int".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Enabled".to_string()),
+            value: Some(format!("{}", agave.enabled.unwrap())),
+            value_type: Some("bool".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("JobsEnabled".to_string()),
+            value: Some(format!("{}", agave.jobs_enabled.unwrap())),
+            value_type: Some("bool".to_string()),
+        });
+
+        vec
+    }
+}
+
 impl LoadFromConfiguration for Agave {
     fn get_section(&self) -> String {
         self.section.clone()

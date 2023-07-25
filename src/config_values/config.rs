@@ -22,6 +22,8 @@ pub struct ConfigValues {
     #[serde(rename = "UIDDomain")]
     uid_domain: String,
 
+    test_key: String,
+
     // Optional for deployment.
     agave: Option<Agave>,
 
@@ -148,6 +150,7 @@ impl Default for ConfigValues {
             environment: String::new(),
             namespace: String::new(),
             uid_domain: String::new(),
+            test_key: String::new(),
             agave: Some(Agave::default()),
             base_urls: Some(BaseURLs::default()),
             dashboard_aggregator: Some(DashboardAggregator::default()),
@@ -197,6 +200,7 @@ impl LoadFromConfiguration for ConfigValues {
                 "Environment" => self.environment = value,
                 "Namespace" => self.namespace = value,
                 "UIDDomain" => self.uid_domain = value,
+                "TestKey" => self.test_key = value,
                 _ => (),
             }
         }
@@ -327,6 +331,9 @@ impl LoadFromConfiguration for ConfigValues {
                         if let Some(jaeger) = &mut self.jaeger {
                             jaeger.cfg_set_key(cfg).ok();
                         }
+                    }
+                    "TopLevel" => {
+                        self.cfg_set_key(cfg).ok();
                     }
                     _ => (),
                 }

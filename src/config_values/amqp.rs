@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -7,6 +7,8 @@ use sqlx::{MySql, Transaction};
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "AMQP")]
 pub struct Amqp {
+    #[serde(skip)]
+    section: String,
     user: String,
     password: String,
     host: String,
@@ -14,9 +16,63 @@ pub struct Amqp {
     vhost: String,
 }
 
+impl From<Amqp> for Vec<db::Configuration> {
+    fn from(amqp: Amqp) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = Some(amqp.section.to_string());
+
+        // Add User configuration.
+        vec.push(db::Configuration {
+            id: None,
+            section: section.clone(),
+            key: Some("User".to_string()),
+            value: Some(amqp.user),
+            value_type: Some("string".to_string()),
+        });
+
+        // Add password configuration
+        vec.push(db::Configuration {
+            id: None,
+            section: section.clone(),
+            key: Some("Password".to_string()),
+            value: Some(amqp.password),
+            value_type: Some("string".to_string()),
+        });
+
+        // Add host configuration
+        vec.push(db::Configuration {
+            id: None,
+            section: section.clone(),
+            key: Some("Host".to_string()),
+            value: Some(amqp.host),
+            value_type: Some("string".to_string()),
+        });
+
+        // Add port configuration
+        vec.push(db::Configuration {
+            id: None,
+            section: section.clone(),
+            key: Some("Port".to_string()),
+            value: Some(amqp.port.to_string()),
+            value_type: Some("integer".to_string()),
+        });
+
+        // Add vhost configuration
+        vec.push(db::Configuration {
+            id: None,
+            section: section.clone(),
+            key: Some("Vhost".to_string()),
+            value: Some(amqp.vhost),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
+    }
+}
+
 impl LoadFromConfiguration for Amqp {
     fn get_section(&self) -> String {
-        "AMQP".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {

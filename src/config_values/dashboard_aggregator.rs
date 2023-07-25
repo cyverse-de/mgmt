@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -6,6 +6,9 @@ use url::Url;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Website {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "URL")]
     url: Option<url::Url>,
 }
@@ -13,6 +16,7 @@ pub struct Website {
 impl Default for Website {
     fn default() -> Self {
         Website {
+            section: "DashboardAggregator".to_string(),
             url: Url::parse("https://cyverse.org").ok(),
         }
     }
@@ -20,7 +24,7 @@ impl Default for Website {
 
 impl LoadFromConfiguration for Website {
     fn get_section(&self) -> String {
-        "DashboardAggregator".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -31,6 +35,22 @@ impl LoadFromConfiguration for Website {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Website> for Vec<db::Configuration> {
+    fn from(website: Website) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(url) = website.url {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(website.section.clone()),
+                key: Some("URL".to_string()),
+                value: Some(url.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+        cfgs
     }
 }
 
@@ -57,13 +77,16 @@ impl Website {
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DashboardAggregator {
+    #[serde(skip)]
+    section: String,
+
     public_group: String,
     website: Option<Website>,
 }
 
 impl LoadFromConfiguration for DashboardAggregator {
     fn get_section(&self) -> String {
-        "DashboardAggregator".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -79,6 +102,23 @@ impl LoadFromConfiguration for DashboardAggregator {
             }
         }
         Ok(())
+    }
+}
+
+impl From<DashboardAggregator> for Vec<db::Configuration> {
+    fn from(da: DashboardAggregator) -> Self {
+        let mut cfgs = Vec::new();
+        if let Some(website) = da.website {
+            cfgs.extend::<Vec<db::Configuration>>(website.into());
+        }
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(da.section.clone()),
+            key: Some("PublicGroup".to_string()),
+            value: Some(da.public_group),
+            value_type: Some("string".to_string()),
+        });
+        cfgs
     }
 }
 
