@@ -1,21 +1,34 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct KeycloakVice {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "ClientID")]
     client_id: String,
 
     client_secret: String,
 }
 
+impl Default for KeycloakVice {
+    fn default() -> Self {
+        KeycloakVice {
+            section: "Keycloak".to_string(),
+            client_id: String::new(),
+            client_secret: String::new(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for KeycloakVice {
     fn get_section(&self) -> String {
-        "Keycloak".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -27,6 +40,28 @@ impl LoadFromConfiguration for KeycloakVice {
             }
         }
         Ok(())
+    }
+}
+
+impl From<KeycloakVice> for Vec<db::Configuration> {
+    fn from(kv: KeycloakVice) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = kv.section.clone();
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("VICE.ClientID".to_string()),
+            value: Some(kv.client_id),
+            value_type: Some("string".to_string()),
+        });
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("VICE.ClientSecret".to_string()),
+            value: Some(kv.client_secret),
+            value_type: Some("string".to_string()),
+        });
+        vec
     }
 }
 
@@ -66,9 +101,12 @@ impl KeycloakVice {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Keycloak {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "ServerURI")]
     server_uri: Option<Url>,
     realm: String,
@@ -82,9 +120,22 @@ pub struct Keycloak {
     vice: KeycloakVice,
 }
 
+impl Default for Keycloak {
+    fn default() -> Self {
+        Keycloak {
+            section: "Keycloak".to_string(),
+            server_uri: None,
+            realm: String::new(),
+            client_id: String::new(),
+            client_secret: String::new(),
+            vice: KeycloakVice::default(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for Keycloak {
     fn get_section(&self) -> String {
-        "Keycloak".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -102,6 +153,51 @@ impl LoadFromConfiguration for Keycloak {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Keycloak> for Vec<db::Configuration> {
+    fn from(k: Keycloak) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = k.section.clone();
+
+        if let Some(server_uri) = k.server_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ServerURI".to_string()),
+                value: Some(server_uri.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Realm".to_string()),
+            value: Some(k.realm),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ClientID".to_string()),
+            value: Some(k.client_id),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ClientSecret".to_string()),
+            value: Some(k.client_secret),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.extend::<Vec<db::Configuration>>(k.vice.into());
+
+        vec
     }
 }
 

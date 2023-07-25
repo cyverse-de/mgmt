@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -7,6 +7,8 @@ use url::Url;
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceFileTransfers {
+    #[serde(skip)]
+    section: String,
     image: Option<String>,
     tag: Option<String>,
 }
@@ -14,6 +16,7 @@ pub struct ViceFileTransfers {
 impl Default for ViceFileTransfers {
     fn default() -> Self {
         ViceFileTransfers {
+            section: "VICE".to_string(),
             image: Some(String::from("harbor.cyverse.org/de/vice-file-transfers")),
             tag: Some(String::from("latest")),
         }
@@ -34,6 +37,32 @@ impl LoadFromConfiguration for ViceFileTransfers {
             }
         }
         Ok(())
+    }
+}
+
+impl From<ViceFileTransfers> for Vec<db::Configuration> {
+    fn from(vft: ViceFileTransfers) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = vft.section.clone();
+        if let Some(image) = vft.image {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("FileTransfers.Image".to_string()),
+                value: Some(image),
+                value_type: Some("string".to_string()),
+            });
+        }
+        if let Some(tag) = vft.tag {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("FileTransfers.Tag".to_string()),
+                value: Some(tag),
+                value_type: Some("string".to_string()),
+            });
+        }
+        vec
     }
 }
 
@@ -67,15 +96,27 @@ impl ViceFileTransfers {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceDefaultBackend {
+    #[serde(skip)]
+    section: String,
+
     loading_page_template_string: String,
+}
+
+impl Default for ViceDefaultBackend {
+    fn default() -> Self {
+        ViceDefaultBackend {
+            section: "VICE".to_string(),
+            loading_page_template_string: String::from(""),
+        }
+    }
 }
 
 impl LoadFromConfiguration for ViceDefaultBackend {
     fn get_section(&self) -> String {
-        "VICE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -88,6 +129,21 @@ impl LoadFromConfiguration for ViceDefaultBackend {
             }
         }
         Ok(())
+    }
+}
+
+impl From<ViceDefaultBackend> for Vec<db::Configuration> {
+    fn from(vdb: ViceDefaultBackend) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = vdb.section.clone();
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("DefaultBackend.LoadingPageTemplateString".to_string()),
+            value: Some(vdb.loading_page_template_string),
+            value_type: Some("string".to_string()),
+        });
+        vec
     }
 }
 
@@ -123,6 +179,9 @@ impl ViceDefaultBackend {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Vice {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURI")]
     base_uri: Option<Url>,
 
@@ -142,6 +201,7 @@ pub struct Vice {
 impl Default for Vice {
     fn default() -> Self {
         Vice {
+            section: "VICE".to_string(),
             base_uri: None,
             file_transfers: Some(ViceFileTransfers::default()),
             image_pull_secret: Some(String::from("vice-image-pull-secret")),
@@ -173,7 +233,7 @@ impl Default for Vice {
 
 impl LoadFromConfiguration for Vice {
     fn get_section(&self) -> String {
-        "VICE".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -205,6 +265,91 @@ impl LoadFromConfiguration for Vice {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Vice> for Vec<db::Configuration> {
+    fn from(v: Vice) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = v.section.clone();
+
+        if let Some(base_uri) = v.base_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("BaseURI".to_string()),
+                value: Some(base_uri.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(ft) = v.file_transfers {
+            vec.extend::<Vec<db::Configuration>>(ft.into());
+        }
+
+        if let Some(ips) = v.image_pull_secret {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ImagePullSecret".to_string()),
+                value: Some(ips),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(ic) = v.image_cache {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ImageCache".to_string()),
+                value: Some(ic.join(",")),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(ucd) = v.use_csi_driver {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("UseCSIDriver".to_string()),
+                value: Some(format!("{}", ucd)),
+                value_type: Some("bool".to_string()),
+            });
+        }
+
+        if let Some(dcu) = v.default_cas_url {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DefaultCasUrl".to_string()),
+                value: Some(dcu),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(dcv) = v.default_cas_validate {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DefaultCasValidate".to_string()),
+                value: Some(dcv),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(ucm) = v.use_case_chars_min {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("UseCaseCharsMin".to_string()),
+                value: Some(format!("{}", ucm)),
+                value_type: Some("integer".to_string()),
+            });
+        }
+
+        vec.extend::<Vec<db::Configuration>>(v.default_backend.into());
+
+        vec
     }
 }
 
