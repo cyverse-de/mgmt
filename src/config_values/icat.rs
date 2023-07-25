@@ -1,21 +1,37 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "ICAT")]
 pub struct Icat {
+    #[serde(skip)]
+    section: String,
+
     host: String,
     port: u16,
     user: String,
     password: String,
 }
 
+// We're implementing default so the section is set.
+impl Default for Icat {
+    fn default() -> Self {
+        Icat {
+            section: "ICAT".to_string(),
+            host: String::new(),
+            port: 1247,
+            user: String::new(),
+            password: String::new(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for Icat {
     fn get_section(&self) -> String {
-        "ICAT".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -29,6 +45,47 @@ impl LoadFromConfiguration for Icat {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Icat> for Vec<db::Configuration> {
+    fn from(i: Icat) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = i.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Host".to_string()),
+            value: Some(i.host),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Port".to_string()),
+            value: Some(i.port.to_string()),
+            value_type: Some("integer".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("User".to_string()),
+            value: Some(i.user),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Password".to_string()),
+            value: Some(i.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
     }
 }
 

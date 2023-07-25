@@ -1,4 +1,4 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -6,13 +6,16 @@ use sqlx::{MySql, Transaction};
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Docker {
+    #[serde(skip)]
+    section: String,
+
     trusted_registries: Option<Vec<String>>,
     tag: String,
 }
 
 impl LoadFromConfiguration for Docker {
     fn get_section(&self) -> String {
-        "Docker".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -34,9 +37,33 @@ impl LoadFromConfiguration for Docker {
     }
 }
 
+impl From<Docker> for Vec<db::Configuration> {
+    fn from(docker: Docker) -> Vec<db::Configuration> {
+        let mut cfgs = Vec::new();
+        if let Some(trusted_registries) = docker.trusted_registries {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(docker.section.clone()),
+                key: Some("TrustedRegistries".to_string()),
+                value: Some(trusted_registries.join(",")),
+                value_type: Some("string".to_string()),
+            });
+        }
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(docker.section.clone()),
+            key: Some("Tag".to_string()),
+            value: Some(docker.tag),
+            value_type: Some("string".to_string()),
+        });
+        cfgs
+    }
+}
+
 impl Default for Docker {
     fn default() -> Self {
         Docker {
+            section: "Docker".to_string(),
             tag: String::from("latest"),
             trusted_registries: Some(vec![
                 String::from("harbor.cyverse.org"),

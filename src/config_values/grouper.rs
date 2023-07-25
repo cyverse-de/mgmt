@@ -1,12 +1,15 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct GrouperLoader {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "URI")]
     uri: Option<Url>,
 
@@ -14,9 +17,20 @@ pub struct GrouperLoader {
     password: String,
 }
 
+impl Default for GrouperLoader {
+    fn default() -> Self {
+        GrouperLoader {
+            section: "Grouper".to_string(),
+            uri: None,
+            user: String::new(),
+            password: String::new(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for GrouperLoader {
     fn get_section(&self) -> String {
-        "Grouper".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -29,6 +43,40 @@ impl LoadFromConfiguration for GrouperLoader {
             }
         }
         Ok(())
+    }
+}
+
+impl From<GrouperLoader> for Vec<db::Configuration> {
+    fn from(gl: GrouperLoader) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = gl.section.clone();
+        if let Some(uri) = gl.uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Loader.URI".to_string()),
+                value: Some(uri.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Loader.User".to_string()),
+            value: Some(gl.user),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Loader.Password".to_string()),
+            value: Some(gl.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
     }
 }
 
@@ -68,18 +116,32 @@ impl GrouperLoader {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Grouper {
+    #[serde(skip)]
+    section: String,
     morph_string: String,
     password: String,
     folder_name_prefix: String,
     loader: GrouperLoader,
 }
 
+impl Default for Grouper {
+    fn default() -> Self {
+        Grouper {
+            section: "Grouper".to_string(),
+            morph_string: String::new(),
+            password: String::new(),
+            folder_name_prefix: String::new(),
+            loader: GrouperLoader::default(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for Grouper {
     fn get_section(&self) -> String {
-        "Grouper".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -96,6 +158,41 @@ impl LoadFromConfiguration for Grouper {
             }
         }
         Ok(())
+    }
+}
+
+impl From<Grouper> for Vec<db::Configuration> {
+    fn from(g: Grouper) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = g.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("MorphString".to_string()),
+            value: Some(g.morph_string),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Password".to_string()),
+            value: Some(g.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("FolderNamePrefix".to_string()),
+            value: Some(g.folder_name_prefix),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.extend::<Vec<db::Configuration>>(g.loader.into());
+
+        vec
     }
 }
 

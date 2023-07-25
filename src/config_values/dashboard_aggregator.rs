@@ -74,7 +74,7 @@ impl Website {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct DashboardAggregator {
     #[serde(skip)]
@@ -82,6 +82,16 @@ pub struct DashboardAggregator {
 
     public_group: String,
     website: Option<Website>,
+}
+
+impl Default for DashboardAggregator {
+    fn default() -> Self {
+        DashboardAggregator {
+            section: "DashboardAggregator".to_string(),
+            public_group: String::new(),
+            website: Some(Website::default()),
+        }
+    }
 }
 
 impl LoadFromConfiguration for DashboardAggregator {

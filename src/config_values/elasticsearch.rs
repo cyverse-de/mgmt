@@ -1,12 +1,15 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ElasticSearch {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "BaseURI")]
     base_uri: Option<Url>,
 
@@ -15,9 +18,21 @@ pub struct ElasticSearch {
     index: String,
 }
 
+impl Default for ElasticSearch {
+    fn default() -> Self {
+        ElasticSearch {
+            section: "ElasticSearch".to_string(),
+            base_uri: None,
+            username: String::new(),
+            password: String::new(),
+            index: String::new(),
+        }
+    }
+}
+
 impl LoadFromConfiguration for ElasticSearch {
     fn get_section(&self) -> String {
-        "ElasticSearch".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -31,6 +46,47 @@ impl LoadFromConfiguration for ElasticSearch {
             }
         }
         Ok(())
+    }
+}
+
+impl From<ElasticSearch> for Vec<db::Configuration> {
+    fn from(es: ElasticSearch) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        if let Some(base_uri) = es.base_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(es.section.clone()),
+                key: Some("BaseURI".to_string()),
+                value: Some(base_uri.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(es.section.clone()),
+            key: Some("Username".to_string()),
+            value: Some(es.username),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(es.section.clone()),
+            key: Some("Password".to_string()),
+            value: Some(es.password),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(es.section.clone()),
+            key: Some("Index".to_string()),
+            value: Some(es.index),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
     }
 }
 

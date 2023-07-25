@@ -1,11 +1,14 @@
-use crate::db::{add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Intercom {
+    #[serde(skip)]
+    section: String,
+
     enabled: bool,
 
     #[serde(rename = "AppID")]
@@ -17,9 +20,63 @@ pub struct Intercom {
     company_name: String,
 }
 
+// We're manually implementing Default so that we can set the section.
+impl Default for Intercom {
+    fn default() -> Self {
+        Intercom {
+            section: "Intercom".to_string(),
+            enabled: false,
+            app_id: String::new(),
+            company_id: String::new(),
+            company_name: String::new(),
+        }
+    }
+}
+
+impl From<Intercom> for Vec<db::Configuration> {
+    fn from(i: Intercom) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section = i.section.clone();
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Enabled".to_string()),
+            value: Some(i.enabled.to_string()),
+            value_type: Some("bool".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("AppID".to_string()),
+            value: Some(i.app_id),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("CompanyID".to_string()),
+            value: Some(i.company_id),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("CompanyName".to_string()),
+            value: Some(i.company_name),
+            value_type: Some("string".to_string()),
+        });
+
+        vec
+    }
+}
+
 impl LoadFromConfiguration for Intercom {
     fn get_section(&self) -> String {
-        "Intercom".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {

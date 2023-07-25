@@ -3,7 +3,7 @@ use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "AMQP")]
 pub struct Amqp {
@@ -14,6 +14,20 @@ pub struct Amqp {
     host: String,
     port: u16,
     vhost: String,
+}
+
+// We're implementing default so the section is set.
+impl Default for Amqp {
+    fn default() -> Self {
+        Amqp {
+            section: "AMQP".to_string(),
+            user: String::new(),
+            password: String::new(),
+            host: String::new(),
+            port: 5672,
+            vhost: String::new(),
+        }
+    }
 }
 
 impl From<Amqp> for Vec<db::Configuration> {
