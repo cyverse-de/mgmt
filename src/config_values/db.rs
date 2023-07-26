@@ -35,7 +35,11 @@ impl LoadFromConfiguration for DatabaseConfig {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+        if let (Some(key), Some(value), Some(section)) =
+            (cfg.key.clone(), cfg.value.clone(), cfg.section.clone())
+        {
+            self.section = section;
+
             match key.as_str() {
                 "User" => self.user = value,
                 "Password" => self.password = value,
@@ -99,6 +103,10 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
 }
 
 impl DatabaseConfig {
+    pub fn set_section(&mut self, section: &str) {
+        self.section = section.to_string();
+    }
+
     pub async fn ask_for_info(
         &mut self,
         tx: &mut Transaction<'_, MySql>,

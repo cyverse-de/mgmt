@@ -12,10 +12,6 @@ pub trait LoadFromConfiguration {
     }
 }
 
-pub trait ToConfiguration {
-    fn to_cfg(&self) -> anyhow::Result<Configuration>;
-}
-
 pub async fn upsert_environment(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -316,6 +312,39 @@ pub async fn set_config_value(
         value_type,
         key,
         section_id,
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
+}
+
+pub async fn update_config_value(
+    tx: &mut Transaction<'_, MySql>,
+    section: &str,
+    key: &str,
+    value: &str,
+    value_type: &str,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+                UPDATE config_values 
+                SET cfg_value = ?, 
+                    value_type_id = (
+                        SELECT id 
+                        FROM config_value_types 
+                        WHERE name = ?
+                    ) 
+                WHERE cfg_key = ? 
+                AND section_id = (
+                    SELECT id 
+                    FROM config_sections 
+                    WHERE name = ?
+                )
+            "#,
+        value,
+        value_type,
+        key,
+        section
     )
     .execute(&mut **tx)
     .await?

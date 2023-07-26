@@ -4,7 +4,9 @@ use crate::config_values::{
     elasticsearch::ElasticSearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
 };
-use crate::db::{add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration};
+use crate::db::{
+    self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration,
+};
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -12,6 +14,9 @@ use sqlx::{MySql, Transaction};
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
+    #[serde(skip)]
+    section: String,
+
     // Must be user supplied.
     environment: String,
 
@@ -147,6 +152,7 @@ pub struct ConfigValues {
 impl Default for ConfigValues {
     fn default() -> Self {
         ConfigValues {
+            section: "TopLevel".to_string(),
             environment: String::new(),
             namespace: String::new(),
             uid_domain: String::new(),
@@ -191,7 +197,7 @@ impl Default for ConfigValues {
 
 impl LoadFromConfiguration for ConfigValues {
     fn get_section(&self) -> String {
-        "TopLevel".to_string()
+        self.section.to_string()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
@@ -340,6 +346,139 @@ impl LoadFromConfiguration for ConfigValues {
             }
         });
         Ok(())
+    }
+}
+
+impl From<ConfigValues> for Vec<db::Configuration> {
+    fn from(cv: ConfigValues) -> Vec<db::Configuration> {
+        let mut cfgs: Vec<db::Configuration> = Vec::new();
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(cv.section.clone()),
+            key: Some("Environment".to_string()),
+            value: Some(cv.environment),
+            value_type: Some("string".to_string()),
+        });
+
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(cv.section.clone()),
+            key: Some("Namespace".to_string()),
+            value: Some(cv.namespace),
+            value_type: Some("string".to_string()),
+        });
+
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(cv.section.clone()),
+            key: Some("UIDDomain".to_string()),
+            value: Some(cv.uid_domain),
+            value_type: Some("string".to_string()),
+        });
+
+        if let Some(agave) = cv.agave {
+            cfgs.extend::<Vec<db::Configuration>>(agave.into());
+        }
+
+        if let Some(base_urls) = cv.base_urls {
+            cfgs.extend::<Vec<db::Configuration>>(base_urls.into());
+        }
+
+        if let Some(dashboard_aggregator) = cv.dashboard_aggregator {
+            cfgs.extend::<Vec<db::Configuration>>(dashboard_aggregator.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.de.into());
+
+        if let Some(docker) = cv.docker {
+            cfgs.extend::<Vec<db::Configuration>>(docker.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.elasticsearch.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.email.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.grouper.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.icat.into());
+
+        if let Some(infosquito) = cv.infosquito {
+            cfgs.extend::<Vec<db::Configuration>>(infosquito.into());
+        }
+
+        if let Some(intercom) = cv.intercom {
+            cfgs.extend::<Vec<db::Configuration>>(intercom.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.irods.into());
+
+        if let Some(jobs) = cv.jobs {
+            cfgs.extend::<Vec<db::Configuration>>(jobs.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.keycloak.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.pgp.into());
+
+        if let Some(permanent_id) = cv.permanent_id {
+            cfgs.extend::<Vec<db::Configuration>>(permanent_id.into());
+        }
+
+        if let Some(timezone) = cv.timezone {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(cv.section.clone()),
+                key: Some("Timezone".to_string()),
+                value: Some(timezone),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        if let Some(unleash) = cv.unleash {
+            cfgs.extend::<Vec<db::Configuration>>(unleash.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.user_portal.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.vice.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.de_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.grouper_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.new_notifications_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.notifications_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.permissions_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.qms_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.metadata_db.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.unleash_db.into());
+
+        if let Some(admin) = cv.admin {
+            cfgs.extend::<Vec<db::Configuration>>(admin.into());
+        }
+
+        if let Some(analytics) = cv.analytics {
+            cfgs.extend::<Vec<db::Configuration>>(analytics.into());
+        }
+
+        if let Some(harbor) = cv.harbor {
+            cfgs.extend::<Vec<db::Configuration>>(harbor.into());
+        }
+
+        if let Some(qms) = cv.qms {
+            cfgs.extend::<Vec<db::Configuration>>(qms.into());
+        }
+
+        if let Some(jaeger) = cv.jaeger {
+            cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+        }
+
+        cfgs
     }
 }
 

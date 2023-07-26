@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use mgmt::config_values::config;
 use mgmt::db::{self, Configuration, LoadFromConfiguration};
 
@@ -143,6 +145,18 @@ fn cli() -> Command {
                             -e --"environment" <ENVIRONMENT>
                                 "The environment to render the config values for"
                         )]),
+                )
+                .subcommand(
+                    Command::new("import")
+                        .args_conflicts_with_subcommands(true)
+                        .args([
+                            arg!(--"file" <FILE>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(PathBuf)),
+                            arg!(--"environment" <ENVIRONMENT>)
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                        ]),
                 ),
         )
         .subcommand(
@@ -484,6 +498,47 @@ async fn render_values(pool: &Pool<MySql>, environment: &str) -> anyhow::Result<
     Ok(())
 }
 
+/**
+ * Handler for importing files.
+ */
+async fn import_yaml_file(
+    pool: &Pool<MySql>,
+    path: PathBuf,
+    environment: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    let file = std::fs::File::open(path)?;
+    let cv: config::ConfigValues = serde_yaml::from_reader(file)?;
+    let items: Vec<db::Configuration> = cv.into();
+    for item in items.into_iter() {
+        if let (Some(section), Some(key), Some(value), Some(value_type)) = (
+            item.section.clone(),
+            item.key.clone(),
+            item.value.clone(),
+            item.value_type.clone(),
+        ) {
+            if db::has_default_config_value(&mut tx, &section, &key).await? {
+                let cfg_id =
+                    db::set_config_value(&mut tx, &section, &key, &value, &value_type).await?;
+                let env_id = db::get_env_id(&mut tx, &environment)
+                    .await?
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("No environment found with name: {environment}")
+                    })?;
+                db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
+            } else {
+                tx.rollback().await?;
+                return Err(anyhow!(
+                    "No default value found for section: {section}, key: {key}"
+                ));
+            }
+        }
+    }
+
+    tx.commit().await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let command = cli().get_matches();
@@ -773,6 +828,20 @@ async fn main() -> anyhow::Result<()> {
                     })?;
 
                     render_values(&pool, &environment).await?;
+                }
+
+                ("import", sub_m) => {
+                    let path = sub_m.get_one::<PathBuf>("file").ok_or_else(|| {
+                        anyhow!("No file specified. Use --file <file> to specify a file.")
+                    })?;
+
+                    let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
+                        anyhow!(
+                            "No environment specified. Use --environment <environment> to specify an environment."
+                        )
+                    })?;
+
+                    import_yaml_file(&pool, path.to_path_buf(), environment).await?;
                 }
 
                 (name, _) => {
