@@ -91,8 +91,8 @@ pub struct Irods {
     user: String,
     zone: String,
     password: String,
-    admin_users: Vec<String>,
-    perms_filter: Vec<String>,
+    admin_users: Option<Vec<String>>,
+    perms_filter: Option<Vec<String>>,
     pub external_host: Option<String>,
     web_dav: Option<IrodsWebDav>,
     quota_root_resources: Option<String>,
@@ -135,21 +135,25 @@ impl From<Irods> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AdminUsers".to_string()),
-            value: Some(i.admin_users.join(",")),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(admin_users) = i.admin_users {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("AdminUsers".to_string()),
+                value: Some(admin_users.join(",")),
+                value_type: Some("string".to_string()),
+            });
+        }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("PermsFilter".to_string()),
-            value: Some(i.perms_filter.join(",")),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(perms_filter) = i.perms_filter {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("PermsFilter".to_string()),
+                value: Some(perms_filter.join(",")),
+                value_type: Some("string".to_string()),
+            });
+        }
 
         if let Some(external_host) = i.external_host {
             vec.push(db::Configuration {
@@ -192,10 +196,10 @@ impl LoadFromConfiguration for Irods {
                 "Zone" => self.zone = value,
                 "Password" => self.password = value,
                 "AdminUsers" => {
-                    self.admin_users = value.split(',').map(|s| s.to_string()).collect()
+                    self.admin_users = Some(value.split(',').map(|s| s.to_string()).collect())
                 }
                 "PermsFilter" => {
-                    self.perms_filter = value.split(',').map(|s| s.to_string()).collect()
+                    self.perms_filter = Some(value.split(',').map(|s| s.to_string()).collect())
                 }
                 "ExternalHost" => self.external_host = Some(value),
                 "QuotaRootResources" => self.quota_root_resources = Some(value),
@@ -225,8 +229,8 @@ impl Default for Irods {
             user: String::new(),
             zone: String::new(),
             password: String::new(),
-            admin_users: Vec::new(),
-            perms_filter: Vec::new(),
+            admin_users: Some(Vec::new()),
+            perms_filter: Some(Vec::new()),
             web_dav: Some(IrodsWebDav::default()),
             external_host: Some(String::from("data.cyverse.rocks")),
             quota_root_resources: Some(String::from("mainIngestRes,mainReplRes")),
@@ -298,12 +302,12 @@ impl Irods {
         let admin_users_id =
             set_config_value(tx, "IRODS", "AdminUsers", &admin_users, "string").await?;
         add_env_cfg_value(tx, env_id, admin_users_id).await?;
-        self.admin_users = admin_users.split(',').map(|s| s.to_string()).collect();
+        self.admin_users = Some(admin_users.split(',').map(|s| s.to_string()).collect());
 
         let perms_filter_id =
             set_config_value(tx, "IRODS", "PermsFilter", &perms_filter, "string").await?;
         add_env_cfg_value(tx, env_id, perms_filter_id).await?;
-        self.perms_filter = perms_filter.split(',').map(|s| s.to_string()).collect();
+        self.perms_filter = Some(perms_filter.split(',').map(|s| s.to_string()).collect());
 
         let mut new_web_dav = IrodsWebDav::default();
 

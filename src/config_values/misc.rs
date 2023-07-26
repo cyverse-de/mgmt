@@ -10,14 +10,14 @@ pub struct Jobs {
     #[serde(skip)]
     section: String,
 
-    data_transfer_image: String,
+    data_transfer_image: Option<String>,
 }
 
 impl Default for Jobs {
     fn default() -> Self {
         Jobs {
             section: "Jobs".to_string(),
-            data_transfer_image: String::from("harbor.cyverse.org/de/porklock"),
+            data_transfer_image: Some(String::from("harbor.cyverse.org/de/porklock")),
         }
     }
 }
@@ -30,7 +30,7 @@ impl LoadFromConfiguration for Jobs {
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
-                "DataTransferImage" => self.data_transfer_image = value,
+                "DataTransferImage" => self.data_transfer_image = Some(value),
                 _ => (),
             }
         }
@@ -42,13 +42,15 @@ impl From<Jobs> for Vec<db::Configuration> {
     fn from(job: Jobs) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
         let section = job.section.clone();
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DataTransferImage".to_string()),
-            value: Some(job.data_transfer_image),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(image) = job.data_transfer_image {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DataTransferImage".to_string()),
+                value: Some(image),
+                value_type: Some("string".to_string()),
+            });
+        }
         vec
     }
 }
@@ -74,7 +76,7 @@ impl Jobs {
         )
         .await?;
         add_env_cfg_value(tx, env_id, data_transfer_image_id).await?;
-        self.data_transfer_image = data_transfer_image;
+        self.data_transfer_image = Some(data_transfer_image);
 
         Ok(())
     }
@@ -812,13 +814,13 @@ pub struct Harbor {
     url: Option<String>, // called a URL, but it's actually a host name.
 
     #[serde(rename = "ProjectQAImagePullSecretName")]
-    project_qa_image_pull_secret_name: String,
+    project_qa_image_pull_secret_name: Option<String>,
 
     #[serde(rename = "ProjectQARobotName")]
-    project_qa_robot_name: String,
+    project_qa_robot_name: Option<String>,
 
     #[serde(rename = "ProjectQARobotSecret")]
-    project_qa_robot_secret: String,
+    project_qa_robot_secret: Option<String>,
 }
 
 impl Default for Harbor {
@@ -826,9 +828,9 @@ impl Default for Harbor {
         Harbor {
             section: "Harbor".to_string(),
             url: Some(String::from("harbor.cyverse.org")),
-            project_qa_image_pull_secret_name: String::new(),
-            project_qa_robot_name: String::new(),
-            project_qa_robot_secret: String::new(),
+            project_qa_image_pull_secret_name: Some(String::new()),
+            project_qa_robot_name: Some(String::new()),
+            project_qa_robot_secret: Some(String::new()),
         }
     }
 }
@@ -842,9 +844,11 @@ impl LoadFromConfiguration for Harbor {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "URL" => self.url = Some(value),
-                "ProjectQAImagePullSecretName" => self.project_qa_image_pull_secret_name = value,
-                "ProjectQARobotName" => self.project_qa_robot_name = value,
-                "ProjectQARobotSecret" => self.project_qa_robot_secret = value,
+                "ProjectQAImagePullSecretName" => {
+                    self.project_qa_image_pull_secret_name = Some(value)
+                }
+                "ProjectQARobotName" => self.project_qa_robot_name = Some(value),
+                "ProjectQARobotSecret" => self.project_qa_robot_secret = Some(value),
                 _ => (),
             }
         }
@@ -867,29 +871,35 @@ impl From<Harbor> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ProjectQAImagePullSecretName".to_string()),
-            value: Some(h.project_qa_image_pull_secret_name),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(project_qa_image_pull_secret_name) = h.project_qa_image_pull_secret_name {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ProjectQAImagePullSecretName".to_string()),
+                value: Some(project_qa_image_pull_secret_name),
+                value_type: Some("string".to_string()),
+            });
+        }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ProjectQARobotName".to_string()),
-            value: Some(h.project_qa_robot_name),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(project_qa_robot_name) = h.project_qa_robot_name {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ProjectQARobotName".to_string()),
+                value: Some(project_qa_robot_name),
+                value_type: Some("string".to_string()),
+            });
+        }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ProjectQARobotSecret".to_string()),
-            value: Some(h.project_qa_robot_secret),
-            value_type: Some("string".to_string()),
-        });
+        if let Some(project_qa_robot_secret) = h.project_qa_robot_secret {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ProjectQARobotSecret".to_string()),
+                value: Some(project_qa_robot_secret),
+                value_type: Some("string".to_string()),
+            });
+        }
 
         vec
     }
@@ -928,7 +938,7 @@ impl Harbor {
         )
         .await?;
         add_env_cfg_value(tx, env_id, project_qa_robot_name_id).await?;
-        self.project_qa_robot_name = project_qa_robot_name;
+        self.project_qa_robot_name = Some(project_qa_robot_name);
 
         let project_qa_robot_secret_id = set_config_value(
             tx,
@@ -939,7 +949,7 @@ impl Harbor {
         )
         .await?;
         add_env_cfg_value(tx, env_id, project_qa_robot_secret_id).await?;
-        self.project_qa_robot_secret = project_qa_robot_secret;
+        self.project_qa_robot_secret = Some(project_qa_robot_secret);
 
         Ok(())
     }

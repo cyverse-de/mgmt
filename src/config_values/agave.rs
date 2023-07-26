@@ -87,29 +87,35 @@ impl From<Agave> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ReadTimeout".to_string()),
-            value: Some(format!("{}", agave.read_timeout.unwrap())),
-            value_type: Some("int".to_string()),
-        });
+        if let Some(rt) = agave.read_timeout {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ReadTimeout".to_string()),
+                value: Some(format!("{}", rt)),
+                value_type: Some("int".to_string()),
+            });
+        }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Enabled".to_string()),
-            value: Some(format!("{}", agave.enabled.unwrap())),
-            value_type: Some("bool".to_string()),
-        });
+        if let Some(enabled) = agave.enabled {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Enabled".to_string()),
+                value: Some(format!("{}", enabled)),
+                value_type: Some("bool".to_string()),
+            });
+        }
 
-        vec.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("JobsEnabled".to_string()),
-            value: Some(format!("{}", agave.jobs_enabled.unwrap())),
-            value_type: Some("bool".to_string()),
-        });
+        if let Some(jobs_enabled) = agave.jobs_enabled {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("JobsEnabled".to_string()),
+                value: Some(format!("{}", jobs_enabled)),
+                value_type: Some("bool".to_string()),
+            });
+        }
 
         vec
     }

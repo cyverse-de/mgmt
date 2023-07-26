@@ -27,8 +27,6 @@ pub struct ConfigValues {
     #[serde(rename = "UIDDomain")]
     uid_domain: String,
 
-    test_key: String,
-
     // Optional for deployment.
     agave: Option<Agave>,
 
@@ -156,7 +154,6 @@ impl Default for ConfigValues {
             environment: String::new(),
             namespace: String::new(),
             uid_domain: String::new(),
-            test_key: String::new(),
             agave: Some(Agave::default()),
             base_urls: Some(BaseURLs::default()),
             dashboard_aggregator: Some(DashboardAggregator::default()),
@@ -206,7 +203,6 @@ impl LoadFromConfiguration for ConfigValues {
                 "Environment" => self.environment = value,
                 "Namespace" => self.namespace = value,
                 "UIDDomain" => self.uid_domain = value,
-                "TestKey" => self.test_key = value,
                 _ => (),
             }
         }
