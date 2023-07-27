@@ -353,9 +353,17 @@ impl LoadFromConfiguration for ConfigValues {
 impl From<ConfigValues> for Vec<db::Configuration> {
     fn from(cv: ConfigValues) -> Vec<db::Configuration> {
         let mut cfgs: Vec<db::Configuration> = Vec::new();
+
+        let section: String;
+        if cv.section.is_empty() {
+            section = "TopLevel".to_string();
+        } else {
+            section = cv.section.clone();
+        }
+
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(cv.section.clone()),
+            section: Some(section.clone()),
             key: Some("Environment".to_string()),
             value: Some(cv.environment),
             value_type: Some("string".to_string()),
@@ -363,7 +371,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(cv.section.clone()),
+            section: Some(section.clone()),
             key: Some("Namespace".to_string()),
             value: Some(cv.namespace),
             value_type: Some("string".to_string()),
@@ -371,7 +379,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(cv.section.clone()),
+            section: Some(section.clone()),
             key: Some("UIDDomain".to_string()),
             value: Some(cv.uid_domain),
             value_type: Some("string".to_string()),
@@ -428,7 +436,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
         if let Some(timezone) = cv.timezone {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(cv.section.clone()),
+                section: Some(section.clone()),
                 key: Some("Timezone".to_string()),
                 value: Some(timezone),
                 value_type: Some("string".to_string()),

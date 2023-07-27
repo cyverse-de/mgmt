@@ -46,7 +46,14 @@ impl LoadFromConfiguration for KeycloakVice {
 impl From<KeycloakVice> for Vec<db::Configuration> {
     fn from(kv: KeycloakVice) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = kv.section.clone();
+        let section: String;
+
+        if kv.section.is_empty() {
+            section = "Keycloak".to_string();
+        } else {
+            section = kv.section.clone();
+        }
+
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
@@ -159,7 +166,13 @@ impl LoadFromConfiguration for Keycloak {
 impl From<Keycloak> for Vec<db::Configuration> {
     fn from(k: Keycloak) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = k.section.clone();
+        let section: String;
+
+        if k.section.is_empty() {
+            section = "Keycloak".to_string();
+        } else {
+            section = k.section.clone();
+        }
 
         if let Some(server_uri) = k.server_uri {
             vec.push(db::Configuration {

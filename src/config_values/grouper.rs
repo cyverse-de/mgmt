@@ -49,7 +49,13 @@ impl LoadFromConfiguration for GrouperLoader {
 impl From<GrouperLoader> for Vec<db::Configuration> {
     fn from(gl: GrouperLoader) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = gl.section.clone();
+        let section: String;
+
+        if gl.section.is_empty() {
+            section = "Grouper".to_string();
+        } else {
+            section = gl.section.clone();
+        }
         if let Some(uri) = gl.uri {
             vec.push(db::Configuration {
                 id: None,

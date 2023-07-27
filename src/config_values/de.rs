@@ -37,10 +37,18 @@ impl LoadFromConfiguration for DESubscriptions {
 impl From<DESubscriptions> for Vec<db::Configuration> {
     fn from(subs: DESubscriptions) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if subs.section.is_empty() {
+            section = "DE".to_string();
+        } else {
+            section = subs.section.clone();
+        }
+
         if let Some(url) = subs.checkout_url {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(subs.section.clone()),
+                section: Some(section.clone()),
                 key: Some("CheckoutURL".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
@@ -48,7 +56,7 @@ impl From<DESubscriptions> for Vec<db::Configuration> {
         }
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(subs.section.clone()),
+            section: Some(section.clone()),
             key: Some("Enforce".to_string()),
             value: Some(subs.enforce.to_string()),
             value_type: Some("boolean".to_string()),
@@ -133,10 +141,18 @@ impl LoadFromConfiguration for DECoge {
 impl From<DECoge> for Vec<db::Configuration> {
     fn from(coge: DECoge) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if coge.section.is_empty() {
+            section = "DE".to_string();
+        } else {
+            section = coge.section.clone();
+        }
+
         if let Some(url) = coge.base_uri {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(coge.section.clone()),
+                section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
@@ -185,10 +201,18 @@ impl LoadFromConfiguration for DETools {
 impl From<DETools> for Vec<db::Configuration> {
     fn from(tools: DETools) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if tools.section.is_empty() {
+            section = "DE".to_string();
+        } else {
+            section = tools.section.clone();
+        }
+
         if let Some(max_cpu_limit) = tools.admin.max_cpu_limit {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(tools.section.clone()),
+                section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxCpuLimit".to_string()),
                 value: Some(max_cpu_limit.to_string()),
                 value_type: Some("integer".to_string()),
@@ -197,7 +221,7 @@ impl From<DETools> for Vec<db::Configuration> {
         if let Some(max_memory_limit) = tools.admin.max_memory_limit {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(tools.section.clone()),
+                section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxMemoryLimit".to_string()),
                 value: Some(max_memory_limit.to_string()),
                 value_type: Some("integer".to_string()),
@@ -206,7 +230,7 @@ impl From<DETools> for Vec<db::Configuration> {
         if let Some(max_disk_limit) = tools.admin.max_disk_limit {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(tools.section.clone()),
+                section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxDiskLimit".to_string()),
                 value: Some(max_disk_limit.to_string()),
                 value_type: Some("integer".to_string()),
@@ -366,10 +390,18 @@ impl Default for DE {
 impl From<DE> for Vec<db::Configuration> {
     fn from(de: DE) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if de.section.is_empty() {
+            section = "DE".to_string();
+        } else {
+            section = de.section.clone();
+        }
+
         if let Some(url) = de.base_uri {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(de.section.clone()),
+                section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
@@ -377,7 +409,7 @@ impl From<DE> for Vec<db::Configuration> {
         }
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(de.section.clone()),
+            section: Some(section.clone()),
             key: Some("DefaultOutputFolder".to_string()),
             value: Some(de.default_output_folder.to_string()),
             value_type: Some("string".to_string()),

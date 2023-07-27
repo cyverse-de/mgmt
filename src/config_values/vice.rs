@@ -43,7 +43,14 @@ impl LoadFromConfiguration for ViceFileTransfers {
 impl From<ViceFileTransfers> for Vec<db::Configuration> {
     fn from(vft: ViceFileTransfers) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = vft.section.clone();
+
+        let section: String;
+        if vft.section.is_empty() {
+            section = "VICE".to_string();
+        } else {
+            section = vft.section.clone();
+        }
+
         if let Some(image) = vft.image {
             vec.push(db::Configuration {
                 id: None,
@@ -135,7 +142,13 @@ impl LoadFromConfiguration for ViceDefaultBackend {
 impl From<ViceDefaultBackend> for Vec<db::Configuration> {
     fn from(vdb: ViceDefaultBackend) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = vdb.section.clone();
+        let section: String;
+        if vdb.section.is_empty() {
+            section = "VICE".to_string();
+        } else {
+            section = vdb.section.clone();
+        }
+
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
@@ -271,7 +284,13 @@ impl LoadFromConfiguration for Vice {
 impl From<Vice> for Vec<db::Configuration> {
     fn from(v: Vice) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = v.section.clone();
+        let section: String;
+
+        if v.section.is_empty() {
+            section = "VICE".to_string();
+        } else {
+            section = v.section.clone();
+        }
 
         if let Some(base_uri) = v.base_uri {
             vec.push(db::Configuration {

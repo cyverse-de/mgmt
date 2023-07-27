@@ -43,7 +43,13 @@ impl LoadFromConfiguration for Infosquito {
 impl From<Infosquito> for Vec<db::Configuration> {
     fn from(i: Infosquito) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = i.section.clone();
+        let section: String;
+
+        if i.section.is_empty() {
+            section = "Infosquito".to_string();
+        } else {
+            section = i.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,

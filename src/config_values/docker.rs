@@ -40,10 +40,18 @@ impl LoadFromConfiguration for Docker {
 impl From<Docker> for Vec<db::Configuration> {
     fn from(docker: Docker) -> Vec<db::Configuration> {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if docker.section.is_empty() {
+            section = "Docker".to_string();
+        } else {
+            section = docker.section.clone();
+        }
+
         if let Some(trusted_registries) = docker.trusted_registries {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(docker.section.clone()),
+                section: Some(section.clone()),
                 key: Some("TrustedRegistries".to_string()),
                 value: Some(trusted_registries.join(",")),
                 value_type: Some("string".to_string()),
@@ -51,7 +59,7 @@ impl From<Docker> for Vec<db::Configuration> {
         }
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(docker.section.clone()),
+            section: Some(section.clone()),
             key: Some("Tag".to_string()),
             value: Some(docker.tag),
             value_type: Some("string".to_string()),

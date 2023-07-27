@@ -52,10 +52,18 @@ impl LoadFromConfiguration for ElasticSearch {
 impl From<ElasticSearch> for Vec<db::Configuration> {
     fn from(es: ElasticSearch) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
+        let section: String;
+
+        if es.section.is_empty() {
+            section = "ElasticSearch".to_string();
+        } else {
+            section = es.section.clone();
+        }
+
         if let Some(base_uri) = es.base_uri {
             vec.push(db::Configuration {
                 id: None,
-                section: Some(es.section.clone()),
+                section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
                 value: Some(base_uri.to_string()),
                 value_type: Some("string".to_string()),
@@ -64,7 +72,7 @@ impl From<ElasticSearch> for Vec<db::Configuration> {
 
         vec.push(db::Configuration {
             id: None,
-            section: Some(es.section.clone()),
+            section: Some(section.clone()),
             key: Some("Username".to_string()),
             value: Some(es.username),
             value_type: Some("string".to_string()),
@@ -72,7 +80,7 @@ impl From<ElasticSearch> for Vec<db::Configuration> {
 
         vec.push(db::Configuration {
             id: None,
-            section: Some(es.section.clone()),
+            section: Some(section.clone()),
             key: Some("Password".to_string()),
             value: Some(es.password),
             value_type: Some("string".to_string()),
@@ -80,7 +88,7 @@ impl From<ElasticSearch> for Vec<db::Configuration> {
 
         vec.push(db::Configuration {
             id: None,
-            section: Some(es.section.clone()),
+            section: Some(section.clone()),
             key: Some("Index".to_string()),
             value: Some(es.index),
             value_type: Some("string".to_string()),

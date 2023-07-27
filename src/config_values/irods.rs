@@ -43,10 +43,18 @@ impl Default for IrodsWebDav {
 impl From<IrodsWebDav> for Vec<db::Configuration> {
     fn from(iwd: IrodsWebDav) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
+        let section: String;
+
+        if iwd.section.is_empty() {
+            section = "IRODS".to_string();
+        } else {
+            section = iwd.section.clone();
+        }
+
         if let Some(anon_uri) = iwd.anon_uri {
             vec.push(db::Configuration {
                 id: None,
-                section: Some(iwd.section.clone()),
+                section: Some(section.clone()),
                 key: Some("WebDAV.AnonURI".to_string()),
                 value: Some(anon_uri.to_string()),
                 value_type: Some("string".to_string()),
@@ -101,7 +109,13 @@ pub struct Irods {
 impl From<Irods> for Vec<db::Configuration> {
     fn from(i: Irods) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = i.section.clone();
+        let section: String;
+
+        if i.section.is_empty() {
+            section = "IRODS".to_string();
+        } else {
+            section = i.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,

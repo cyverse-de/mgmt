@@ -33,12 +33,17 @@ impl Default for Amqp {
 impl From<Amqp> for Vec<db::Configuration> {
     fn from(amqp: Amqp) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = Some(amqp.section.to_string());
+        let section: String;
+        if !amqp.section.is_empty() {
+            section = amqp.section;
+        } else {
+            section = "AMQP".to_string();
+        }
 
         // Add User configuration.
         vec.push(db::Configuration {
             id: None,
-            section: section.clone(),
+            section: Some(section.clone()),
             key: Some("User".to_string()),
             value: Some(amqp.user),
             value_type: Some("string".to_string()),
@@ -47,7 +52,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         // Add password configuration
         vec.push(db::Configuration {
             id: None,
-            section: section.clone(),
+            section: Some(section.clone()),
             key: Some("Password".to_string()),
             value: Some(amqp.password),
             value_type: Some("string".to_string()),
@@ -56,7 +61,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         // Add host configuration
         vec.push(db::Configuration {
             id: None,
-            section: section.clone(),
+            section: Some(section.clone()),
             key: Some("Host".to_string()),
             value: Some(amqp.host),
             value_type: Some("string".to_string()),
@@ -65,7 +70,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         // Add port configuration
         vec.push(db::Configuration {
             id: None,
-            section: section.clone(),
+            section: Some(section.clone()),
             key: Some("Port".to_string()),
             value: Some(amqp.port.to_string()),
             value_type: Some("integer".to_string()),
@@ -74,7 +79,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         // Add vhost configuration
         vec.push(db::Configuration {
             id: None,
-            section: section.clone(),
+            section: Some(section.clone()),
             key: Some("Vhost".to_string()),
             value: Some(amqp.vhost),
             value_type: Some("string".to_string()),

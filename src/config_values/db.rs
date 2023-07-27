@@ -56,7 +56,13 @@ impl LoadFromConfiguration for DatabaseConfig {
 impl From<DatabaseConfig> for Vec<db::Configuration> {
     fn from(db_cfg: DatabaseConfig) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = db_cfg.section.clone();
+        let section: String;
+
+        if db_cfg.section.is_empty() {
+            section = "Database".to_string();
+        } else {
+            section = db_cfg.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,
@@ -223,7 +229,13 @@ impl Default for QMSDatabaseConfig {
 impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
     fn from(qmsdb: QMSDatabaseConfig) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = qmsdb.section.clone();
+        let section: String;
+
+        if qmsdb.section.is_empty() {
+            section = "QMSDB".to_string();
+        } else {
+            section = qmsdb.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,

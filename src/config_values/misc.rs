@@ -41,7 +41,14 @@ impl LoadFromConfiguration for Jobs {
 impl From<Jobs> for Vec<db::Configuration> {
     fn from(job: Jobs) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = job.section.clone();
+        let section: String;
+
+        if job.section.is_empty() {
+            section = "Jobs".to_string();
+        } else {
+            section = job.section.clone();
+        }
+
         if let Some(image) = job.data_transfer_image {
             vec.push(db::Configuration {
                 id: None,
@@ -139,7 +146,14 @@ impl LoadFromConfiguration for Pgp {
 impl From<Pgp> for Vec<db::Configuration> {
     fn from(p: Pgp) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = p.section.clone();
+        let section: String;
+
+        if p.section.is_empty() {
+            section = "PGP".to_string();
+        } else {
+            section = p.section.clone();
+        }
+
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
@@ -254,7 +268,13 @@ impl LoadFromConfiguration for PermanentIdDataCite {
 impl From<PermanentIdDataCite> for Vec<db::Configuration> {
     fn from(p: PermanentIdDataCite) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = p.section.clone();
+        let section: String;
+
+        if p.section.is_empty() {
+            section = "PermanentID".to_string();
+        } else {
+            section = p.section.clone();
+        }
 
         if let Some(base_uri) = p.base_uri {
             vec.push(db::Configuration {
@@ -366,7 +386,13 @@ impl LoadFromConfiguration for PermanentId {
 impl From<PermanentId> for Vec<db::Configuration> {
     fn from(p: PermanentId) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = p.section.clone();
+        let section: String;
+
+        if p.section.is_empty() {
+            section = "PermanentID".to_string();
+        } else {
+            section = p.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,
@@ -434,7 +460,13 @@ impl LoadFromConfiguration for Unleash {
 impl From<Unleash> for Vec<db::Configuration> {
     fn from(u: Unleash) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = u.section.clone();
+        let section: String;
+
+        if u.section.is_empty() {
+            section = "Unleash".to_string();
+        } else {
+            section = u.section.clone();
+        }
 
         if let Some(base_url) = u.base_url {
             vec.push(db::Configuration {
@@ -590,7 +622,13 @@ impl LoadFromConfiguration for UserPortal {
 impl From<UserPortal> for Vec<db::Configuration> {
     fn from(u: UserPortal) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = u.section.clone();
+        let section: String;
+
+        if u.section.is_empty() {
+            section = "UserPortal".to_string();
+        } else {
+            section = u.section.clone();
+        }
 
         if let Some(base_uri) = u.base_uri {
             vec.push(db::Configuration {
@@ -646,7 +684,13 @@ impl LoadFromConfiguration for Admin {
 impl From<Admin> for Vec<db::Configuration> {
     fn from(a: Admin) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = a.section.clone();
+        let section: String;
+
+        if a.section.is_empty() {
+            section = "Admin".to_string();
+        } else {
+            section = a.section.clone();
+        }
 
         if let Some(groups) = a.groups {
             vec.push(db::Configuration {
@@ -741,7 +785,13 @@ impl LoadFromConfiguration for Analytics {
 impl From<Analytics> for Vec<db::Configuration> {
     fn from(a: Analytics) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = a.section.clone();
+        let section: String;
+
+        if a.section.is_empty() {
+            section = "Analytics".to_string();
+        } else {
+            section = a.section.clone();
+        }
 
         if let Some(enabled) = a.enabled {
             vec.push(db::Configuration {
@@ -859,7 +909,13 @@ impl LoadFromConfiguration for Harbor {
 impl From<Harbor> for Vec<db::Configuration> {
     fn from(h: Harbor) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = h.section.clone();
+        let section: String;
+
+        if h.section.is_empty() {
+            section = "Harbor".to_string();
+        } else {
+            section = h.section.clone();
+        }
 
         if let Some(url) = h.url {
             vec.push(db::Configuration {
@@ -992,7 +1048,13 @@ impl LoadFromConfiguration for Qms {
 impl From<Qms> for Vec<db::Configuration> {
     fn from(q: Qms) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = q.section.clone();
+        let section: String;
+
+        if q.section.is_empty() {
+            section = "QMS".to_string();
+        } else {
+            section = q.section.clone();
+        }
 
         if let Some(enabled) = q.enabled {
             vec.push(db::Configuration {
@@ -1078,7 +1140,13 @@ impl LoadFromConfiguration for Jaeger {
 impl From<Jaeger> for Vec<db::Configuration> {
     fn from(j: Jaeger) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = j.section.clone();
+        let section: String;
+
+        if j.section.is_empty() {
+            section = "Jaeger".to_string();
+        } else {
+            section = j.section.clone();
+        }
 
         if let Some(endpoint) = j.endpoint {
             vec.push(db::Configuration {

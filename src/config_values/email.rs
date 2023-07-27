@@ -52,30 +52,38 @@ impl LoadFromConfiguration for Email {
 impl From<Email> for Vec<db::Configuration> {
     fn from(email: Email) -> Vec<db::Configuration> {
         let mut cfgs = Vec::new();
+        let section: String;
+
+        if email.section.is_empty() {
+            section = "Email".to_string();
+        } else {
+            section = email.section.clone();
+        }
+
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(email.section.clone()),
+            section: Some(section.clone()),
             key: Some("Src".to_string()),
             value: Some(email.src),
             value_type: Some("string".to_string()),
         });
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(email.section.clone()),
+            section: Some(section.clone()),
             key: Some("Dest".to_string()),
             value: Some(email.dest),
             value_type: Some("string".to_string()),
         });
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(email.section.clone()),
+            section: Some(section.clone()),
             key: Some("PermIDRequestDest".to_string()),
             value: Some(email.perm_id_request_dest),
             value_type: Some("string".to_string()),
         });
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(email.section.clone()),
+            section: Some(section.clone()),
             key: Some("SupportDest".to_string()),
             value: Some(email.support_dest),
             value_type: Some("string".to_string()),

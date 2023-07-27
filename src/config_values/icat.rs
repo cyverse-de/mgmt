@@ -51,7 +51,13 @@ impl LoadFromConfiguration for Icat {
 impl From<Icat> for Vec<db::Configuration> {
     fn from(i: Icat) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = i.section.clone();
+        let section: String;
+
+        if i.section.is_empty() {
+            section = "ICAT".to_string();
+        } else {
+            section = i.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,

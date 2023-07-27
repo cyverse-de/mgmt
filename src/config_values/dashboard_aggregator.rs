@@ -41,10 +41,17 @@ impl LoadFromConfiguration for Website {
 impl From<Website> for Vec<db::Configuration> {
     fn from(website: Website) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+        if website.section.is_empty() {
+            section = "DashboardAggregator".to_string();
+        } else {
+            section = website.section.clone();
+        }
+
         if let Some(url) = website.url {
             cfgs.push(db::Configuration {
                 id: None,
-                section: Some(website.section.clone()),
+                section: Some(section.clone()),
                 key: Some("URL".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
@@ -118,12 +125,19 @@ impl LoadFromConfiguration for DashboardAggregator {
 impl From<DashboardAggregator> for Vec<db::Configuration> {
     fn from(da: DashboardAggregator) -> Self {
         let mut cfgs = Vec::new();
+        let section: String;
+        if da.section.is_empty() {
+            section = "DashboardAggregator".to_string();
+        } else {
+            section = da.section.clone();
+        }
+
         if let Some(website) = da.website {
             cfgs.extend::<Vec<db::Configuration>>(website.into());
         }
         cfgs.push(db::Configuration {
             id: None,
-            section: Some(da.section.clone()),
+            section: Some(section.clone()),
             key: Some("PublicGroup".to_string()),
             value: Some(da.public_group),
             value_type: Some("string".to_string()),
