@@ -72,6 +72,12 @@ VALUES
         'JobsEnabled', 
         'false', 
         (SELECT id FROM config_value_types WHERE name = 'bool')
+    ),
+    (
+        (SELECT if FROM config_sections WHERE name = 'Agave'),
+        'RedirectURI',
+        ''
+        (SELECT id FROM config_value_types WHERE name = 'string'),
     );
 
 INSERT INTO config_defaults 
