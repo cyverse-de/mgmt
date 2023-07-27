@@ -45,7 +45,12 @@ impl Default for Agave {
 impl From<Agave> for Vec<db::Configuration> {
     fn from(agave: Agave) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = agave.section.clone();
+        let section: String;
+        if agave.section.is_empty() {
+            section = "Agave".to_string();
+        } else {
+            section = agave.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,
