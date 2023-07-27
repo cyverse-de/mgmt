@@ -517,9 +517,17 @@ async fn import_yaml_file(
             item.value.clone(),
             item.value_type.clone(),
         ) {
-            if db::has_default_config_value(&mut tx, &section, &key).await? {
+            println!("{}.{} = {}", section, key, value);
+            let real_section: String;
+            if section.is_empty() {
+                real_section = "TopLevel".to_string();
+            } else {
+                real_section = section;
+            }
+
+            if db::has_default_config_value(&mut tx, &real_section, &key).await? {
                 let cfg_id =
-                    db::set_config_value(&mut tx, &section, &key, &value, &value_type).await?;
+                    db::set_config_value(&mut tx, &real_section, &key, &value, &value_type).await?;
                 let env_id = db::get_env_id(&mut tx, &environment)
                     .await?
                     .ok_or_else(|| {
@@ -529,7 +537,7 @@ async fn import_yaml_file(
             } else {
                 tx.rollback().await?;
                 return Err(anyhow!(
-                    "No default value found for section: {section}, key: {key}"
+                    "No default value found for section: {real_section}, key: {key}"
                 ));
             }
         }

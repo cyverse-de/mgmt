@@ -337,6 +337,11 @@ impl LoadFromConfiguration for ConfigValues {
                     "TopLevel" => {
                         self.cfg_set_key(cfg).ok();
                     }
+
+                    "" => {
+                        self.cfg_set_key(cfg).ok();
+                    }
+
                     _ => (),
                 }
             }
