@@ -665,7 +665,7 @@ VALUES
     ),
     (
         (SELECT id FROM config_sections WHERE name = 'PermanentID'),
-        'DOIPrefix',
+        'DataCite.DOIPrefix',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     );
