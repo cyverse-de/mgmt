@@ -88,6 +88,7 @@ impl IrodsWebDav {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
+#[serde(rename = "IRODS")]
 pub struct Irods {
     #[serde(skip)]
     section: String,
