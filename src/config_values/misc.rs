@@ -218,7 +218,7 @@ impl PermanentIdDataCite {
             .interact()?;
 
         let base_uri_id =
-            set_config_value(tx, "PermanentID", "DataCite.BaseURI", &base_uri, "url").await?;
+            set_config_value(tx, "PermanentID", "DataCite.BaseURI", &base_uri, "string").await?;
         add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Url::parse(&base_uri).ok();
 
@@ -282,7 +282,7 @@ impl From<PermanentIdDataCite> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("DataCite.BaseURI".to_string()),
                 value: Some(base_uri.to_string()),
-                value_type: Some("url".to_string()),
+                value_type: Some("string".to_string()),
             });
         }
 
@@ -474,7 +474,7 @@ impl From<Unleash> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("BaseURL".to_string()),
                 value: Some(base_url.to_string()),
-                value_type: Some("url".to_string()),
+                value_type: Some("string".to_string()),
             });
         }
 
