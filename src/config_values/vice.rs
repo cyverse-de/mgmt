@@ -362,7 +362,7 @@ impl From<Vice> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("UseCaseCharsMin".to_string()),
                 value: Some(format!("{}", ucm)),
-                value_type: Some("integer".to_string()),
+                value_type: Some("int".to_string()),
             });
         }
 
@@ -460,7 +460,7 @@ impl Vice {
             "VICE",
             "UseCaseCharsMin",
             &format!("{}", use_case_chars_min),
-            "integer",
+            "int",
         )
         .await?;
         add_env_cfg_value(tx, env_id, use_case_chars_min_id).await?;

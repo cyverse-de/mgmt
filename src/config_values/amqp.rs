@@ -44,7 +44,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("User".to_string()),
+            key: Some("AMQP.User".to_string()),
             value: Some(amqp.user),
             value_type: Some("string".to_string()),
         });
@@ -53,7 +53,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("Password".to_string()),
+            key: Some("AMQP.Password".to_string()),
             value: Some(amqp.password),
             value_type: Some("string".to_string()),
         });
@@ -62,7 +62,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("Host".to_string()),
+            key: Some("AMQP.Host".to_string()),
             value: Some(amqp.host),
             value_type: Some("string".to_string()),
         });
@@ -71,16 +71,16 @@ impl From<Amqp> for Vec<db::Configuration> {
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("Port".to_string()),
+            key: Some("AMQP.Port".to_string()),
             value: Some(amqp.port.to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         // Add vhost configuration
         vec.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("Vhost".to_string()),
+            key: Some("AMQP.Vhost".to_string()),
             value: Some(amqp.vhost),
             value_type: Some("string".to_string()),
         });
@@ -97,11 +97,11 @@ impl LoadFromConfiguration for Amqp {
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
-                "User" => self.user = value,
-                "Password" => self.password = value,
-                "Host" => self.host = value,
-                "Port" => self.port = value.parse::<u16>()?,
-                "Vhost" => self.vhost = value,
+                "AMQP.User" => self.user = value,
+                "AMQP.Password" => self.password = value,
+                "AMQP.Host" => self.host = value,
+                "AMQP.Port" => self.port = value.parse::<u16>()?,
+                "AMQP.Vhost" => self.vhost = value,
                 _ => (),
             }
         }
@@ -110,6 +110,11 @@ impl LoadFromConfiguration for Amqp {
 }
 
 impl Amqp {
+    pub fn set_section(&mut self, new_section: &str) -> anyhow::Result<()> {
+        self.section = new_section.to_string();
+        Ok(())
+    }
+
     pub async fn ask_for_info(
         &mut self,
         tx: &mut Transaction<'_, MySql>,
@@ -138,23 +143,25 @@ impl Amqp {
             .with_prompt(format!("{} AMQP VHost", prefix))
             .interact()?;
 
-        let user_id = set_config_value(tx, "AMQP", "User", &user, "string").await?;
+        let user_id = set_config_value(tx, &self.section, "AMQP.User", &user, "string").await?;
         add_env_cfg_value(tx, env_id, user_id).await?;
         self.user = user;
 
-        let password_id = set_config_value(tx, "AMQP", "Password", &password, "string").await?;
+        let password_id =
+            set_config_value(tx, &self.section, "AMQP.Password", &password, "string").await?;
         add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
 
-        let host_id = set_config_value(tx, "AMQP", "Host", &host, "string").await?;
+        let host_id = set_config_value(tx, &self.section, "AMQP.Host", &host, "string").await?;
         add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
 
-        let port_id = set_config_value(tx, "AMQP", "Port", &port.to_string(), "integer").await?;
+        let port_id =
+            set_config_value(tx, &self.section, "AMQP.Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = port;
 
-        let vhost_id = set_config_value(tx, "AMQP", "Vhost", &vhost, "string").await?;
+        let vhost_id = set_config_value(tx, &self.section, "AMQP.Vhost", &vhost, "string").await?;
         add_env_cfg_value(tx, env_id, vhost_id).await?;
         self.vhost = vhost;
 

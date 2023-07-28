@@ -56,6 +56,7 @@ impl From<GrouperLoader> for Vec<db::Configuration> {
         } else {
             section = gl.section.clone();
         }
+
         if let Some(uri) = gl.uri {
             vec.push(db::Configuration {
                 id: None,

@@ -21,7 +21,7 @@ pub struct ElasticSearch {
 impl Default for ElasticSearch {
     fn default() -> Self {
         ElasticSearch {
-            section: "ElasticSearch".to_string(),
+            section: "Elasticsearch".to_string(),
             base_uri: None,
             username: String::new(),
             password: String::new(),
@@ -55,7 +55,7 @@ impl From<ElasticSearch> for Vec<db::Configuration> {
         let section: String;
 
         if es.section.is_empty() {
-            section = "ElasticSearch".to_string();
+            section = "Elasticsearch".to_string();
         } else {
             section = es.section.clone();
         }
@@ -126,21 +126,21 @@ impl ElasticSearch {
             .interact()?;
 
         let base_uri_id =
-            set_config_value(tx, "ElasticSearch", "BaseURI", &base_uri, "string").await?;
+            set_config_value(tx, "Elasticsearch", "BaseURI", &base_uri, "string").await?;
         add_env_cfg_value(tx, env_id, base_uri_id).await?;
         self.base_uri = Url::parse(&base_uri).ok();
 
         let username_id =
-            set_config_value(tx, "ElasticSearch", "Username", &username, "string").await?;
+            set_config_value(tx, "Elasticsearch", "Username", &username, "string").await?;
         add_env_cfg_value(tx, env_id, username_id).await?;
         self.username = username;
 
         let password_id =
-            set_config_value(tx, "ElasticSearch", "Password", &password, "string").await?;
+            set_config_value(tx, "Elasticsearch", "Password", &password, "string").await?;
         add_env_cfg_value(tx, env_id, password_id).await?;
         self.password = password;
 
-        let index_id = set_config_value(tx, "ElasticSearch", "Index", &index, "string").await?;
+        let index_id = set_config_value(tx, "Elasticsearch", "Index", &index, "string").await?;
         add_env_cfg_value(tx, env_id, index_id).await?;
         self.index = index;
 

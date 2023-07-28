@@ -72,7 +72,7 @@ impl From<Icat> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("Port".to_string()),
             value: Some(i.port.to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         vec.push(db::Configuration {
@@ -123,7 +123,7 @@ impl Icat {
         add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
 
-        let port_id = set_config_value(tx, "ICAT", "Port", &port.to_string(), "integer").await?;
+        let port_id = set_config_value(tx, "ICAT", "Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = port;
 

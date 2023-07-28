@@ -56,7 +56,7 @@ impl From<Infosquito> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("DayNum".to_string()),
             value: Some(i.day_num.unwrap().to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         vec.push(db::Configuration {
@@ -64,7 +64,7 @@ impl From<Infosquito> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("PrefixLength".to_string()),
             value: Some(i.prefix_length.unwrap().to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         vec
@@ -89,7 +89,7 @@ impl Infosquito {
             .interact()?;
 
         let day_num_id =
-            set_config_value(tx, "Infosquito", "DayNum", &day_num.to_string(), "integer").await?;
+            set_config_value(tx, "Infosquito", "DayNum", &day_num.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, day_num_id).await?;
         self.day_num = Some(day_num);
 
@@ -98,7 +98,7 @@ impl Infosquito {
             "Infosquito",
             "PrefixLength",
             &prefix_length.to_string(),
-            "integer",
+            "int",
         )
         .await?;
         add_env_cfg_value(tx, env_id, prefix_length_id).await?;

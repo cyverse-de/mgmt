@@ -93,7 +93,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("Port".to_string()),
             value: Some(db_cfg.port.to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         vec.push(db::Configuration {
@@ -162,7 +162,7 @@ impl DatabaseConfig {
         add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
 
-        let port_id = set_config_value(tx, section, "Port", &port.to_string(), "integer").await?;
+        let port_id = set_config_value(tx, section, "Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = port;
 
@@ -266,7 +266,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("Port".to_string()),
             value: Some(qmsdb.port.unwrap().to_string()),
-            value_type: Some("integer".to_string()),
+            value_type: Some("int".to_string()),
         });
 
         vec.push(db::Configuration {
@@ -357,7 +357,7 @@ impl QMSDatabaseConfig {
         add_env_cfg_value(tx, env_id, host_id).await?;
         self.host = host;
 
-        let port_id = set_config_value(tx, "QMSDB", "Port", &port.to_string(), "integer").await?;
+        let port_id = set_config_value(tx, "QMSDB", "Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
         self.port = Some(port);
 

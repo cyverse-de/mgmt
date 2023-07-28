@@ -49,7 +49,7 @@ impl From<DESubscriptions> for Vec<db::Configuration> {
             cfgs.push(db::Configuration {
                 id: None,
                 section: Some(section.clone()),
-                key: Some("CheckoutURL".to_string()),
+                key: Some("Subscriptions.CheckoutURL".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
             });
@@ -57,9 +57,9 @@ impl From<DESubscriptions> for Vec<db::Configuration> {
         cfgs.push(db::Configuration {
             id: None,
             section: Some(section.clone()),
-            key: Some("Enforce".to_string()),
+            key: Some("Subscriptions.Enforce".to_string()),
             value: Some(subs.enforce.to_string()),
-            value_type: Some("boolean".to_string()),
+            value_type: Some("bool".to_string()),
         });
         cfgs
     }
@@ -153,7 +153,7 @@ impl From<DECoge> for Vec<db::Configuration> {
             cfgs.push(db::Configuration {
                 id: None,
                 section: Some(section.clone()),
-                key: Some("BaseURI".to_string()),
+                key: Some("Coge.BaseURI".to_string()),
                 value: Some(url.to_string()),
                 value_type: Some("string".to_string()),
             });
@@ -215,7 +215,7 @@ impl From<DETools> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxCpuLimit".to_string()),
                 value: Some(max_cpu_limit.to_string()),
-                value_type: Some("integer".to_string()),
+                value_type: Some("int".to_string()),
             });
         }
         if let Some(max_memory_limit) = tools.admin.max_memory_limit {
@@ -224,7 +224,7 @@ impl From<DETools> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxMemoryLimit".to_string()),
                 value: Some(max_memory_limit.to_string()),
-                value_type: Some("integer".to_string()),
+                value_type: Some("int".to_string()),
             });
         }
         if let Some(max_disk_limit) = tools.admin.max_disk_limit {
@@ -233,7 +233,7 @@ impl From<DETools> for Vec<db::Configuration> {
                 section: Some(section.clone()),
                 key: Some("Tools.Admin.MaxDiskLimit".to_string()),
                 value: Some(max_disk_limit.to_string()),
-                value_type: Some("integer".to_string()),
+                value_type: Some("int".to_string()),
             });
         }
         cfgs
@@ -257,7 +257,7 @@ impl DETools {
             "DE",
             "Tools.Admin.MaxCpuLimit",
             &max_cpu_limit.to_string(),
-            "integer",
+            "int",
         )
         .await?;
         add_env_cfg_value(tx, env_id, max_cpu_limit_id).await?;
@@ -273,7 +273,7 @@ impl DETools {
             "DE",
             "Tools.Admin.MaxMemoryLimit",
             &max_memory_limit.to_string(),
-            "integer",
+            "int",
         )
         .await?;
         add_env_cfg_value(tx, env_id, max_memory_limit_id).await?;
@@ -289,7 +289,7 @@ impl DETools {
             "DE",
             "Tools.Admin.MaxDiskLimit",
             &max_disk_limit.to_string(),
-            "integer",
+            "int",
         )
         .await?;
         add_env_cfg_value(tx, env_id, max_disk_limit_id).await?;
@@ -366,6 +366,7 @@ impl LoadFromConfiguration for DE {
             }
 
             if key.starts_with("AMQP") {
+                self.amqp.set_section("DE")?;
                 self.amqp.cfg_set_key(cfg)?;
             }
         }
@@ -423,7 +424,13 @@ impl From<DE> for Vec<db::Configuration> {
         if let Some(tools) = de.tools {
             cfgs.extend::<Vec<db::Configuration>>(tools.into());
         }
-        cfgs.extend::<Vec<db::Configuration>>(de.amqp.into());
+
+        let mut amqp_cfgs: Vec<db::Configuration> = de.amqp.into();
+        amqp_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some(section.clone());
+        });
+
+        cfgs.extend::<Vec<db::Configuration>>(amqp_cfgs);
         cfgs
     }
 }
