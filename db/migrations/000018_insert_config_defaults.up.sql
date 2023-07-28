@@ -74,10 +74,10 @@ VALUES
         (SELECT id FROM config_value_types WHERE name = 'bool')
     ),
     (
-        (SELECT if FROM config_sections WHERE name = 'Agave'),
+        (SELECT id FROM config_sections WHERE name = 'Agave'),
         'RedirectURI',
-        ''
-        (SELECT id FROM config_value_types WHERE name = 'string'),
+        '',
+        (SELECT id FROM config_value_types WHERE name = 'string')
     );
 
 INSERT INTO config_defaults 
@@ -490,91 +490,91 @@ INSERT INTO config_defaults
     (section_id, cfg_key, cfg_value, value_type_id)
 VALUES
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AMQP.User',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AMQP.Password',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AMQP.Host',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AMQP.Port',
         '5672',
         (SELECT id FROM config_value_types WHERE name = 'int')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AMQP.Vhost',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'Host',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'User',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'Password',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'Zone',
         'iplant',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'Port',
         '1247',
         (SELECT id FROM config_value_types WHERE name = 'int')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'AdminUsers',
         'rodsadmin',
         (SELECT id FROM config_value_types WHERE name = 'csv')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'PermsFilter',
         'rodsadmin',
         (SELECT id FROM config_value_types WHERE name = 'csv')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'ExternalHost',
         'data.cyverse.rocks',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'QuotaRootResources',
         'mainIngestRes,mainReplRes',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = 'Irods'),
+        (SELECT id FROM config_sections WHERE name = 'IRODS'),
         'WebDav.AnonURI',
         'https://data.cyverse.rocks/dav-anon',
         (SELECT id FROM config_value_types WHERE name = 'string')

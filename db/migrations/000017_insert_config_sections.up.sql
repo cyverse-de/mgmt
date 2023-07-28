@@ -19,7 +19,7 @@ INSERT INTO config_sections (name) VALUES ('Harbor');
 INSERT INTO config_sections (name) VALUES ('ICAT');
 INSERT INTO config_sections (name) VALUES ('Infosquito');
 INSERT INTO config_sections (name) VALUES ('Intercom');
-INSERT INTO config_sections (name) VALUES ('Irods');
+INSERT INTO config_sections (name) VALUES ('IRODS');
 INSERT INTO config_sections (name) VALUES ('Jaeger');
 INSERT INTO config_sections (name) VALUES ('Jobs');
 INSERT INTO config_sections (name) VALUES ('Keycloak');
