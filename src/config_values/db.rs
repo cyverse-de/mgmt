@@ -282,7 +282,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("Automigrate".to_string()),
             value: Some(qmsdb.automigrate.unwrap().to_string()),
-            value_type: Some("boolean".to_string()),
+            value_type: Some("bool".to_string()),
         });
 
         vec.push(db::Configuration {
@@ -290,7 +290,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             section: Some(section.clone()),
             key: Some("Reinitialize".to_string()),
             value: Some(qmsdb.reinitialize.unwrap().to_string()),
-            value_type: Some("boolean".to_string()),
+            value_type: Some("bool".to_string()),
         });
 
         vec
@@ -370,7 +370,7 @@ impl QMSDatabaseConfig {
             "QMSDB",
             "Automigrate",
             &format!("{}", automigrate == 0),
-            "boolean",
+            "bool",
         )
         .await?;
         add_env_cfg_value(tx, env_id, automigrate_id).await?;
@@ -381,7 +381,7 @@ impl QMSDatabaseConfig {
             "QMSDB",
             "Reinitialize",
             &format!("{}", reinitialize == 0),
-            "boolean",
+            "bool",
         )
         .await?;
         add_env_cfg_value(tx, env_id, reinitialize_id).await?;

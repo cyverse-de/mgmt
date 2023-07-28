@@ -451,21 +451,53 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         cfgs.extend::<Vec<db::Configuration>>(cv.vice.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.de_db.into());
+        let mut de_db_cfgs: Vec<db::Configuration> = cv.de_db.into();
+        de_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("DEDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(de_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.grouper_db.into());
+        let mut grouper_db_cfgs: Vec<db::Configuration> = cv.grouper_db.into();
+        grouper_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("GrouperDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(grouper_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.new_notifications_db.into());
+        // let mut new_notifications_db_cfgs: Vec<db::Configuration> = cv.new_notifications_db.into();
+        // new_notifications_db_cfgs.iter_mut().for_each(|cfg| {
+        //     cfg.section = Some("NewNotificationsDB".to_string());
+        // });
+        // cfgs.extend::<Vec<db::Configuration>>(new_notifications_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.notifications_db.into());
+        let mut notifications_db_cfgs: Vec<db::Configuration> = cv.notifications_db.into();
+        notifications_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("NotificationsDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(notifications_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.permissions_db.into());
+        let mut permissions_db_cfgs: Vec<db::Configuration> = cv.permissions_db.into();
+        permissions_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("PermissionsDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(permissions_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.qms_db.into());
+        let mut qms_db_cfgs: Vec<db::Configuration> = cv.qms_db.into();
+        qms_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("QMSDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(qms_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.metadata_db.into());
+        let mut metadata_db_cfgs: Vec<db::Configuration> = cv.metadata_db.into();
+        metadata_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("MetadataDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(metadata_db_cfgs.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.unleash_db.into());
+        let mut unleash_db_cfgs: Vec<db::Configuration> = cv.unleash_db.into();
+        unleash_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("UnleashDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(unleash_db_cfgs.into());
 
         if let Some(admin) = cv.admin {
             cfgs.extend::<Vec<db::Configuration>>(admin.into());
