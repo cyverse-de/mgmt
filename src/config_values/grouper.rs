@@ -171,7 +171,13 @@ impl LoadFromConfiguration for Grouper {
 impl From<Grouper> for Vec<db::Configuration> {
     fn from(g: Grouper) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
-        let section = g.section.clone();
+        let section: String;
+
+        if g.section.is_empty() {
+            section = "Grouper".to_string();
+        } else {
+            section = g.section.clone();
+        }
 
         vec.push(db::Configuration {
             id: None,
