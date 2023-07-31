@@ -279,7 +279,7 @@ VALUES
     ),
     (
         (SELECT id FROM config_sections WHERE name = 'DE'),
-        'Tools.Admin.MaxCPULimit',
+        'Tools.Admin.MaxCpuLimit',
         '24',
         (SELECT id FROM config_value_types WHERE name = 'int')
     ),
