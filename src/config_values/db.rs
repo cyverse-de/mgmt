@@ -12,8 +12,8 @@ pub struct DatabaseConfig {
     pub user: String,
     pub password: String,
     pub host: String,
-    port: u32,
-    name: String,
+    port: Option<u32>,
+    name: Option<String>,
 }
 
 impl Default for DatabaseConfig {
@@ -23,8 +23,8 @@ impl Default for DatabaseConfig {
             user: String::new(),
             password: String::new(),
             host: String::new(),
-            port: 5432,
-            name: String::new(),
+            port: Some(5432),
+            name: Some(String::new()),
         }
     }
 }
@@ -44,8 +44,8 @@ impl LoadFromConfiguration for DatabaseConfig {
                 "User" => self.user = value,
                 "Password" => self.password = value,
                 "Host" => self.host = value,
-                "Port" => self.port = value.parse::<u32>()?,
-                "Name" => self.name = value,
+                "Port" => self.port = Some(value.parse::<u32>()?),
+                "Name" => self.name = Some(value),
                 _ => (),
             }
         }
@@ -92,7 +92,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Port".to_string()),
-            value: Some(db_cfg.port.to_string()),
+            value: Some(format!("{}", db_cfg.port.unwrap_or_default())),
             value_type: Some("int".to_string()),
         });
 
@@ -100,7 +100,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Name".to_string()),
-            value: Some(db_cfg.name),
+            value: db_cfg.name,
             value_type: Some("string".to_string()),
         });
 
@@ -164,11 +164,11 @@ impl DatabaseConfig {
 
         let port_id = set_config_value(tx, section, "Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
-        self.port = port;
+        self.port = Some(port);
 
         let name_id = set_config_value(tx, section, "Name", &name, "string").await?;
         add_env_cfg_value(tx, env_id, name_id).await?;
-        self.name = name;
+        self.name = Some(name);
 
         Ok(())
     }
@@ -265,7 +265,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Port".to_string()),
-            value: Some(qmsdb.port.unwrap().to_string()),
+            value: Some(qmsdb.port.unwrap_or_default().to_string()),
             value_type: Some("int".to_string()),
         });
 
@@ -273,7 +273,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Name".to_string()),
-            value: Some(qmsdb.name.unwrap()),
+            value: qmsdb.name,
             value_type: Some("string".to_string()),
         });
 
@@ -281,7 +281,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Automigrate".to_string()),
-            value: Some(qmsdb.automigrate.unwrap().to_string()),
+            value: Some(qmsdb.automigrate.unwrap_or_default().to_string()),
             value_type: Some("bool".to_string()),
         });
 
@@ -289,7 +289,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("Reinitialize".to_string()),
-            value: Some(qmsdb.reinitialize.unwrap().to_string()),
+            value: Some(qmsdb.reinitialize.unwrap_or_default().to_string()),
             value_type: Some("bool".to_string()),
         });
 

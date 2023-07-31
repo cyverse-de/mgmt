@@ -330,7 +330,7 @@ pub struct DE {
     pub base_uri: Option<Url>, //Required before deployment.
 
     subscriptions: Option<DESubscriptions>,
-    default_output_folder: String,
+    default_output_folder: Option<String>,
     coge: Option<DECoge>,
     tools: Option<DETools>,
 }
@@ -344,7 +344,7 @@ impl LoadFromConfiguration for DE {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "DefaultOutputFolder" => self.default_output_folder = value,
+                "DefaultOutputFolder" => self.default_output_folder = Some(value),
                 _ => (),
             }
             if key.starts_with("Subscriptions") {
@@ -381,7 +381,7 @@ impl Default for DE {
             amqp: Amqp::default(),
             base_uri: Url::parse("https://de.cyverse.org").ok(),
             subscriptions: Some(DESubscriptions::default()),
-            default_output_folder: String::from("analyses"),
+            default_output_folder: Some(String::from("analyses")),
             coge: Some(DECoge::default()),
             tools: Some(DETools::default()),
         }
@@ -412,7 +412,7 @@ impl From<DE> for Vec<db::Configuration> {
             id: None,
             section: Some(section.clone()),
             key: Some("DefaultOutputFolder".to_string()),
-            value: Some(de.default_output_folder.to_string()),
+            value: de.default_output_folder,
             value_type: Some("string".to_string()),
         });
         if let Some(subs) = de.subscriptions {
@@ -469,7 +469,7 @@ impl DE {
         )
         .await?;
         add_env_cfg_value(tx, env_id, default_output_folder_id).await?;
-        self.default_output_folder = default_output_folder;
+        self.default_output_folder = Some(default_output_folder);
 
         let mut new_coge = DECoge::default();
         new_coge.ask_for_info(tx, theme, env_id).await?;
