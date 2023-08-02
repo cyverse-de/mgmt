@@ -203,6 +203,7 @@ impl LoadFromConfiguration for ConfigValues {
                 "Environment" => self.environment = value,
                 "Namespace" => self.namespace = value,
                 "UIDDomain" => self.uid_domain = value,
+                "Timezone" => self.timezone = Some(value),
                 _ => (),
             }
         }
