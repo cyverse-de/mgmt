@@ -87,7 +87,6 @@ pub struct DashboardAggregator {
     #[serde(skip)]
     section: String,
 
-    public_group: String,
     website: Option<Website>,
 }
 
@@ -95,7 +94,6 @@ impl Default for DashboardAggregator {
     fn default() -> Self {
         DashboardAggregator {
             section: "DashboardAggregator".to_string(),
-            public_group: String::new(),
             website: Some(Website::default()),
         }
     }
@@ -107,14 +105,13 @@ impl LoadFromConfiguration for DashboardAggregator {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+        if let Some(key) = cfg.key.clone() {
             match key.as_str() {
                 "URL" => {
                     let mut ws = Website::default();
                     ws.cfg_set_key(cfg)?;
                     self.website = Some(ws);
                 }
-                "PublicGroup" => self.public_group = value,
                 _ => (),
             }
         }
@@ -125,23 +122,10 @@ impl LoadFromConfiguration for DashboardAggregator {
 impl From<DashboardAggregator> for Vec<db::Configuration> {
     fn from(da: DashboardAggregator) -> Self {
         let mut cfgs = Vec::new();
-        let section: String;
-        if da.section.is_empty() {
-            section = "DashboardAggregator".to_string();
-        } else {
-            section = da.section.clone();
-        }
 
         if let Some(website) = da.website {
             cfgs.extend::<Vec<db::Configuration>>(website.into());
         }
-        cfgs.push(db::Configuration {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("PublicGroup".to_string()),
-            value: Some(da.public_group),
-            value_type: Some("string".to_string()),
-        });
         cfgs
     }
 }
@@ -153,20 +137,6 @@ impl DashboardAggregator {
         theme: &ColorfulTheme,
         env_id: u64,
     ) -> anyhow::Result<()> {
-        let public_group = Input::<String>::with_theme(theme)
-            .with_prompt("Dashboard Public Group")
-            .interact()?;
-        let public_group_id = set_config_value(
-            tx,
-            "DashboardAggregator",
-            "PublicGroup",
-            &public_group,
-            "string",
-        )
-        .await?;
-        add_env_cfg_value(tx, 0, public_group_id).await?;
-        self.public_group = public_group;
-
         let mut new_website = Website::default();
         new_website.ask_for_info(tx, theme, env_id).await?;
         self.website = Some(new_website);
