@@ -103,10 +103,6 @@ pub struct ConfigValues {
     grouper_db: DatabaseConfig,
 
     // Required for deployment.
-    #[serde(rename = "NewNotificationsDB")]
-    new_notifications_db: DatabaseConfig,
-
-    // Required for deployment.
     #[serde(rename = "NotificationsDB")]
     notifications_db: DatabaseConfig,
 
@@ -176,7 +172,6 @@ impl Default for ConfigValues {
             vice: config_values::vice::Vice::default(),
             de_db: DatabaseConfig::default(),
             grouper_db: DatabaseConfig::default(),
-            new_notifications_db: DatabaseConfig::default(),
             notifications_db: DatabaseConfig::default(),
             permissions_db: DatabaseConfig::default(),
             qms_db: QMSDatabaseConfig::default(),
@@ -339,10 +334,6 @@ impl LoadFromConfiguration for ConfigValues {
                         self.cfg_set_key(cfg).ok();
                     }
 
-                    "" => {
-                        self.cfg_set_key(cfg).ok();
-                    }
-
                     _ => (),
                 }
             }
@@ -463,12 +454,6 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             cfg.section = Some("GrouperDB".to_string());
         });
         cfgs.extend::<Vec<db::Configuration>>(grouper_db_cfgs.into());
-
-        // let mut new_notifications_db_cfgs: Vec<db::Configuration> = cv.new_notifications_db.into();
-        // new_notifications_db_cfgs.iter_mut().for_each(|cfg| {
-        //     cfg.section = Some("NewNotificationsDB".to_string());
-        // });
-        // cfgs.extend::<Vec<db::Configuration>>(new_notifications_db_cfgs.into());
 
         let mut notifications_db_cfgs: Vec<db::Configuration> = cv.notifications_db.into();
         notifications_db_cfgs.iter_mut().for_each(|cfg| {
