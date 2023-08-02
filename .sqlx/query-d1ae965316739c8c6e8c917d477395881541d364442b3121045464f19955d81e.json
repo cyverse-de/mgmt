@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                DELETE config_values FROM environments\n                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id\n                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id\n                INNER JOIN config_sections ON config_values.section_id = config_sections.id\n                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d1ae965316739c8c6e8c917d477395881541d364442b3121045464f19955d81e"
+}

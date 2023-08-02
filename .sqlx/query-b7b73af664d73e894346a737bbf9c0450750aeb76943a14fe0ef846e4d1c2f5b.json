@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                DELETE config_defaults FROM config_defaults\n                INNER JOIN config_sections ON config_defaults.section_id = config_sections.id\n                WHERE config_sections.name = ? AND config_defaults.cfg_key = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b7b73af664d73e894346a737bbf9c0450750aeb76943a14fe0ef846e4d1c2f5b"
+}

@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT config_defaults.id FROM config_defaults\n                INNER JOIN config_sections ON config_defaults.section_id = config_sections.id\n                WHERE config_sections.name = ? AND config_defaults.cfg_key = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c65e408f779a53dd2e7ed1be3685f8996c1e7c624979206ec3025d040b2ef536"
+}
