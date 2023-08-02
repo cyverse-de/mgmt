@@ -203,12 +203,6 @@ INSERT INTO config_defaults
 VALUES
     (
         (SELECT id FROM config_sections WHERE name = 'DashboardAggregator'),
-        'PublicGroup',
-        '',
-        (SELECT id FROM config_value_types WHERE name = 'string')
-    ),
-    (
-        (SELECT id FROM config_sections WHERE name = 'DashboardAggregator'),
         'Website.URL',
         'https://cyverse.org',
         (SELECT id FROM config_value_types WHERE name = 'string')
