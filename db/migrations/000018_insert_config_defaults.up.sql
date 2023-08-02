@@ -747,6 +747,12 @@ VALUES
     ),
     (
         (SELECT id FROM config_sections WHERE name = 'Harbor'),
+        'ProjectQAImagePullSecretName',
+        'qa-project-image-pull-secret',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
+        (SELECT id FROM config_sections WHERE name = 'Harbor'),
         'ProjectQARobotName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
