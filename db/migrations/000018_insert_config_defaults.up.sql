@@ -624,6 +624,12 @@ VALUES
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
+        (SELECT id FROM config_sections WHERE name = "Jobs"),
+        'DataTransferTag',
+        'latest',
+        (SELECT id FROM config_value_types WHERE name = 'string')
+    ),
+    (
         (SELECT id FROM config_sections WHERE name = 'PGP'),
         'KeyPassword',
         '',

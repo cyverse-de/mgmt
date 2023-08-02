@@ -11,12 +11,14 @@ pub struct Jobs {
     section: String,
 
     data_transfer_image: Option<String>,
+    data_transfer_tag: Option<String>,
 }
 
 impl Default for Jobs {
     fn default() -> Self {
         Jobs {
             section: "Jobs".to_string(),
+            data_transfer_tag: Some("latest".into()),
             data_transfer_image: Some(String::from("harbor.cyverse.org/de/porklock")),
         }
     }
@@ -30,6 +32,7 @@ impl LoadFromConfiguration for Jobs {
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
+                "DataTransferTag" => self.data_transfer_tag = Some(value),
                 "DataTransferImage" => self.data_transfer_image = Some(value),
                 _ => (),
             }
@@ -58,6 +61,17 @@ impl From<Jobs> for Vec<db::Configuration> {
                 value_type: Some("string".to_string()),
             });
         }
+
+        if let Some(tag) = job.data_transfer_tag {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DataTransferTag".to_string()),
+                value: Some(tag),
+                value_type: Some("string".to_string()),
+            });
+        }
+
         vec
     }
 }
@@ -84,6 +98,15 @@ impl Jobs {
         .await?;
         add_env_cfg_value(tx, env_id, data_transfer_image_id).await?;
         self.data_transfer_image = Some(data_transfer_image);
+
+        let data_transfer_tag = Input::<String>::with_theme(theme)
+            .with_prompt("Jobs Data Transfer Tag")
+            .default("latest".into())
+            .interact()?;
+        let data_transfer_tag_id =
+            set_config_value(tx, "Jobs", "DataTransferTag", &data_transfer_tag, "string").await?;
+        add_env_cfg_value(tx, env_id, data_transfer_tag_id).await?;
+        self.data_transfer_tag = Some(data_transfer_tag);
 
         Ok(())
     }
