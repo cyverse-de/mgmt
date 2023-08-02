@@ -6,7 +6,7 @@ use url::Url;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
-pub struct ElasticSearch {
+pub struct Elasticsearch {
     #[serde(skip)]
     section: String,
 
@@ -18,9 +18,9 @@ pub struct ElasticSearch {
     index: String,
 }
 
-impl Default for ElasticSearch {
+impl Default for Elasticsearch {
     fn default() -> Self {
-        ElasticSearch {
+        Elasticsearch {
             section: "Elasticsearch".to_string(),
             base_uri: None,
             username: String::new(),
@@ -30,7 +30,7 @@ impl Default for ElasticSearch {
     }
 }
 
-impl LoadFromConfiguration for ElasticSearch {
+impl LoadFromConfiguration for Elasticsearch {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
@@ -49,8 +49,8 @@ impl LoadFromConfiguration for ElasticSearch {
     }
 }
 
-impl From<ElasticSearch> for Vec<db::Configuration> {
-    fn from(es: ElasticSearch) -> Vec<db::Configuration> {
+impl From<Elasticsearch> for Vec<db::Configuration> {
+    fn from(es: Elasticsearch) -> Vec<db::Configuration> {
         let mut vec: Vec<db::Configuration> = Vec::new();
         let section: String;
 
@@ -98,7 +98,7 @@ impl From<ElasticSearch> for Vec<db::Configuration> {
     }
 }
 
-impl ElasticSearch {
+impl Elasticsearch {
     pub async fn ask_for_info(
         &mut self,
         tx: &mut Transaction<'_, MySql>,

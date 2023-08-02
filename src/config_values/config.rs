@@ -1,7 +1,7 @@
 use crate::config_values::{
     self, agave::Agave, base_urls::BaseURLs, dashboard_aggregator::DashboardAggregator,
     db::DatabaseConfig, db::QMSDatabaseConfig, de::DE, docker::Docker,
-    elasticsearch::ElasticSearch, email::Email, grouper::Grouper, icat::Icat,
+    elasticsearch::Elasticsearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
 };
 use crate::db::{
@@ -45,7 +45,7 @@ pub struct ConfigValues {
     docker: Option<Docker>,
 
     // Must be configured for deplyoment.
-    elasticsearch: ElasticSearch,
+    elasticsearch: Elasticsearch,
 
     // Must be configured for deployment.
     email: Email,
@@ -159,7 +159,7 @@ impl Default for ConfigValues {
             dashboard_aggregator: Some(DashboardAggregator::default()),
             de: DE::default(),
             docker: Some(Docker::default()),
-            elasticsearch: ElasticSearch::default(),
+            elasticsearch: Elasticsearch::default(),
             email: Email::default(),
             grouper: Grouper::default(),
             icat: Icat::default(),
@@ -236,7 +236,7 @@ impl LoadFromConfiguration for ConfigValues {
                             docker.cfg_set_key(cfg).ok();
                         }
                     }
-                    "ElasticSearch" => {
+                    "Elasticsearch" => {
                         self.elasticsearch.cfg_set_key(cfg).ok();
                     }
                     "Email" => {
