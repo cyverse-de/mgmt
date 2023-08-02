@@ -194,6 +194,13 @@ impl From<Irods> for Vec<db::Configuration> {
             vec.extend::<Vec<db::Configuration>>(web_dav.into());
         }
 
+        let mut amqp_vec: Vec<db::Configuration> = i.amqp.into();
+        amqp_vec.iter_mut().for_each(|c| {
+            c.section = Some(section.clone());
+        });
+
+        vec.extend::<Vec<db::Configuration>>(amqp_vec);
+
         vec
     }
 }
@@ -228,6 +235,7 @@ impl LoadFromConfiguration for Irods {
             }
 
             if key.starts_with("AMQP") {
+                self.amqp.set_section("IRODS")?;
                 self.amqp.cfg_set_key(cfg)?;
             }
         }
