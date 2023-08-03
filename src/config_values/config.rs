@@ -141,6 +141,9 @@ pub struct ConfigValues {
 
     // Optional for deployment.
     jaeger: Option<config_values::misc::Jaeger>,
+
+    // Optional for deployment.
+    qa: Option<config_values::qa::QA>,
 }
 
 impl Default for ConfigValues {
@@ -183,6 +186,7 @@ impl Default for ConfigValues {
             qa: Some(config_values::qa::Qa::default()),
             qms: Some(config_values::misc::Qms::default()),
             jaeger: Some(config_values::misc::Jaeger::default()),
+            qa: Some(config_values::qa::QA::default()),
         }
     }
 }
@@ -332,6 +336,12 @@ impl LoadFromConfiguration for ConfigValues {
                     }
                     "TopLevel" => {
                         self.cfg_set_key(cfg).ok();
+                    }
+
+                    "QA" => {
+                        if let Some(qa) = &mut self.qa {
+                            qa.cfg_set_key(cfg).ok();
+                        }
                     }
 
                     _ => (),
@@ -503,6 +513,10 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         if let Some(jaeger) = cv.jaeger {
             cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+        }
+
+        if let Some(qa) = cv.qa {
+            cfgs.extend::<Vec<db::Configuration>>(qa.into());
         }
 
         cfgs
@@ -774,6 +788,18 @@ impl ConfigValues {
             let mut new_jaeger = config_values::misc::Jaeger::default();
             new_jaeger.ask_for_info(tx, &theme, env_id).await?;
             self.jaeger = Some(new_jaeger);
+        }
+
+        let qa_enabled = Select::with_theme(&theme)
+            .with_prompt("Include QA?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if qa_enabled == 0 {
+            let mut new_qa = config_values::qa::QA::default();
+            new_qa.ask_for_info(tx, &theme, env_id).await?;
+            self.qa = Some(new_qa);
         }
 
         Ok(())

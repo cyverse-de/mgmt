@@ -25,7 +25,7 @@ impl Default for ViceFileTransfers {
 
 impl LoadFromConfiguration for ViceFileTransfers {
     fn get_section(&self) -> String {
-        "VICE".to_string()
+        self.section.clone()
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
