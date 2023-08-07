@@ -283,10 +283,6 @@ pub struct ConfigValues {
     #[serde(rename = "PermissionsDB")]
     permissions_db: DatabaseConfig,
 
-    // Not required for a deployment
-    #[serde(rename = "QA")]
-    qa: Option<config_values::qa::Qa>,
-
     // Required for deployment.
     #[serde(rename = "QMSDB")]
     qms_db: QMSDatabaseConfig,
@@ -363,7 +359,6 @@ impl Default for ConfigValues {
             admin: Some(config_values::misc::Admin::default()),
             analytics: Some(config_values::misc::Analytics::default()),
             harbor: Some(config_values::misc::Harbor::default()),
-            qa: Some(config_values::qa::Qa::default()),
             qms: Some(config_values::misc::Qms::default()),
             jaeger: Some(config_values::misc::Jaeger::default()),
             qa: Some(config_values::qa::QA::default()),
@@ -1015,8 +1010,8 @@ impl ConfigValues {
             .interact()?;
 
         if qa_enabled == 0 {
-            let mut new_qa = config_values::qa::Qa::default();
-            new_qa.ask_for_info(&theme)?;
+            let mut new_qa = config_values::qa::QA::default();
+            new_qa.ask_for_info(tx, &theme, env_id).await?;
             self.qa = Some(new_qa);
         }
 
