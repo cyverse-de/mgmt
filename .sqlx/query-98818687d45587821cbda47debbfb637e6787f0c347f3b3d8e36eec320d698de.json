@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO container_images \n                (name, tag, digest, repo_id, dockerfile)\n            VALUES \n                (?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "98818687d45587821cbda47debbfb637e6787f0c347f3b3d8e36eec320d698de"
+}

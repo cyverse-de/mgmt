@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT id FROM config_sections WHERE name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "cbf5219ce5fc643d8983dac3b29528d4fb31fd3dcbcb160b3b87ac589659f28e"
+}

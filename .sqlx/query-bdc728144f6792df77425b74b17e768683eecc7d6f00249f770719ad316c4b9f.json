@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                DELETE FROM environments WHERE name = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "bdc728144f6792df77425b74b17e768683eecc7d6f00249f770719ad316c4b9f"
+}

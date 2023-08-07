@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                INSERT INTO environments_config_values (environment_id, config_value_id) VALUES (?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "f03f755ce88a55b033074dc819f526d10fb3eebd0e6ceef923f38189859dfa7a"
+}

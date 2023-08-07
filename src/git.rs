@@ -36,6 +36,14 @@ pub fn fetch_submodule(submodule_path: &str) -> Result<bool> {
         .success())
 }
 
+pub fn clone(url: &str, path: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["clone", url, path])
+        .status()
+        .context("error cloning repository")?
+        .success())
+}
+
 pub fn update_submodule(submodule_path: &str) -> Result<bool> {
     fetch_submodule(submodule_path)?;
     Ok(Command::new("git")

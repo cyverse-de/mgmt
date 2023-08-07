@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT id as `id: u64` FROM config_sections WHERE name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: u64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c2f76e771c64cf26661fe2d171432a76cda13c46b25ed55f891fb88e4f4c9cb6"
+}

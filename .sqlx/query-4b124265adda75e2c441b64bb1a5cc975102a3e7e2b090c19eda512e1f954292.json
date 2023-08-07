@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                INSERT INTO config_defaults (section_id, cfg_key, cfg_value, value_type_id) VALUES (\n                    (SELECT id FROM config_sections WHERE name = ?),\n                    ?,\n                    ?,\n                    (SELECT id FROM config_value_types WHERE name = ?)\n                ) ON DUPLICATE KEY UPDATE cfg_value = VALUES(cfg_value)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "4b124265adda75e2c441b64bb1a5cc975102a3e7e2b090c19eda512e1f954292"
+}

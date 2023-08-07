@@ -1,0 +1,80 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT \n            ci.id, ci.name, ci.tag, ci.digest, ci.dockerfile, s.name as service_name\n        FROM \n            container_images ci\n        INNER JOIN\n            services s\n        ON\n            ci.repo_id = s.repo_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 2048
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "tag",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1024
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "digest",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "dockerfile",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "service_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ecca071cc682d115518f5ddc4df79099974af997d587ed7830e68bd2d320347a"
+}

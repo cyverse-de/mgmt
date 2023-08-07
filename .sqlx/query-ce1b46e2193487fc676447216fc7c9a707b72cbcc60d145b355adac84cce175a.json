@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                DELETE FROM config_sections WHERE name = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ce1b46e2193487fc676447216fc7c9a707b72cbcc60d145b355adac84cce175a"
+}

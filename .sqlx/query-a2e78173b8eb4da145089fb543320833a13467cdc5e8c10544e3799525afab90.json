@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        DELETE FROM container_images WHERE id = (?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a2e78173b8eb4da145089fb543320833a13467cdc5e8c10544e3799525afab90"
+}

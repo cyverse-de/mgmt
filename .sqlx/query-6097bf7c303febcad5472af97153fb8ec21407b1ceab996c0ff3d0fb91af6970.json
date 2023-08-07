@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            UPDATE container_images \n            SET \n                dockerfile = (?),\n                repo_id = (?),\n                digest = (?)\n            WHERE name = (?)\n            AND tag = (?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "6097bf7c303febcad5472af97153fb8ec21407b1ceab996c0ff3d0fb91af6970"
+}

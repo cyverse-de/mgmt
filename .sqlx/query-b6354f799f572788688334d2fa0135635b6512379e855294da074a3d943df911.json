@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                INSERT INTO config_sections (name) VALUES (?) ON DUPLICATE KEY UPDATE id = id\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "b6354f799f572788688334d2fa0135635b6512379e855294da074a3d943df911"
+}

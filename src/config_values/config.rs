@@ -1,15 +1,187 @@
 use crate::config_values::{
     self, agave::Agave, base_urls::BaseURLs, dashboard_aggregator::DashboardAggregator,
     db::DatabaseConfig, db::QMSDatabaseConfig, de::DE, docker::Docker,
-    elasticsearch::ElasticSearch, email::Email, grouper::Grouper, icat::Icat,
+    elasticsearch::Elasticsearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
+};
+use crate::db::{
+    self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration,
 };
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
+use sqlx::{MySql, Transaction};
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct SectionOptions {
+    include_admin: bool,
+    include_analytics: bool,
+    include_agave: bool,
+    include_base_urls: bool,
+    include_cas: bool,
+    include_docker: bool,
+    include_infosquito: bool,
+    include_intercom: bool,
+    include_jaeger: bool,
+    include_jobs: bool,
+    include_jvmpopts: bool,
+    include_permanent_id: bool,
+    include_qa: bool,
+    include_qms: bool,
+    include_unleash: bool,
+}
+
+impl SectionOptions {
+    pub fn new(sub_m: &clap::ArgMatches) -> Self {
+        let include_all = if sub_m.contains_id("include-all") {
+            sub_m.get_flag("include-all")
+        } else {
+            false
+        };
+
+        if include_all {
+            Self {
+                include_admin: true,
+                include_analytics: true,
+                include_agave: true,
+                include_base_urls: true,
+                include_cas: true,
+                include_docker: true,
+                include_infosquito: true,
+                include_intercom: true,
+                include_jaeger: true,
+                include_jobs: true,
+                include_jvmpopts: true,
+                include_permanent_id: true,
+                include_qa: true,
+                include_qms: true,
+                include_unleash: true,
+            }
+        } else {
+            Self {
+                include_admin: if sub_m.contains_id("include-admin") {
+                    sub_m.get_flag("include-admin")
+                } else {
+                    false
+                },
+
+                include_analytics: if sub_m.contains_id("include-analytics") {
+                    sub_m.get_flag("include-analytics")
+                } else {
+                    false
+                },
+
+                include_agave: if sub_m.contains_id("include-agave") {
+                    sub_m.get_flag("include-agave")
+                } else {
+                    false
+                },
+
+                include_base_urls: if sub_m.contains_id("include-base-urls") {
+                    sub_m.get_flag("include-base-urls")
+                } else {
+                    false
+                },
+
+                include_cas: if sub_m.contains_id("include-cas") {
+                    sub_m.get_flag("include-cas")
+                } else {
+                    false
+                },
+
+                include_docker: if sub_m.contains_id("include-docker") {
+                    sub_m.get_flag("include-docker")
+                } else {
+                    false
+                },
+
+                include_infosquito: if sub_m.contains_id("include-infosquito") {
+                    sub_m.get_flag("include-infosquito")
+                } else {
+                    false
+                },
+
+                include_intercom: if sub_m.contains_id("include-intercom") {
+                    sub_m.get_flag("include-intercom")
+                } else {
+                    false
+                },
+
+                include_jaeger: if sub_m.contains_id("include-jaeger") {
+                    sub_m.get_flag("include-jaeger")
+                } else {
+                    false
+                },
+
+                include_jobs: if sub_m.contains_id("include-jobs") {
+                    sub_m.get_flag("include-jobs")
+                } else {
+                    false
+                },
+
+                include_jvmpopts: if sub_m.contains_id("include-jvmpopts") {
+                    sub_m.get_flag("include-jvmpopts")
+                } else {
+                    false
+                },
+
+                include_permanent_id: if sub_m.contains_id("include-permanent-id") {
+                    sub_m.get_flag("include-permanent-id")
+                } else {
+                    false
+                },
+
+                include_qa: if sub_m.contains_id("include-qa") {
+                    sub_m.get_flag("include-qa")
+                } else {
+                    false
+                },
+
+                include_qms: if sub_m.contains_id("include-qms") {
+                    sub_m.get_flag("include-qms")
+                } else {
+                    false
+                },
+
+                include_unleash: if sub_m.contains_id("include-unleash") {
+                    sub_m.get_flag("include-unleash")
+                } else {
+                    false
+                },
+            }
+        }
+    }
+
+    pub fn include_section(&self, section: &str) -> bool {
+        match section {
+            "Admin" => self.include_admin,
+            "Analytics" => self.include_analytics,
+            "Agave" => self.include_agave,
+            "BaseURLs" => self.include_base_urls,
+            "CAS" => self.include_cas,
+            "Docker" => self.include_docker,
+            "InfoSquito" => self.include_infosquito,
+            "Intercom" => self.include_intercom,
+            "Jaeger" => self.include_jaeger,
+            "Jobs" => self.include_jobs,
+            "JVMOpts" => self.include_jvmpopts,
+            "PermanentID" => self.include_permanent_id,
+            "QA" => self.include_qa,
+            "QMS" => self.include_qms,
+            "Unleash" => self.include_unleash,
+            _ => true,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
+    #[serde(skip)]
+    section: String,
+
+    #[serde(skip)]
+    section_options: SectionOptions,
+
     // Must be user supplied.
     environment: String,
 
@@ -21,10 +193,12 @@ pub struct ConfigValues {
     uid_domain: String,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     agave: Option<Agave>,
 
     // Defaults are provided for deployment.
     #[serde(rename = "BaseURLs")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     base_urls: Option<BaseURLs>,
 
     // Defaults are provided for deployment (or will be).
@@ -35,10 +209,11 @@ pub struct ConfigValues {
     de: DE,
 
     // Defaults are provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     docker: Option<Docker>,
 
     // Must be configured for deplyoment.
-    elasticsearch: ElasticSearch,
+    elasticsearch: Elasticsearch,
 
     // Must be configured for deployment.
     email: Email,
@@ -51,9 +226,11 @@ pub struct ConfigValues {
     icat: Icat,
 
     // Defaults provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     infosquito: Option<Infosquito>,
 
     // Optional for deployment
+    #[serde(skip_serializing_if = "Option::is_none")]
     intercom: Option<config_values::intercom::Intercom>,
 
     // Must be configured for deployment.
@@ -61,6 +238,7 @@ pub struct ConfigValues {
     irods: config_values::irods::Irods,
 
     // Defaults are provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     jobs: Option<config_values::misc::Jobs>,
 
     // Must be configured for deployment.
@@ -72,12 +250,14 @@ pub struct ConfigValues {
 
     // Optional for deployment.
     #[serde(rename = "PermanentID")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     permanent_id: Option<config_values::misc::PermanentId>,
 
     // Defaults provided for deployment.
     timezone: Option<String>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     unleash: Option<config_values::misc::Unleash>,
 
     // Required for deployment
@@ -96,20 +276,12 @@ pub struct ConfigValues {
     grouper_db: DatabaseConfig,
 
     // Required for deployment.
-    #[serde(rename = "NewNotificationsDB")]
-    new_notifications_db: DatabaseConfig,
-
-    // Required for deployment.
     #[serde(rename = "NotificationsDB")]
     notifications_db: DatabaseConfig,
 
     // Required for deployment.
     #[serde(rename = "PermissionsDB")]
     permissions_db: DatabaseConfig,
-
-    // Not required for a deployment
-    #[serde(rename = "QA")]
-    qa: Option<config_values::qa::Qa>,
 
     // Required for deployment.
     #[serde(rename = "QMSDB")]
@@ -121,12 +293,15 @@ pub struct ConfigValues {
 
     // Required for deployment.
     #[serde(rename = "UnleashDB")]
-    unleash_db: DatabaseConfig,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    unleash_db: Option<DatabaseConfig>,
 
     // Defaults provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
     admin: Option<config_values::misc::Admin>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     analytics: Option<config_values::misc::Analytics>,
 
     // Defaults provided for deployment.
@@ -134,15 +309,23 @@ pub struct ConfigValues {
 
     // Optional for deployment.
     #[serde(rename = "QMS")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     qms: Option<config_values::misc::Qms>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     jaeger: Option<config_values::misc::Jaeger>,
+
+    // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    qa: Option<config_values::qa::QA>,
 }
 
 impl Default for ConfigValues {
     fn default() -> Self {
         ConfigValues {
+            section: "TopLevel".to_string(),
+            section_options: SectionOptions::default(),
             environment: String::new(),
             namespace: String::new(),
             uid_domain: String::new(),
@@ -151,7 +334,7 @@ impl Default for ConfigValues {
             dashboard_aggregator: Some(DashboardAggregator::default()),
             de: DE::default(),
             docker: Some(Docker::default()),
-            elasticsearch: ElasticSearch::default(),
+            elasticsearch: Elasticsearch::default(),
             email: Email::default(),
             grouper: Grouper::default(),
             icat: Icat::default(),
@@ -168,125 +351,465 @@ impl Default for ConfigValues {
             vice: config_values::vice::Vice::default(),
             de_db: DatabaseConfig::default(),
             grouper_db: DatabaseConfig::default(),
-            new_notifications_db: DatabaseConfig::default(),
             notifications_db: DatabaseConfig::default(),
             permissions_db: DatabaseConfig::default(),
             qms_db: QMSDatabaseConfig::default(),
             metadata_db: DatabaseConfig::default(),
-            unleash_db: DatabaseConfig::default(),
+            unleash_db: Some(DatabaseConfig::default()),
             admin: Some(config_values::misc::Admin::default()),
             analytics: Some(config_values::misc::Analytics::default()),
             harbor: Some(config_values::misc::Harbor::default()),
-            qa: Some(config_values::qa::Qa::default()),
             qms: Some(config_values::misc::Qms::default()),
             jaeger: Some(config_values::misc::Jaeger::default()),
+            qa: Some(config_values::qa::QA::default()),
         }
     }
 }
 
-impl ConfigValues {
-    pub fn merge(&self, right: &ConfigValues) -> anyhow::Result<ConfigValues> {
-        let mut merged: ConfigValues = serde_merge::omerge(&self, &right)?;
-        if let Some(agave) = &self.agave {
-            if let Some(right_agave) = &right.agave {
-                merged.agave = Some(agave.merge(right_agave)?);
-            }
-        }
-        if let Some(base_urls) = &self.base_urls {
-            if let Some(right_base_urls) = &right.base_urls {
-                merged.base_urls = Some(base_urls.merge(right_base_urls)?);
-            }
-        }
-        if let Some(dashboard_aggregator) = &self.dashboard_aggregator {
-            if let Some(right_dashboard_aggregator) = &right.dashboard_aggregator {
-                merged.dashboard_aggregator =
-                    Some(dashboard_aggregator.merge(right_dashboard_aggregator)?);
-            }
-        }
-        merged.de = self.de.merge(&right.de)?;
-        if let Some(docker) = &self.docker {
-            if let Some(right_docker) = &right.docker {
-                merged.docker = Some(docker.merge(right_docker)?);
-            }
-        }
-        merged.elasticsearch = self.elasticsearch.merge(&right.elasticsearch)?;
-        merged.email = self.email.merge(&right.email)?;
-        merged.grouper = self.grouper.merge(&right.grouper)?;
-        merged.icat = self.icat.merge(&right.icat)?;
-        if let Some(infosquito) = &self.infosquito {
-            if let Some(right_infosquito) = &right.infosquito {
-                merged.infosquito = Some(infosquito.merge(right_infosquito)?);
-            }
-        }
-        if let Some(intercom) = &self.intercom {
-            if let Some(right_intercom) = &right.intercom {
-                merged.intercom = Some(intercom.merge(right_intercom)?);
-            }
-        }
-        merged.irods = self.irods.merge(&right.irods)?;
-        if let Some(jobs) = &self.jobs {
-            if let Some(right_jobs) = &right.jobs {
-                merged.jobs = Some(jobs.merge(right_jobs)?);
-            }
-        }
-        merged.keycloak = self.keycloak.merge(&right.keycloak)?;
-        merged.pgp = self.pgp.merge(&right.pgp)?;
-        if let Some(permanent_id) = &self.permanent_id {
-            if let Some(right_permanent_id) = &right.permanent_id {
-                merged.permanent_id = Some(permanent_id.merge(right_permanent_id)?);
-            }
-        }
-        if let Some(unleash) = &self.unleash {
-            if let Some(right_unleash) = &right.unleash {
-                merged.unleash = Some(unleash.merge(right_unleash)?);
-            }
-        }
-        merged.user_portal = self.user_portal.merge(&right.user_portal)?;
-        merged.vice = self.vice.merge(&right.vice)?;
-        merged.de_db = self.de_db.merge(&right.de_db)?;
-        merged.grouper_db = self.grouper_db.merge(&right.grouper_db)?;
-        merged.new_notifications_db = self
-            .new_notifications_db
-            .merge(&right.new_notifications_db)?;
-        merged.notifications_db = self.notifications_db.merge(&right.notifications_db)?;
-        merged.permissions_db = self.permissions_db.merge(&right.permissions_db)?;
-        merged.qms_db = self.qms_db.merge(&right.qms_db)?;
-        merged.metadata_db = self.metadata_db.merge(&right.metadata_db)?;
-        merged.unleash_db = self.unleash_db.merge(&right.unleash_db)?;
-        if let Some(admin) = &self.admin {
-            if let Some(right_admin) = &right.admin {
-                merged.admin = Some(admin.merge(right_admin)?);
-            }
-        }
-        if let Some(analytics) = &self.analytics {
-            if let Some(right_analytics) = &right.analytics {
-                merged.analytics = Some(analytics.merge(right_analytics)?);
-            }
-        }
-        if let Some(harbor) = &self.harbor {
-            if let Some(right_harbor) = &right.harbor {
-                merged.harbor = Some(harbor.merge(right_harbor)?);
-            }
-        }
-        if let Some(qa) = &self.qa {
-            if let Some(right_qa) = &right.qa {
-                merged.qa = Some(qa.merge(right_qa)?);
-            }
-        }
-        if let Some(qms) = &self.qms {
-            if let Some(right_qms) = &right.qms {
-                merged.qms = Some(qms.merge(right_qms)?);
-            }
-        }
-        if let Some(jaeger) = &self.jaeger {
-            if let Some(right_jaeger) = &right.jaeger {
-                merged.jaeger = Some(jaeger.merge(right_jaeger)?);
-            }
-        }
-        Ok(merged)
+impl LoadFromConfiguration for ConfigValues {
+    fn get_section(&self) -> String {
+        self.section.to_string()
     }
 
-    pub fn ask_for_info(&mut self) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Environment" => self.environment = value,
+                "Namespace" => self.namespace = value,
+                "UIDDomain" => self.uid_domain = value,
+                "Timezone" => self.timezone = Some(value),
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+
+    fn cfg_set_keys(&mut self, cfgs: Vec<crate::db::Configuration>) -> anyhow::Result<()> {
+        cfgs.iter().for_each(|cfg| {
+            if let Some(section) = cfg.section.clone() {
+                match section.as_str() {
+                    "Agave" => {
+                        if let Some(agave) = &mut self.agave {
+                            agave.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "BaseURLs" => {
+                        if let Some(base_urls) = &mut self.base_urls {
+                            base_urls.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "DashboardAggregator" => {
+                        if let Some(dashboard_aggregator) = &mut self.dashboard_aggregator {
+                            dashboard_aggregator.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "DE" => {
+                        self.de.cfg_set_key(cfg).ok();
+                    }
+                    "Docker" => {
+                        if let Some(docker) = &mut self.docker {
+                            docker.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Elasticsearch" => {
+                        self.elasticsearch.cfg_set_key(cfg).ok();
+                    }
+                    "Email" => {
+                        self.email.cfg_set_key(cfg).ok();
+                    }
+                    "Grouper" => {
+                        self.grouper.cfg_set_key(cfg).ok();
+                    }
+                    "ICAT" => {
+                        self.icat.cfg_set_key(cfg).ok();
+                    }
+                    "Infosquito" => {
+                        if let Some(infosquito) = &mut self.infosquito {
+                            infosquito.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Intercom" => {
+                        if let Some(intercom) = &mut self.intercom {
+                            intercom.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "IRODS" => {
+                        self.irods.cfg_set_key(cfg).ok();
+                    }
+                    "Jobs" => {
+                        if let Some(jobs) = &mut self.jobs {
+                            jobs.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Keycloak" => {
+                        self.keycloak.cfg_set_key(cfg).ok();
+                    }
+                    "PGP" => {
+                        self.pgp.cfg_set_key(cfg).ok();
+                    }
+                    "PermanentID" => {
+                        if let Some(permanent_id) = &mut self.permanent_id {
+                            permanent_id.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Unleash" => {
+                        if let Some(unleash) = &mut self.unleash {
+                            unleash.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "UserPortal" => {
+                        self.user_portal.cfg_set_key(cfg).ok();
+                    }
+                    "VICE" => {
+                        self.vice.cfg_set_key(cfg).ok();
+                    }
+                    "DEDB" => {
+                        self.de_db.cfg_set_key(cfg).ok();
+                    }
+                    "GrouperDB" => {
+                        self.grouper_db.cfg_set_key(cfg).ok();
+                    }
+                    "NotificationsDB" => {
+                        self.notifications_db.cfg_set_key(cfg).ok();
+                    }
+                    "PermissionsDB" => {
+                        self.permissions_db.cfg_set_key(cfg).ok();
+                    }
+                    "QMSDB" => {
+                        self.qms_db.cfg_set_key(cfg).ok();
+                    }
+                    "MetadataDB" => {
+                        self.metadata_db.cfg_set_key(cfg).ok();
+                    }
+                    "UnleashDB" => {
+                        if let Some(unleash_db) = &mut self.unleash_db {
+                            unleash_db.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Admin" => {
+                        if let Some(admin) = &mut self.admin {
+                            admin.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Analytics" => {
+                        if let Some(analytics) = &mut self.analytics {
+                            analytics.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Harbor" => {
+                        if let Some(harbor) = &mut self.harbor {
+                            harbor.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "QMS" => {
+                        if let Some(qms) = &mut self.qms {
+                            qms.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "Jaeger" => {
+                        if let Some(jaeger) = &mut self.jaeger {
+                            jaeger.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "TopLevel" => {
+                        self.cfg_set_key(cfg).ok();
+                    }
+
+                    "QA" => {
+                        if let Some(qa) = &mut self.qa {
+                            qa.cfg_set_key(cfg).ok();
+                        }
+                    }
+
+                    _ => (),
+                }
+            }
+        });
+        Ok(())
+    }
+}
+
+impl From<ConfigValues> for Vec<db::Configuration> {
+    fn from(cv: ConfigValues) -> Vec<db::Configuration> {
+        let mut cfgs: Vec<db::Configuration> = Vec::new();
+
+        let section: String;
+        if cv.section.is_empty() {
+            section = "TopLevel".to_string();
+        } else {
+            section = cv.section.clone();
+        }
+
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Environment".to_string()),
+            value: Some(cv.environment),
+            value_type: Some("string".to_string()),
+        });
+
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Namespace".to_string()),
+            value: Some(cv.namespace),
+            value_type: Some("string".to_string()),
+        });
+
+        cfgs.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("UIDDomain".to_string()),
+            value: Some(cv.uid_domain),
+            value_type: Some("string".to_string()),
+        });
+
+        // Agave section is optional, so check before adding it.
+        if cv.section_options.include_section("Agave") {
+            if let Some(agave) = cv.agave {
+                cfgs.extend::<Vec<db::Configuration>>(agave.into());
+            }
+        }
+
+        // BaseURLs is optional, so check before adding it.
+        if cv.section_options.include_section("BaseURLs") {
+            if let Some(base_urls) = cv.base_urls {
+                cfgs.extend::<Vec<db::Configuration>>(base_urls.into());
+            }
+        }
+
+        if let Some(dashboard_aggregator) = cv.dashboard_aggregator {
+            cfgs.extend::<Vec<db::Configuration>>(dashboard_aggregator.into());
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.de.into());
+
+        // Docker is optional, so check before adding it.
+        if cv.section_options.include_section("Docker") {
+            if let Some(docker) = cv.docker {
+                cfgs.extend::<Vec<db::Configuration>>(docker.into());
+            }
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.elasticsearch.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.email.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.grouper.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.icat.into());
+
+        // Infosquito is optional, so check before adding it.
+        if cv.section_options.include_section("Infosquito") {
+            if let Some(infosquito) = cv.infosquito {
+                cfgs.extend::<Vec<db::Configuration>>(infosquito.into());
+            }
+        }
+
+        // Intercom is optional, so check before adding it.
+        if cv.section_options.include_section("Intercom") {
+            if let Some(intercom) = cv.intercom {
+                cfgs.extend::<Vec<db::Configuration>>(intercom.into());
+            }
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.irods.into());
+
+        // Jobs is optional, so check before adding it.
+        if cv.section_options.include_section("Jobs") {
+            if let Some(jobs) = cv.jobs {
+                cfgs.extend::<Vec<db::Configuration>>(jobs.into());
+            }
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.keycloak.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.pgp.into());
+
+        // PermanentID is optional, so check before adding it.
+        if cv.section_options.include_section("PermanentID") {
+            if let Some(permanent_id) = cv.permanent_id {
+                cfgs.extend::<Vec<db::Configuration>>(permanent_id.into());
+            }
+        }
+
+        if let Some(timezone) = cv.timezone {
+            cfgs.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Timezone".to_string()),
+                value: Some(timezone),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        // Unleash is optional, so check before adding it.
+        if cv.section_options.include_section("Unleash") {
+            if let Some(unleash) = cv.unleash {
+                cfgs.extend::<Vec<db::Configuration>>(unleash.into());
+            }
+        }
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.user_portal.into());
+
+        cfgs.extend::<Vec<db::Configuration>>(cv.vice.into());
+
+        let mut de_db_cfgs: Vec<db::Configuration> = cv.de_db.into();
+        de_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("DEDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(de_db_cfgs.into());
+
+        let mut grouper_db_cfgs: Vec<db::Configuration> = cv.grouper_db.into();
+        grouper_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("GrouperDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(grouper_db_cfgs.into());
+
+        let mut notifications_db_cfgs: Vec<db::Configuration> = cv.notifications_db.into();
+        notifications_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("NotificationsDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(notifications_db_cfgs.into());
+
+        let mut permissions_db_cfgs: Vec<db::Configuration> = cv.permissions_db.into();
+        permissions_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("PermissionsDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(permissions_db_cfgs.into());
+
+        let mut qms_db_cfgs: Vec<db::Configuration> = cv.qms_db.into();
+        qms_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("QMSDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(qms_db_cfgs.into());
+
+        let mut metadata_db_cfgs: Vec<db::Configuration> = cv.metadata_db.into();
+        metadata_db_cfgs.iter_mut().for_each(|cfg| {
+            cfg.section = Some("MetadataDB".to_string());
+        });
+        cfgs.extend::<Vec<db::Configuration>>(metadata_db_cfgs.into());
+
+        // UnleashDB is optional, so check before adding it.
+        if cv.section_options.include_section("Unleash") {
+            if let Some(unleash_db) = cv.unleash_db {
+                let mut unleash_db_cfgs: Vec<db::Configuration> = unleash_db.into();
+                unleash_db_cfgs.iter_mut().for_each(|cfg| {
+                    cfg.section = Some("UnleashDB".to_string());
+                });
+                cfgs.extend::<Vec<db::Configuration>>(unleash_db_cfgs.into());
+            }
+        }
+
+        // Admin is optional, so check before adding it.
+        if cv.section_options.include_section("Admin") {
+            if let Some(admin) = cv.admin {
+                cfgs.extend::<Vec<db::Configuration>>(admin.into());
+            }
+        }
+
+        // Analytics is optional, so check before adding it.
+        if cv.section_options.include_section("Analytics") {
+            if let Some(analytics) = cv.analytics {
+                cfgs.extend::<Vec<db::Configuration>>(analytics.into());
+            }
+        }
+
+        if let Some(harbor) = cv.harbor {
+            cfgs.extend::<Vec<db::Configuration>>(harbor.into());
+        }
+
+        // QMS is optional, so check before adding it.
+        if cv.section_options.include_section("QMS") {
+            if let Some(qms) = cv.qms {
+                cfgs.extend::<Vec<db::Configuration>>(qms.into());
+            }
+        }
+
+        // Jaeger is optional, so check before adding it.
+        if cv.section_options.include_section("Jaeger") {
+            if let Some(jaeger) = cv.jaeger {
+                cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+            }
+        }
+
+        // QA is optional, so check before adding it.
+        if cv.section_options.include_section("QA") {
+            if let Some(qa) = cv.qa {
+                cfgs.extend::<Vec<db::Configuration>>(qa.into());
+            }
+        }
+
+        cfgs
+    }
+}
+
+impl ConfigValues {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn set_section_options(&mut self, section_options: SectionOptions) {
+        self.section_options = section_options;
+    }
+
+    pub fn reset_sections(&mut self) -> anyhow::Result<()> {
+        if !self.section_options.include_section("Agave") {
+            self.agave = None;
+        }
+
+        if !self.section_options.include_section("BaseURLs") {
+            self.base_urls = None;
+        }
+
+        if !self.section_options.include_section("Docker") {
+            self.docker = None;
+        }
+
+        if !self.section_options.include_section("Infosquito") {
+            self.infosquito = None;
+        }
+
+        if !self.section_options.include_section("Intercom") {
+            self.intercom = None;
+        }
+
+        if !self.section_options.include_section("Jobs") {
+            self.jobs = None;
+        }
+
+        if !self.section_options.include_section("PermanentID") {
+            self.permanent_id = None;
+        }
+
+        if !self.section_options.include_section("Unleash") {
+            self.unleash = None;
+        }
+
+        if !self.section_options.include_section("Admin") {
+            self.admin = None;
+        }
+
+        if !self.section_options.include_section("Analytics") {
+            self.analytics = None;
+        }
+
+        if !self.section_options.include_section("QMS") {
+            self.qms = None;
+        }
+
+        if !self.section_options.include_section("Jaeger") {
+            self.jaeger = None;
+        }
+
+        if !self.section_options.include_section("QA") {
+            self.qa = None;
+        }
+
+        Ok(())
+    }
+
+    pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
         let mut theme = ColorfulTheme::default();
         theme.hint_style = Style::new().yellow();
 
@@ -308,15 +831,26 @@ impl ConfigValues {
             .default("America/Phoenix".to_string())
             .interact()?;
 
-        self.environment = environment;
-        self.namespace = namespace;
-        self.uid_domain = uid_domain;
-        self.timezone = Some(timezone);
+        let env_id = upsert_environment(tx, &environment, &namespace).await?;
+
+        let env_cfg_id =
+            set_config_value(tx, "TopLevel", "Environment", &environment, "string").await?;
+        add_env_cfg_value(tx, env_id, env_cfg_id).await?;
+
+        let namespace_id =
+            set_config_value(tx, "TopLevel", "Namespace", &namespace, "string").await?;
+        add_env_cfg_value(tx, env_id, namespace_id).await?;
+
+        let uid_id = set_config_value(tx, "TopLevel", "UIDDomain", &uid_domain, "string").await?;
+        add_env_cfg_value(tx, env_id, uid_id).await?;
+
+        let timezone_id = set_config_value(tx, "TopLevel", "Timezone", &timezone, "string").await?;
+        add_env_cfg_value(tx, env_id, timezone_id).await?;
 
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.
-        self.de.ask_for_info(&theme)?;
-        self.irods.ask_for_info(&theme)?;
+        self.de.ask_for_info(tx, &theme, env_id).await?;
+        self.irods.ask_for_info(tx, &theme, env_id).await?;
 
         // We need the base URI and external host for other settings.
         let base_uri = self.de.base_uri.clone().unwrap();
@@ -330,25 +864,29 @@ impl ConfigValues {
 
         if agave_enabled == 0 {
             let mut new_agave = Agave::default();
-            new_agave.ask_for_info(&theme, &base_uri, &irods_external)?;
+            new_agave
+                .ask_for_info(tx, &theme, env_id, &base_uri, &irods_external)
+                .await?;
             self.agave = Some(new_agave);
         }
 
         let mut new_da = DashboardAggregator::default();
-        new_da.ask_for_info(&theme)?;
+        new_da.ask_for_info(tx, &theme, env_id).await?;
         self.dashboard_aggregator = Some(new_da);
 
         let mut new_docker = Docker::default();
-        new_docker.ask_for_info(&theme)?;
+        new_docker.ask_for_info(tx, &theme, env_id).await?;
         self.docker = Some(new_docker);
 
-        self.elasticsearch.ask_for_info(&theme)?;
-        self.email.ask_for_info(&theme)?;
-        self.grouper.ask_for_info(&theme, &self.environment)?;
-        self.icat.ask_for_info(&theme)?;
+        self.elasticsearch.ask_for_info(tx, &theme, env_id).await?;
+        self.email.ask_for_info(tx, &theme, env_id).await?;
+        self.grouper
+            .ask_for_info(tx, &theme, env_id, &self.environment)
+            .await?;
+        self.icat.ask_for_info(tx, &theme, env_id).await?;
 
         let mut new_infosquito = Infosquito::default();
-        new_infosquito.ask_for_info(&theme)?;
+        new_infosquito.ask_for_info(tx, &theme, env_id).await?;
         self.infosquito = Some(new_infosquito);
 
         let intercom_enabled = Select::with_theme(&theme)
@@ -359,16 +897,16 @@ impl ConfigValues {
 
         if intercom_enabled == 0 {
             let mut new_intercom = config_values::intercom::Intercom::default();
-            new_intercom.ask_for_info(&theme)?;
+            new_intercom.ask_for_info(tx, &theme, env_id).await?;
             self.intercom = Some(new_intercom);
         }
 
         let mut new_jobs = config_values::misc::Jobs::default();
-        new_jobs.ask_for_info(&theme)?;
+        new_jobs.ask_for_info(tx, &theme, env_id).await?;
         self.jobs = Some(new_jobs);
 
-        self.keycloak.ask_for_info(&theme)?;
-        self.pgp.ask_for_info(&theme)?;
+        self.keycloak.ask_for_info(tx, &theme, env_id).await?;
+        self.pgp.ask_for_info(tx, &theme, env_id).await?;
 
         let permanent_id_enabled = Select::with_theme(&theme)
             .with_prompt("Include Permanent ID?")
@@ -378,43 +916,65 @@ impl ConfigValues {
 
         if permanent_id_enabled == 0 {
             let mut new_permanent_id = config_values::misc::PermanentId::default();
-            new_permanent_id.ask_for_info(&theme)?;
+            new_permanent_id.ask_for_info(tx, &theme, env_id).await?;
             self.permanent_id = Some(new_permanent_id);
         }
 
-        self.de_db.ask_for_info(&theme, "DE", "de", "", "de", "")?;
-        self.grouper_db.ask_for_info(
-            &theme,
-            "Grouper",
-            "grouper",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.notifications_db.ask_for_info(
-            &theme,
-            "Notifications",
-            "notifications",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.permissions_db.ask_for_info(
-            &theme,
-            "Permissions",
-            "permissions",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
-        self.metadata_db.ask_for_info(
-            &theme,
-            "Metadata",
-            "metadata",
-            &self.de_db.host,
-            &self.de_db.user,
-            &self.de_db.password,
-        )?;
+        self.de_db
+            .ask_for_info(tx, &theme, env_id, "DE", "DEDB", "de", "", "de", "")
+            .await?;
+        self.grouper_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Grouper",
+                "GrouperDB",
+                "grouper",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.notifications_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Notifications",
+                "NotificationsDB",
+                "notifications",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.permissions_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Permissions",
+                "PermissionsDB",
+                "permissions",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
+        self.metadata_db
+            .ask_for_info(
+                tx,
+                &theme,
+                env_id,
+                "Metadata",
+                "MetadataDB",
+                "metadata",
+                &self.de_db.host,
+                &self.de_db.user,
+                &self.de_db.password,
+            )
+            .await?;
 
         let unleash_enabled = Select::with_theme(&theme)
             .with_prompt("Include Unleash?")
@@ -424,16 +984,23 @@ impl ConfigValues {
 
         if unleash_enabled == 0 {
             let mut new_unleash = config_values::misc::Unleash::default();
-            new_unleash.ask_for_info(&theme)?;
+            new_unleash.ask_for_info(tx, &theme, env_id).await?;
             self.unleash = Some(new_unleash);
-            self.unleash_db.ask_for_info(
-                &theme,
-                "Unleash",
-                "unleash",
-                &self.de_db.host,
-                &self.de_db.user,
-                &self.de_db.password,
-            )?;
+            let mut new_unleash_db = DatabaseConfig::default();
+            new_unleash_db
+                .ask_for_info(
+                    tx,
+                    &theme,
+                    env_id,
+                    "Unleash",
+                    "UnleashDB",
+                    "unleash",
+                    &self.de_db.host,
+                    &self.de_db.user,
+                    &self.de_db.password,
+                )
+                .await?;
+            self.unleash_db = Some(new_unleash_db);
         }
 
         let qa_enabled = Select::with_theme(&theme)
@@ -443,8 +1010,8 @@ impl ConfigValues {
             .interact()?;
 
         if qa_enabled == 0 {
-            let mut new_qa = config_values::qa::Qa::default();
-            new_qa.ask_for_info(&theme)?;
+            let mut new_qa = config_values::qa::QA::default();
+            new_qa.ask_for_info(tx, &theme, env_id).await?;
             self.qa = Some(new_qa);
         }
 
@@ -455,23 +1022,27 @@ impl ConfigValues {
             .interact()?;
 
         if qms_enabled == 0 {
-            self.qms_db.ask_for_info(
-                &theme,
-                "qms",
-                &self.de_db.host,
-                &self.de_db.user,
-                &self.de_db.password,
-            )?;
+            self.qms_db
+                .ask_for_info(
+                    tx,
+                    &theme,
+                    env_id,
+                    "qms",
+                    &self.de_db.host,
+                    &self.de_db.user,
+                    &self.de_db.password,
+                )
+                .await?;
             let mut new_qms = config_values::misc::Qms::default();
-            new_qms.ask_for_info(&theme)?;
+            new_qms.ask_for_info(tx, &theme, env_id).await?;
             self.qms = Some(new_qms);
         }
 
-        self.user_portal.ask_for_info(&theme)?;
-        self.vice.ask_for_info(&theme)?;
+        self.user_portal.ask_for_info(tx, &theme, env_id).await?;
+        self.vice.ask_for_info(tx, &theme, env_id).await?;
 
         let mut new_admin = config_values::misc::Admin::default();
-        new_admin.ask_for_info(&theme)?;
+        new_admin.ask_for_info(tx, &theme, env_id).await?;
         self.admin = Some(new_admin);
 
         let analytics_enabled = Select::with_theme(&theme)
@@ -482,12 +1053,12 @@ impl ConfigValues {
 
         if analytics_enabled == 0 {
             let mut new_analytics = config_values::misc::Analytics::default();
-            new_analytics.ask_for_info(&theme)?;
+            new_analytics.ask_for_info(tx, &theme, env_id).await?;
             self.analytics = Some(new_analytics);
         }
 
         let mut new_harbor = config_values::misc::Harbor::default();
-        new_harbor.ask_for_info(&theme)?;
+        new_harbor.ask_for_info(tx, &theme, env_id).await?;
         self.harbor = Some(new_harbor);
 
         let jaeger_enabled = Select::with_theme(&theme)
@@ -498,8 +1069,20 @@ impl ConfigValues {
 
         if jaeger_enabled == 0 {
             let mut new_jaeger = config_values::misc::Jaeger::default();
-            new_jaeger.ask_for_info(&theme)?;
+            new_jaeger.ask_for_info(tx, &theme, env_id).await?;
             self.jaeger = Some(new_jaeger);
+        }
+
+        let qa_enabled = Select::with_theme(&theme)
+            .with_prompt("Include QA?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if qa_enabled == 0 {
+            let mut new_qa = config_values::qa::QA::default();
+            new_qa.ask_for_info(tx, &theme, env_id).await?;
+            self.qa = Some(new_qa);
         }
 
         Ok(())

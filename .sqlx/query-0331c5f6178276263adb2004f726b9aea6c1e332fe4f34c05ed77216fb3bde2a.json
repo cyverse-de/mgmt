@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT config_values.id \n                FROM environments\n                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id\n                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id\n                INNER JOIN config_sections ON config_values.section_id = config_sections.id\n                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "0331c5f6178276263adb2004f726b9aea6c1e332fe4f34c05ed77216fb3bde2a"
+}

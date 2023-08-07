@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                INSERT INTO config_values\n                    (section_id, cfg_key, cfg_value, value_type_id, default_id) \n                VALUES (\n                    ?,\n                    ?,\n                    ?,\n                    (SELECT id FROM config_value_types WHERE name = ?),\n                    (SELECT id FROM config_defaults WHERE cfg_key = ? AND section_id = ?)\n                )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "f74c9858804925871dbef86541d3d86973239b9241bf538a5fc43b34023907cb"
+}

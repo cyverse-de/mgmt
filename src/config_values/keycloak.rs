@@ -1,22 +1,84 @@
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
+use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct KeycloakVice {
+    #[serde(skip)]
+    section: String,
+
     #[serde(rename = "ClientID")]
     client_id: String,
 
     client_secret: String,
 }
 
-impl KeycloakVice {
-    fn merge(&self, right: &KeycloakVice) -> anyhow::Result<KeycloakVice> {
-        Ok(serde_merge::omerge(&self, &right)?)
+impl Default for KeycloakVice {
+    fn default() -> Self {
+        KeycloakVice {
+            section: "Keycloak".to_string(),
+            client_id: String::new(),
+            client_secret: String::new(),
+        }
+    }
+}
+
+impl LoadFromConfiguration for KeycloakVice {
+    fn get_section(&self) -> String {
+        self.section.to_string()
     }
 
-    fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "VICE.ClientID" => self.client_id = value,
+                "VICE.ClientSecret" => self.client_secret = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
+impl From<KeycloakVice> for Vec<db::Configuration> {
+    fn from(kv: KeycloakVice) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section: String;
+
+        if kv.section.is_empty() {
+            section = "Keycloak".to_string();
+        } else {
+            section = kv.section.clone();
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("VICE.ClientID".to_string()),
+            value: Some(kv.client_id),
+            value_type: Some("string".to_string()),
+        });
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("VICE.ClientSecret".to_string()),
+            value: Some(kv.client_secret),
+            value_type: Some("string".to_string()),
+        });
+        vec
+    }
+}
+
+impl KeycloakVice {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client ID")
             .default("de-vice".into())
@@ -26,16 +88,33 @@ impl KeycloakVice {
             .with_prompt("Keycloak VICE Client Secret")
             .interact()?;
 
+        let client_id_id =
+            set_config_value(tx, "Keycloak", "VICE.ClientID", &client_id, "string").await?;
+        add_env_cfg_value(tx, env_id, client_id_id).await?;
         self.client_id = client_id;
+
+        let client_secret_id = set_config_value(
+            tx,
+            "Keycloak",
+            "VICE.ClientSecret",
+            &client_secret,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, client_secret_id).await?;
         self.client_secret = client_secret;
 
         Ok(())
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Keycloak {
+    #[serde(skip)]
+    section: String,
+
+    #[serde(rename = "ServerURI")]
     server_uri: Option<Url>,
     realm: String,
 
@@ -48,14 +127,100 @@ pub struct Keycloak {
     vice: KeycloakVice,
 }
 
-impl Keycloak {
-    pub fn merge(&self, right: &Keycloak) -> anyhow::Result<Keycloak> {
-        let mut merged: Keycloak = serde_merge::omerge(&self, &right)?;
-        merged.vice = self.vice.merge(&right.vice)?;
-        Ok(merged)
+impl Default for Keycloak {
+    fn default() -> Self {
+        Keycloak {
+            section: "Keycloak".to_string(),
+            server_uri: None,
+            realm: String::new(),
+            client_id: String::new(),
+            client_secret: String::new(),
+            vice: KeycloakVice::default(),
+        }
+    }
+}
+
+impl LoadFromConfiguration for Keycloak {
+    fn get_section(&self) -> String {
+        self.section.to_string()
     }
 
-    pub fn ask_for_info(&mut self, theme: &ColorfulTheme) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "ServerURI" => self.server_uri = Url::parse(&value).ok(),
+                "Realm" => self.realm = value,
+                "ClientID" => self.client_id = value,
+                "ClientSecret" => self.client_secret = value,
+                _ => (),
+            }
+
+            if key.starts_with("VICE.") {
+                self.vice.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl From<Keycloak> for Vec<db::Configuration> {
+    fn from(k: Keycloak) -> Vec<db::Configuration> {
+        let mut vec: Vec<db::Configuration> = Vec::new();
+        let section: String;
+
+        if k.section.is_empty() {
+            section = "Keycloak".to_string();
+        } else {
+            section = k.section.clone();
+        }
+
+        if let Some(server_uri) = k.server_uri {
+            vec.push(db::Configuration {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("ServerURI".to_string()),
+                value: Some(server_uri.to_string()),
+                value_type: Some("string".to_string()),
+            });
+        }
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Realm".to_string()),
+            value: Some(k.realm),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ClientID".to_string()),
+            value: Some(k.client_id),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.push(db::Configuration {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("ClientSecret".to_string()),
+            value: Some(k.client_secret),
+            value_type: Some("string".to_string()),
+        });
+
+        vec.extend::<Vec<db::Configuration>>(k.vice.into());
+
+        vec
+    }
+}
+
+impl Keycloak {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
         let server_uri = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Server URI")
             .interact()?;
@@ -74,12 +239,26 @@ impl Keycloak {
             .with_prompt("Keycloak Client Secret")
             .interact()?;
 
+        let server_uri_id =
+            set_config_value(tx, "Keycloak", "ServerURI", &server_uri, "string").await?;
+        add_env_cfg_value(tx, env_id, server_uri_id).await?;
         self.server_uri = Url::parse(&server_uri).ok();
+
+        let realm_id = set_config_value(tx, "Keycloak", "Realm", &realm, "string").await?;
+        add_env_cfg_value(tx, env_id, realm_id).await?;
         self.realm = realm;
+
+        let client_id_id =
+            set_config_value(tx, "Keycloak", "ClientID", &client_id, "string").await?;
+        add_env_cfg_value(tx, env_id, client_id_id).await?;
         self.client_id = client_id;
+
+        let client_secret_id =
+            set_config_value(tx, "Keycloak", "ClientSecret", &client_secret, "string").await?;
+        add_env_cfg_value(tx, env_id, client_secret_id).await?;
         self.client_secret = client_secret;
 
-        self.vice.ask_for_info(theme)?;
+        self.vice.ask_for_info(tx, theme, env_id).await?;
 
         Ok(())
     }

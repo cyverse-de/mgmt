@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        SELECT repo_id FROM services WHERE name = (?)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "repo_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "eac7c8963851b9df1bab9aeb162f2bdd80f6795eba4d564368410aa1df62a47e"
+}

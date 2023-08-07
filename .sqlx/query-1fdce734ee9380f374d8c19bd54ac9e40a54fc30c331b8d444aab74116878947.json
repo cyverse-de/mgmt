@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT services.name AS `name: String` FROM environments\n                INNER JOIN environments_services ON environments.id = environments_services.environment_id\n                INNER JOIN services ON environments_services.service_id = services.id\n                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id\n                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id\n                INNER JOIN environments_services_config_values a ON environments_services.id = a.environment_service_id\n                INNER JOIN environments_services_config_values b ON environments_config_values.id = b.environment_config_value_id\n                WHERE environments.name = ? AND config_values.id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "1fdce734ee9380f374d8c19bd54ac9e40a54fc30c331b8d444aab74116878947"
+}
