@@ -4,7 +4,7 @@ use mgmt::config_values::config;
 use mgmt::db::{self, Configuration, LoadFromConfiguration};
 
 use anyhow::anyhow;
-use clap::{arg, Command};
+use clap::{arg, ArgAction, Command};
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, Pool};
 
@@ -146,27 +146,70 @@ fn cli() -> Command {
                                 -e --"environment" <ENVIRONMENT>
                                     "The environment to render the config values for"
                             ),
-                            arg!(--"include-all" "Include all settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-admin" "Include the Admin settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-analytics" "Include the Analytics settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-agave" "Include the Agave settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-base-urls" "Include the BaseURLs settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-cas" "Include the CAS settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-coge" "Include the CoGe settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-default-output-folder" "Include the DefaultOutputFolder settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-docker" "Include the Docker settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-infosquito" "Include the InfoSquito settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-intercom" "Include the Intercom settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-jaeger" "Include the Jaeger settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-jobs" "Include the Jobs settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-jvmpopts" "Include the JVMOpts settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-permanent-id" "Include the PermanentID settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-qa" "Include the QA settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-qms" "Include the QMS settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-subscriptions" "Include the Subscriptions settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-timezone" "Include the Timezone settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-tools" "Include the Tools settings in the rendered output").value_parser(clap::value_parser!(bool)),
-                            arg!(--"include-unleash" "Include the Unleash settings in the rendered output").value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-all" "Include all settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-admin" "Include the Admin settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-analytics" "Include the Analytics settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-agave" "Include the Agave settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-base-urls" "Include the BaseURLs settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-cas" "Include the CAS settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-docker" "Include the Docker settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-infosquito" "Include the InfoSquito settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-intercom" "Include the Intercom settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-jaeger" "Include the Jaeger settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-jobs" "Include the Jobs settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-jvmpopts" "Include the JVMOpts settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-permanent-id" "Include the PermanentID settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-qa" "Include the QA settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-qms" "Include the QMS settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
+                            arg!(--"include-unleash" "Include the Unleash settings in the rendered output")
+                                .required(false)
+                                .action(ArgAction::SetTrue)
+                                .value_parser(clap::value_parser!(bool)),
                         ]),
                 )
                 .subcommand(
@@ -487,105 +530,13 @@ async fn list_values(
     Ok(())
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-struct RenderOptions {
-    include_admin: bool,
-    include_analytics: bool,
-    include_agave: bool,
-    include_base_urls: bool,
-    include_cas: bool,
-    include_docker: bool,
-    include_infosquito: bool,
-    include_intercom: bool,
-    include_jaeger: bool,
-    include_jobs: bool,
-    include_jvmpopts: bool,
-    include_permanent_id: bool,
-    include_qa: bool,
-    include_qms: bool,
-    include_timezone: bool,
-    include_tools: bool,
-    include_unleash: bool,
-}
-
-impl RenderOptions {
-    fn new(sub_m: &clap::ArgMatches) -> Self {
-        let include_all = sub_m.contains_id("include-all");
-
-        if include_all {
-            Self {
-                include_admin: true,
-                include_analytics: true,
-                include_agave: true,
-                include_base_urls: true,
-                include_cas: true,
-                include_docker: true,
-                include_infosquito: true,
-                include_intercom: true,
-                include_jaeger: true,
-                include_jobs: true,
-                include_jvmpopts: true,
-                include_permanent_id: true,
-                include_qa: true,
-                include_qms: true,
-                include_timezone: true,
-                include_tools: true,
-                include_unleash: true,
-            }
-        } else {
-            Self {
-                include_admin: sub_m.contains_id("include-admin"),
-                include_analytics: sub_m.contains_id("include-analytics"),
-                include_agave: sub_m.contains_id("include-agave"),
-                include_base_urls: sub_m.contains_id("include-base-urls"),
-                include_cas: sub_m.contains_id("include-cas"),
-                include_docker: sub_m.contains_id("include-docker"),
-                include_infosquito: sub_m.contains_id("include-infosquito"),
-                include_intercom: sub_m.contains_id("include-intercom"),
-                include_jaeger: sub_m.contains_id("include-jaeger"),
-                include_jobs: sub_m.contains_id("include-jobs"),
-                include_jvmpopts: sub_m.contains_id("include-jvmpopts"),
-                include_permanent_id: sub_m.contains_id("include-permanent-id"),
-                include_qa: sub_m.contains_id("include-qa"),
-                include_qms: sub_m.contains_id("include-qms"),
-                include_timezone: sub_m.contains_id("include-timezone"),
-                include_tools: sub_m.contains_id("include-tools"),
-                include_unleash: sub_m.contains_id("include-unleash"),
-            }
-        }
-    }
-
-    fn include_section(&self, section: &str) -> bool {
-        match section {
-            "Admin" => self.include_admin,
-            "Analytics" => self.include_analytics,
-            "Agave" => self.include_agave,
-            "BaseURLs" => self.include_base_urls,
-            "CAS" => self.include_cas,
-            "Docker" => self.include_docker,
-            "InfoSquito" => self.include_infosquito,
-            "Intercom" => self.include_intercom,
-            "Jaeger" => self.include_jaeger,
-            "Jobs" => self.include_jobs,
-            "JVMOpts" => self.include_jvmpopts,
-            "PermanentID" => self.include_permanent_id,
-            "QA" => self.include_qa,
-            "QMS" => self.include_qms,
-            "Timezone" => self.include_timezone,
-            "Tools" => self.include_tools,
-            "Unleash" => self.include_unleash,
-            _ => false,
-        }
-    }
-}
-
 /**
  * Handler  for the `mgmt-configs values render` command.
  */
 async fn render_values(
     pool: &Pool<MySql>,
     environment: &str,
-    opts: &RenderOptions,
+    opts: &config::SectionOptions,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut all_cfgs: Vec<Configuration> = Vec::new();
@@ -613,6 +564,8 @@ async fn render_values(
     }
 
     let mut cv = config::ConfigValues::default();
+    cv.set_section_options(opts.clone());
+    cv.reset_sections()?;
     cv.cfg_set_keys(all_cfgs)?;
 
     let yaml = serde_yaml::to_string(&cv)?;
@@ -957,7 +910,7 @@ async fn main() -> anyhow::Result<()> {
                             "No environment specified. Use --environment <environment> to specify an environment."
                         )
                     })?;
-                    let opts = RenderOptions::new(sub_m);
+                    let opts = config::SectionOptions::new(sub_m);
                     render_values(&pool, &environment, &opts).await?;
                 }
 

@@ -11,11 +11,176 @@ use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct SectionOptions {
+    include_admin: bool,
+    include_analytics: bool,
+    include_agave: bool,
+    include_base_urls: bool,
+    include_cas: bool,
+    include_docker: bool,
+    include_infosquito: bool,
+    include_intercom: bool,
+    include_jaeger: bool,
+    include_jobs: bool,
+    include_jvmpopts: bool,
+    include_permanent_id: bool,
+    include_qa: bool,
+    include_qms: bool,
+    include_unleash: bool,
+}
+
+impl SectionOptions {
+    pub fn new(sub_m: &clap::ArgMatches) -> Self {
+        let include_all = if sub_m.contains_id("include-all") {
+            sub_m.get_flag("include-all")
+        } else {
+            false
+        };
+
+        if include_all {
+            Self {
+                include_admin: true,
+                include_analytics: true,
+                include_agave: true,
+                include_base_urls: true,
+                include_cas: true,
+                include_docker: true,
+                include_infosquito: true,
+                include_intercom: true,
+                include_jaeger: true,
+                include_jobs: true,
+                include_jvmpopts: true,
+                include_permanent_id: true,
+                include_qa: true,
+                include_qms: true,
+                include_unleash: true,
+            }
+        } else {
+            Self {
+                include_admin: if sub_m.contains_id("include-admin") {
+                    sub_m.get_flag("include-admin")
+                } else {
+                    false
+                },
+
+                include_analytics: if sub_m.contains_id("include-analytics") {
+                    sub_m.get_flag("include-analytics")
+                } else {
+                    false
+                },
+
+                include_agave: if sub_m.contains_id("include-agave") {
+                    sub_m.get_flag("include-agave")
+                } else {
+                    false
+                },
+
+                include_base_urls: if sub_m.contains_id("include-base-urls") {
+                    sub_m.get_flag("include-base-urls")
+                } else {
+                    false
+                },
+
+                include_cas: if sub_m.contains_id("include-cas") {
+                    sub_m.get_flag("include-cas")
+                } else {
+                    false
+                },
+
+                include_docker: if sub_m.contains_id("include-docker") {
+                    sub_m.get_flag("include-docker")
+                } else {
+                    false
+                },
+
+                include_infosquito: if sub_m.contains_id("include-infosquito") {
+                    sub_m.get_flag("include-infosquito")
+                } else {
+                    false
+                },
+
+                include_intercom: if sub_m.contains_id("include-intercom") {
+                    sub_m.get_flag("include-intercom")
+                } else {
+                    false
+                },
+
+                include_jaeger: if sub_m.contains_id("include-jaeger") {
+                    sub_m.get_flag("include-jaeger")
+                } else {
+                    false
+                },
+
+                include_jobs: if sub_m.contains_id("include-jobs") {
+                    sub_m.get_flag("include-jobs")
+                } else {
+                    false
+                },
+
+                include_jvmpopts: if sub_m.contains_id("include-jvmpopts") {
+                    sub_m.get_flag("include-jvmpopts")
+                } else {
+                    false
+                },
+
+                include_permanent_id: if sub_m.contains_id("include-permanent-id") {
+                    sub_m.get_flag("include-permanent-id")
+                } else {
+                    false
+                },
+
+                include_qa: if sub_m.contains_id("include-qa") {
+                    sub_m.get_flag("include-qa")
+                } else {
+                    false
+                },
+
+                include_qms: if sub_m.contains_id("include-qms") {
+                    sub_m.get_flag("include-qms")
+                } else {
+                    false
+                },
+
+                include_unleash: if sub_m.contains_id("include-unleash") {
+                    sub_m.get_flag("include-unleash")
+                } else {
+                    false
+                },
+            }
+        }
+    }
+
+    pub fn include_section(&self, section: &str) -> bool {
+        match section {
+            "Admin" => self.include_admin,
+            "Analytics" => self.include_analytics,
+            "Agave" => self.include_agave,
+            "BaseURLs" => self.include_base_urls,
+            "CAS" => self.include_cas,
+            "Docker" => self.include_docker,
+            "InfoSquito" => self.include_infosquito,
+            "Intercom" => self.include_intercom,
+            "Jaeger" => self.include_jaeger,
+            "Jobs" => self.include_jobs,
+            "JVMOpts" => self.include_jvmpopts,
+            "PermanentID" => self.include_permanent_id,
+            "QA" => self.include_qa,
+            "QMS" => self.include_qms,
+            "Unleash" => self.include_unleash,
+            _ => true,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
     #[serde(skip)]
     section: String,
+
+    #[serde(skip)]
+    section_options: SectionOptions,
 
     // Must be user supplied.
     environment: String,
@@ -28,10 +193,12 @@ pub struct ConfigValues {
     uid_domain: String,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     agave: Option<Agave>,
 
     // Defaults are provided for deployment.
     #[serde(rename = "BaseURLs")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     base_urls: Option<BaseURLs>,
 
     // Defaults are provided for deployment (or will be).
@@ -42,6 +209,7 @@ pub struct ConfigValues {
     de: DE,
 
     // Defaults are provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     docker: Option<Docker>,
 
     // Must be configured for deplyoment.
@@ -58,9 +226,11 @@ pub struct ConfigValues {
     icat: Icat,
 
     // Defaults provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     infosquito: Option<Infosquito>,
 
     // Optional for deployment
+    #[serde(skip_serializing_if = "Option::is_none")]
     intercom: Option<config_values::intercom::Intercom>,
 
     // Must be configured for deployment.
@@ -68,6 +238,7 @@ pub struct ConfigValues {
     irods: config_values::irods::Irods,
 
     // Defaults are provided for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     jobs: Option<config_values::misc::Jobs>,
 
     // Must be configured for deployment.
@@ -79,12 +250,14 @@ pub struct ConfigValues {
 
     // Optional for deployment.
     #[serde(rename = "PermanentID")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     permanent_id: Option<config_values::misc::PermanentId>,
 
     // Defaults provided for deployment.
     timezone: Option<String>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     unleash: Option<config_values::misc::Unleash>,
 
     // Required for deployment
@@ -124,12 +297,15 @@ pub struct ConfigValues {
 
     // Required for deployment.
     #[serde(rename = "UnleashDB")]
-    unleash_db: DatabaseConfig,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    unleash_db: Option<DatabaseConfig>,
 
     // Defaults provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
     admin: Option<config_values::misc::Admin>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     analytics: Option<config_values::misc::Analytics>,
 
     // Defaults provided for deployment.
@@ -137,12 +313,15 @@ pub struct ConfigValues {
 
     // Optional for deployment.
     #[serde(rename = "QMS")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     qms: Option<config_values::misc::Qms>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     jaeger: Option<config_values::misc::Jaeger>,
 
     // Optional for deployment.
+    #[serde(skip_serializing_if = "Option::is_none")]
     qa: Option<config_values::qa::QA>,
 }
 
@@ -150,6 +329,7 @@ impl Default for ConfigValues {
     fn default() -> Self {
         ConfigValues {
             section: "TopLevel".to_string(),
+            section_options: SectionOptions::default(),
             environment: String::new(),
             namespace: String::new(),
             uid_domain: String::new(),
@@ -179,7 +359,7 @@ impl Default for ConfigValues {
             permissions_db: DatabaseConfig::default(),
             qms_db: QMSDatabaseConfig::default(),
             metadata_db: DatabaseConfig::default(),
-            unleash_db: DatabaseConfig::default(),
+            unleash_db: Some(DatabaseConfig::default()),
             admin: Some(config_values::misc::Admin::default()),
             analytics: Some(config_values::misc::Analytics::default()),
             harbor: Some(config_values::misc::Harbor::default()),
@@ -307,7 +487,9 @@ impl LoadFromConfiguration for ConfigValues {
                         self.metadata_db.cfg_set_key(cfg).ok();
                     }
                     "UnleashDB" => {
-                        self.unleash_db.cfg_set_key(cfg).ok();
+                        if let Some(unleash_db) = &mut self.unleash_db {
+                            unleash_db.cfg_set_key(cfg).ok();
+                        }
                     }
                     "Admin" => {
                         if let Some(admin) = &mut self.admin {
@@ -387,12 +569,18 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        if let Some(agave) = cv.agave {
-            cfgs.extend::<Vec<db::Configuration>>(agave.into());
+        // Agave section is optional, so check before adding it.
+        if cv.section_options.include_section("Agave") {
+            if let Some(agave) = cv.agave {
+                cfgs.extend::<Vec<db::Configuration>>(agave.into());
+            }
         }
 
-        if let Some(base_urls) = cv.base_urls {
-            cfgs.extend::<Vec<db::Configuration>>(base_urls.into());
+        // BaseURLs is optional, so check before adding it.
+        if cv.section_options.include_section("BaseURLs") {
+            if let Some(base_urls) = cv.base_urls {
+                cfgs.extend::<Vec<db::Configuration>>(base_urls.into());
+            }
         }
 
         if let Some(dashboard_aggregator) = cv.dashboard_aggregator {
@@ -401,8 +589,11 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         cfgs.extend::<Vec<db::Configuration>>(cv.de.into());
 
-        if let Some(docker) = cv.docker {
-            cfgs.extend::<Vec<db::Configuration>>(docker.into());
+        // Docker is optional, so check before adding it.
+        if cv.section_options.include_section("Docker") {
+            if let Some(docker) = cv.docker {
+                cfgs.extend::<Vec<db::Configuration>>(docker.into());
+            }
         }
 
         cfgs.extend::<Vec<db::Configuration>>(cv.elasticsearch.into());
@@ -413,26 +604,38 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 
         cfgs.extend::<Vec<db::Configuration>>(cv.icat.into());
 
-        if let Some(infosquito) = cv.infosquito {
-            cfgs.extend::<Vec<db::Configuration>>(infosquito.into());
+        // Infosquito is optional, so check before adding it.
+        if cv.section_options.include_section("Infosquito") {
+            if let Some(infosquito) = cv.infosquito {
+                cfgs.extend::<Vec<db::Configuration>>(infosquito.into());
+            }
         }
 
-        if let Some(intercom) = cv.intercom {
-            cfgs.extend::<Vec<db::Configuration>>(intercom.into());
+        // Intercom is optional, so check before adding it.
+        if cv.section_options.include_section("Intercom") {
+            if let Some(intercom) = cv.intercom {
+                cfgs.extend::<Vec<db::Configuration>>(intercom.into());
+            }
         }
 
         cfgs.extend::<Vec<db::Configuration>>(cv.irods.into());
 
-        if let Some(jobs) = cv.jobs {
-            cfgs.extend::<Vec<db::Configuration>>(jobs.into());
+        // Jobs is optional, so check before adding it.
+        if cv.section_options.include_section("Jobs") {
+            if let Some(jobs) = cv.jobs {
+                cfgs.extend::<Vec<db::Configuration>>(jobs.into());
+            }
         }
 
         cfgs.extend::<Vec<db::Configuration>>(cv.keycloak.into());
 
         cfgs.extend::<Vec<db::Configuration>>(cv.pgp.into());
 
-        if let Some(permanent_id) = cv.permanent_id {
-            cfgs.extend::<Vec<db::Configuration>>(permanent_id.into());
+        // PermanentID is optional, so check before adding it.
+        if cv.section_options.include_section("PermanentID") {
+            if let Some(permanent_id) = cv.permanent_id {
+                cfgs.extend::<Vec<db::Configuration>>(permanent_id.into());
+            }
         }
 
         if let Some(timezone) = cv.timezone {
@@ -445,8 +648,11 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             });
         }
 
-        if let Some(unleash) = cv.unleash {
-            cfgs.extend::<Vec<db::Configuration>>(unleash.into());
+        // Unleash is optional, so check before adding it.
+        if cv.section_options.include_section("Unleash") {
+            if let Some(unleash) = cv.unleash {
+                cfgs.extend::<Vec<db::Configuration>>(unleash.into());
+            }
         }
 
         cfgs.extend::<Vec<db::Configuration>>(cv.user_portal.into());
@@ -489,34 +695,54 @@ impl From<ConfigValues> for Vec<db::Configuration> {
         });
         cfgs.extend::<Vec<db::Configuration>>(metadata_db_cfgs.into());
 
-        let mut unleash_db_cfgs: Vec<db::Configuration> = cv.unleash_db.into();
-        unleash_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("UnleashDB".to_string());
-        });
-        cfgs.extend::<Vec<db::Configuration>>(unleash_db_cfgs.into());
-
-        if let Some(admin) = cv.admin {
-            cfgs.extend::<Vec<db::Configuration>>(admin.into());
+        // UnleashDB is optional, so check before adding it.
+        if cv.section_options.include_section("Unleash") {
+            if let Some(unleash_db) = cv.unleash_db {
+                let mut unleash_db_cfgs: Vec<db::Configuration> = unleash_db.into();
+                unleash_db_cfgs.iter_mut().for_each(|cfg| {
+                    cfg.section = Some("UnleashDB".to_string());
+                });
+                cfgs.extend::<Vec<db::Configuration>>(unleash_db_cfgs.into());
+            }
         }
 
-        if let Some(analytics) = cv.analytics {
-            cfgs.extend::<Vec<db::Configuration>>(analytics.into());
+        // Admin is optional, so check before adding it.
+        if cv.section_options.include_section("Admin") {
+            if let Some(admin) = cv.admin {
+                cfgs.extend::<Vec<db::Configuration>>(admin.into());
+            }
+        }
+
+        // Analytics is optional, so check before adding it.
+        if cv.section_options.include_section("Analytics") {
+            if let Some(analytics) = cv.analytics {
+                cfgs.extend::<Vec<db::Configuration>>(analytics.into());
+            }
         }
 
         if let Some(harbor) = cv.harbor {
             cfgs.extend::<Vec<db::Configuration>>(harbor.into());
         }
 
-        if let Some(qms) = cv.qms {
-            cfgs.extend::<Vec<db::Configuration>>(qms.into());
+        // QMS is optional, so check before adding it.
+        if cv.section_options.include_section("QMS") {
+            if let Some(qms) = cv.qms {
+                cfgs.extend::<Vec<db::Configuration>>(qms.into());
+            }
         }
 
-        if let Some(jaeger) = cv.jaeger {
-            cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+        // Jaeger is optional, so check before adding it.
+        if cv.section_options.include_section("Jaeger") {
+            if let Some(jaeger) = cv.jaeger {
+                cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+            }
         }
 
-        if let Some(qa) = cv.qa {
-            cfgs.extend::<Vec<db::Configuration>>(qa.into());
+        // QA is optional, so check before adding it.
+        if cv.section_options.include_section("QA") {
+            if let Some(qa) = cv.qa {
+                cfgs.extend::<Vec<db::Configuration>>(qa.into());
+            }
         }
 
         cfgs
@@ -526,6 +752,66 @@ impl From<ConfigValues> for Vec<db::Configuration> {
 impl ConfigValues {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_section_options(&mut self, section_options: SectionOptions) {
+        self.section_options = section_options;
+    }
+
+    pub fn reset_sections(&mut self) -> anyhow::Result<()> {
+        if !self.section_options.include_section("Agave") {
+            self.agave = None;
+        }
+
+        if !self.section_options.include_section("BaseURLs") {
+            self.base_urls = None;
+        }
+
+        if !self.section_options.include_section("Docker") {
+            self.docker = None;
+        }
+
+        if !self.section_options.include_section("Infosquito") {
+            self.infosquito = None;
+        }
+
+        if !self.section_options.include_section("Intercom") {
+            self.intercom = None;
+        }
+
+        if !self.section_options.include_section("Jobs") {
+            self.jobs = None;
+        }
+
+        if !self.section_options.include_section("PermanentID") {
+            self.permanent_id = None;
+        }
+
+        if !self.section_options.include_section("Unleash") {
+            self.unleash = None;
+        }
+
+        if !self.section_options.include_section("Admin") {
+            self.admin = None;
+        }
+
+        if !self.section_options.include_section("Analytics") {
+            self.analytics = None;
+        }
+
+        if !self.section_options.include_section("QMS") {
+            self.qms = None;
+        }
+
+        if !self.section_options.include_section("Jaeger") {
+            self.jaeger = None;
+        }
+
+        if !self.section_options.include_section("QA") {
+            self.qa = None;
+        }
+
+        Ok(())
     }
 
     pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
@@ -705,7 +991,8 @@ impl ConfigValues {
             let mut new_unleash = config_values::misc::Unleash::default();
             new_unleash.ask_for_info(tx, &theme, env_id).await?;
             self.unleash = Some(new_unleash);
-            self.unleash_db
+            let mut new_unleash_db = DatabaseConfig::default();
+            new_unleash_db
                 .ask_for_info(
                     tx,
                     &theme,
@@ -718,6 +1005,7 @@ impl ConfigValues {
                     &self.de_db.password,
                 )
                 .await?;
+            self.unleash_db = Some(new_unleash_db);
         }
 
         let qa_enabled = Select::with_theme(&theme)
