@@ -105,17 +105,88 @@ Default values are global (as are sections), which means they're available for e
 
 ## 4.1 Listing default values
 
+Use the `mgmt-configs defaults list` command to list all of the available default values.
+
+```bash
+> mgmt-configs defaults list
+Admin.Attribute = entitlement
+Admin.Groups = de_admins
+Agave.CallbackBaseURI =
+...
+```
+
+Note that some of the defaults will be blank. That is by design. Those values should be overridden by the environment-specific configuration values.
+
 ## 4.2 Adding a default value
+
+Use the `mgmt-configs defaults set` command to add a new default value.
+
+```bash
+> mgmt-configs defaults set --section Example --key Middle.Key --value ExampleValue --type string
+Added default config value with an ID of 165
+```
+
 ## 4.3 Getting a single default value
+
+Use the `mgmt-configs defaults get` command to get a single default value.
+
+```bash
+> mgmt-configs defaults get --section Example --key Middle.Key
+Example.Middle.Key = ExampleValue
+```
+
 ## 4.4 Deleting a default value
+
+Use the `mgmt-configs defaults delete` command to delete a default value.
+
+```bash
+> mgmt-configs defaults delete --section Example --key Middle.Key
+Deleted default config value with an ID of 165
+```
 
 &nbsp;
 
 # 5. Configuration Values
+
+Configuration values are environment specific and override a default value. A default value with the same section and key must be present in order for the value to be set.
+
 ## 5.1 Listing configuration values
+
+Use the `mgmt-configs values list` command to list all of the configuration values in an environment.
+
+```bash
+> mgmt-configs values list
+TopLevel.Environment = qa
+TopLevel.Namespace = qa
+...
+```
+
 ## 5.2 Adding a configuration value
+
+Use the `mgmt-configs values set` command to set a new configuration value that overrides a default.
+
+```bash
+> mgmt-configs values set -e qa -s Example -k Middle.Key -v ExampleValue -t string
+Added config value to environment 'qa': Exmaple.Middle.Key = ExampleValue
+```
+
 ## 5.3 Getting a single configuration value
+
+Use the `mgmt-configs values get` command to get a configuration value.
+
+```bash
+> mgmt-configs values get -e qa -s Example -k Middle.Key
+Example.Middle.Key = ExampleValue
+```
+
 ## 5.4 Deleting a configuration value
+
+Use the `mgmt-configs values delete` command to delete a configuration value.
+
+```bash
+> mgmt-configs values delete -e qa -s Example -k Middle.Key
+Deleted config value from environment 'qa': Exmaple.Middle.Key
+```
 
 &nbsp;
 
