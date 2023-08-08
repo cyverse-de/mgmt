@@ -12,7 +12,13 @@ This file covers how configuration values are organized in the `de_releases` dat
 
 The configuration values are stored in a [`dolt`](http://dolthub.com) database. The initial creation and population of the database was done with a combination of the `dolt` command and the [`migrate`](https://github.com/golang-migrate/migrate) command. The migration SQL files are stored in the [`db/migrations`](../db/migrations) directory. For future updates, only add migration files if you're changing the schema of the database. Adding new data to the database can be done through the `mgmt` tool or through ad-hoc SQL queries through `dolt` or `mysql`.
 
-All configuration values have a default value. The defaults are environment agnostic, meaning that the default value should potentially work for all deployments or be blank. New default values can either be added as part of a migration or by using the `mgmt-config defaults set` command.
+An `environment` is a single deployment of a DE. It has a name and a corresponding namespace. The namespace can be different from the name. A new environment can be set with the `mgmt-configs env create` command.
+
+Each configuration value is contained in a top-level `section`. New sections can be added with the `mgmt-configs sections add` commmand.
+
+Every configuration also has a corresponding default value. Default values are global and therefore reused across environments. New default values can either be added as part of a migration or by using the `mgmt-config defaults set` command.
+
+In summary, an environment contains multiple configuration sections, each of which contain a set of configuration values. Each configuration has a globally defined default.
 
 &nbsp;
 
