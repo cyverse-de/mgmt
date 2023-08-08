@@ -23,22 +23,88 @@ In summary, an environment contains multiple configuration sections, each of whi
 &nbsp;
 
 # 2. Environments
+
+A environment is meant to represent a single deployment of the DE. A site may have one or more deployments, and therefore have one or more corresponding environments. An example would be a site having a `qa` and `prod` environment, with new changes being tried out in the `qa` environment before being deployed into `prod`.
+
 ## 2.1 Listing available environments
+
+Use the `mgmt-configs env list` command to get a simple listing of all of the environments defined in the database.
+
+Example:
+```bash
+> mgmt-configs env list
+de
+testenv
+qa
+```
+
 ## 2.2 Adding a new environment
+
+Use the `mgmt-configs env create` command to add a new enviroment.
+
+Example:
+```bash
+> mgmt-configs env create --name qa --namespace qa
+Created environment: qa
+```
+
 ## 2.3 Deleting an environment
+
+Use the `mgmt-configs env delete` command to delete an environment.
+
+Example:
+```bash
+> mgmt-configs env delete --name qa
+```
+
+## 2.4 Interactively populating all configuration values in an environment
+
+This command will go through all of the configuration values, section by section, and allow you to set values for them.
+
+```bash
+> mgmt-configs env populate
+```
+
+The output of this command is long, so it's not included here.
 
 &nbsp;
 
 # 3. Sections
+
+Each section contains a set of configuration values in an environment. The list of sections is global, but the values contained within them are per-environment.
+
 ## 3.1 Listing sections
+
+Use the `mgmt-configs sections list` command to list all of the available sections.
+
+```bash
+> mgmt-configs sections list
+```
+
 ## 3.2 Adding a new section
-## 3.3 Listing a single section
-## 3.4 Deleting a section
+
+Use the `mgmt-configs sections add` command to add a new section to the database.
+
+```bash
+> mgmt-configs sections add --section Example
+```
+
+## 3.3 Deleting a section
+
+Use the `mgmt-configs sections delete` command to delete a section from the database.
+
+```bash
+> mgmt-configs sections delete --section Example
+```
 
 &nbsp;
 
-# 4. Default Values
+# 4.0 Default Values
+
+Default values are global (as are sections), which means they're available for every environment.
+
 ## 4.1 Listing default values
+
 ## 4.2 Adding a default value
 ## 4.3 Getting a single default value
 ## 4.4 Deleting a default value
