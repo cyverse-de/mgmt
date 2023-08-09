@@ -206,8 +206,11 @@ The `mgmt-configs values render` command has a lot of flags to control which opt
 &nbsp;
 
 # 7. Database
-## 7.1 Schema
-## 7.2 Versioning
+
+`mgmt` uses a Dolt database to store all of the information needed to generate the configuration values files for an environment. Dolt is versioned, so you can do a `dolt commit` after updating a value to ensure that you can roll back a change if necessary. For more information on Dolt, check out their documentation at [https://dolthub.com](https://dolthub.com).
+
+## 7.1 Starting Up
+## 7.2 Connecting
 ## 7.3 Migrations
 ## 7.4 Backup & Restore
 ## 7.5 Reusing across clusters
@@ -217,4 +220,4 @@ The `mgmt-configs values render` command has a lot of flags to control which opt
 # Sources
 * [Dolt](https://dolthub.com)
 * [migrate](https://github.com/golang-migrate/migrate)
-* [Migration SQL)(../db/migration) 
+* [Migration SQL)(../db/migrations) 
