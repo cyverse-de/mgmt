@@ -209,11 +209,61 @@ The `mgmt-configs values render` command has a lot of flags to control which opt
 
 `mgmt` uses a Dolt database to store all of the information needed to generate the configuration values files for an environment. Dolt is versioned, so you can do a `dolt commit` after updating a value to ensure that you can roll back a change if necessary. For more information on Dolt, check out their documentation at [https://dolthub.com](https://dolthub.com).
 
-## 7.1 Starting Up
-## 7.2 Connecting
-## 7.3 Migrations
-## 7.4 Backup & Restore
-## 7.5 Reusing across clusters
+## 7.1 Creating the data directory
+
+First you need to create the directory where the database files will live. Here's the process for that, run from inside this repo's top-level directory:
+
+```bash
+> cd db/
+> mkdir de_releases
+> cd de_releases/
+> dolt init
+```
+
+## 7.2 Starting Up
+
+To start up the database, run the `dolt sql-server` in the `db/de_releases` directory. If 
+
+```bash
+> cd db/de_releases
+> dolt sql-server
+```
+
+## 7.3 Connecting
+
+You have two options for directly connecting to the Dolt database. You can use the `dolt sql-client` command or the `mysql` client. Both work well.
+
+For the `dolt sql-client` command, run the following while `dolt sql-server` is running in another terminal:
+
+```bash
+> dolt sql-client -u root
+```
+
+For the MySQL command, run the following while `dolt sql-server` is running in another terminal:
+
+```bash
+> mysql --host 127.0.0.1 -u root --port 3306
+```
+
+## 7.4 Creating the database and running migrations
+
+Next you need to create the database. For that you'll need a prompt as created in the previous step. Then you'll need to run the following:
+
+```bash
+mysql> create database de_releases;
+mysql> use de_releases;
+```
+
+ The latter command, `use de_releases;`, is one that you'll have to run every time you start up a REPL connected to the dolt server.
+
+ Next you should run the migrations against the database while `dolt sql-server` is still running in another terminal. To do that, exit the database REPL with `Ctrl-D` and run the following from the top-level directory of this repository.
+
+ ```bash
+> migrate -database 'mysql://root@tcp(127.0.0.1:3306)/de_releases' -path db/migrations up
+```
+
+## 7.5 Backup and restore
+## 7.6 Reusing across clusters
 
 &nbsp;
 
