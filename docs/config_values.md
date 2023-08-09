@@ -191,9 +191,17 @@ Deleted config value from environment 'qa': Exmaple.Middle.Key
 &nbsp;
 
 # 6. YAML rendering
-# 6.1 Adding a new configuration value
-# 6.2 Adding a new section
-# 6.3 Updating the database
+
+Rendering (a.k.a applying, a.k.a generating) YAML files containing the configuration values for an environment allows the operator to use the configuration values as part of the DE deployment process. They're usually provided to the existing `deploy.py` script --- along with a YAML file containing the default values --- to allow it to generate configuration files for the services.
+
+To "render" the YAML file containing the configuration values for an environment, use the `mgmt-configs values render` command.
+
+```bash
+> mgmt-configs values render -e qa --include-all
+<YAML>
+```
+
+The `mgmt-configs values render` command has a lot of flags to control which optional top-level sections are included in the YAML output. By default, all optional sections are disabled. The `--include-all` option is a short-hand way to enable all of the optional sections. See the output of the `mgmt-configs values render --help` command to get a full listing of all of the sections that can be enabled.
 
 &nbsp;
 
