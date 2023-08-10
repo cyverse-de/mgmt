@@ -263,11 +263,36 @@ mysql> use de_releases;
 ```
 
 ## 7.5 Backup and restore
-## 7.6 Reusing across clusters
+
+There are a couple of ways to back up and restore the Dolt database.
+
+### 7.5.1 Dolt Backup
+The `dolt backup` command can be used to generate a binary back up that can later be restored using the `dolt backup restore` command. This captures the entire current state of the database, including all uncommitted data. See the [Dolt docs](https://docs.dolthub.com/sql-reference/server/backups#backups) for more info on the `dolt backup` command and subcommands. Here's a somewhat contrived example of using the dolt back command:
+
+```bash
+> cd db/de_releases
+> dolt backup add de_releases_backup file:///tmp/example_backup
+> dolt backup sync de_releases_backup
+```
+
+Later you would do the following to restore from the backup:
+
+```bash
+> cd db/
+> dolt backup restore file:///tmp/example_backup de_releases
+```
+
+### 7.5.1 Dolt Remotes
+Dolt remotes are conceptually similar to Git remotes. You can use them to sync your data to a remote system using the `dolt push` command, however only data up to the last commit will be synced. Additionally, the database used by `mgmt` will likely include passwords, so be extremely careful about where you push your data.
+
+We recommend using the `dolt backup` command when dealing with the `de_releases` database and keeping the backups on a secure system. However, if you want to use Dolt remotes, see the [Dolt docs](https://docs.dolthub.com/sql-reference/server/backups#remotes) for more information.
+
 
 &nbsp;
 
 # Sources
 * [Dolt](https://dolthub.com)
+* [Dolt Backups](https://docs.dolthub.com/sql-reference/server/backups#backups)
+* [Dolt Remotes](https://docs.dolthub.com/sql-reference/server/backups#remotes)
 * [migrate](https://github.com/golang-migrate/migrate)
 * [Migration SQL)(../db/migrations) 
