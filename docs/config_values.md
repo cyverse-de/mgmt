@@ -1,3 +1,36 @@
+# Table of Contents
+0. [Overview](#0-overview)
+1. [Organization](#1-organization)
+2. [Environments](#2-environments)
+   1. [Listing available environments](#21-listing-available-environments)
+   2. [Adding a new environment](#22-adding-a-new-environment)
+   3. [Deleting an environment](#23-deleting-an-environment)
+   4. [Populating configuration values](#24-populating-configuration-values)
+3. [Sections](#3-sections)
+   1. [Listing sections](#31-listing-sections)
+   2. [Adding a new section](#32-adding-a-new-section)
+   3. [Deleting a section](#33-deleting-a-section)
+4. [Default Values](#4-default-values)
+   1. [Listing default values](#41-listing-default-values)
+   2. [Adding a default value](#42-adding-a-default-value)
+   3. [Getting a single default value](#43-getting-a-single-default-value)
+   4. [Deleting a default value](#44-deleting-a-default-value)
+5. [Configuration Values](#5-configuration-values)
+   1. [Listing configuration values](#51-listing-configuration-values)
+   2. [Adding a configuration value](#52-adding-a-configuration-value)
+   3. [Getting a single configuration value](#53-getting-a-single-configuration-value)
+   4. [Deleting a configuration value](#54-deleting-a-configuration-value)
+6. [YAML Rendering](#6-yaml-rendering)
+7. [Database](#7-database)
+   1. [Creating the data directory](#71-creating-the-data-directory)
+   2. [Starting up](#72-starting-up)
+   3. [Connecting](#73-connecting)
+   4. [Creating the database and running migrations](#74-creating-the-database-and-running-migrations)
+   5. [Backup and restore](#75-backup-and-restore)
+      1. [Dolt Backup](#751-dolt-backup)
+      2. [Dolt Remotes](#752-dolt-remotes)
+8. [Sources](#8-sources)
+
 # 0. Overview
 
 This file covers how configuration values are organized in the `de_releases` database used by the `mgmt` tool. Included topics are
@@ -57,7 +90,7 @@ Example:
 > mgmt-configs env delete --name qa
 ```
 
-## 2.4 Interactively populating all configuration values in an environment
+## 2.4 Populating configuration values
 
 This command will go through all of the configuration values, section by section, and allow you to set values for them.
 
@@ -99,7 +132,7 @@ Use the `mgmt-configs sections delete` command to delete a section from the data
 
 &nbsp;
 
-# 4.0 Default Values
+# 4. Default Values
 
 Default values are global (as are sections), which means they're available for every environment.
 
@@ -220,7 +253,7 @@ First you need to create the directory where the database files will live. Here'
 > dolt init
 ```
 
-## 7.2 Starting Up
+## 7.2 Starting up
 
 To start up the database, run the `dolt sql-server` in the `db/de_releases` directory. If 
 
@@ -282,7 +315,7 @@ Later you would do the following to restore from the backup:
 > dolt backup restore file:///tmp/example_backup de_releases
 ```
 
-### 7.5.1 Dolt Remotes
+### 7.5.2 Dolt Remotes
 Dolt remotes are conceptually similar to Git remotes. You can use them to sync your data to a remote system using the `dolt push` command, however only data up to the last commit will be synced. Additionally, the database used by `mgmt` will likely include passwords, so be extremely careful about where you push your data.
 
 We recommend using the `dolt backup` command when dealing with the `de_releases` database and keeping the backups on a secure system. However, if you want to use Dolt remotes, see the [Dolt docs](https://docs.dolthub.com/sql-reference/server/backups#remotes) for more information.
@@ -290,7 +323,7 @@ We recommend using the `dolt backup` command when dealing with the `de_releases`
 
 &nbsp;
 
-# Sources
+# 8. Sources
 * [Dolt](https://dolthub.com)
 * [Dolt Backups](https://docs.dolthub.com/sql-reference/server/backups#backups)
 * [Dolt Remotes](https://docs.dolthub.com/sql-reference/server/backups#remotes)
