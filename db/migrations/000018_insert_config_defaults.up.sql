@@ -1159,18 +1159,6 @@ VALUES
     ),
     (
         (SELECT id FROM config_sections WHERE name = "QA"),
-        'DE.FirstName',
-        '',
-        (SELECT id FROM config_value_types WHERE name = 'string')
-    ),
-    (
-        (SELECT id FROM config_sections WHERE name = "QA"),
-        'DE.LastName',
-        '',
-        (SELECT id FROM config_value_types WHERE name = 'string')
-    ),
-    (
-        (SELECT id FROM config_sections WHERE name = "QA"),
         'DE.LocalUser',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
