@@ -69,6 +69,29 @@ pub async fn get_env_id(
     Ok(env_id.id)
 }
 
+pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(String, String)>> {
+    let repos = sqlx::query!(
+        r#"
+            SELECT url, name FROM repos
+        "#
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(repos
+        .into_iter()
+        .filter_map(|r| {
+            let u = r.url.unwrap_or_default();
+            let n = r.name.unwrap_or_default();
+            if !u.is_empty() && !n.is_empty() {
+                Some((u, n))
+            } else {
+                None
+            }
+        })
+        .collect())
+}
+
 pub async fn add_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<u64> {
     Ok(sqlx::query!(
         r#"
