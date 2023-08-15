@@ -33,6 +33,12 @@ fn cli() -> Command {
                 arg!(-n --"db-name" [DB_NAME] "The name of the DB")
                     .default_value("de_releases")
                     .value_parser(clap::value_parser!(String)),
+                arg!(-C --"no-db-clone" "Do not clone the Dolt DB repo")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(-R --"no-repo-clone" "Do not clone the repos")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
                 arg!(-f --force "Overwrite existing files")
                     .action(ArgAction::SetTrue)
                     .value_parser(clap::value_parser!(bool))
@@ -40,9 +46,21 @@ fn cli() -> Command {
         )
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct InitOpts {
+    dir: String,
+    db_repo: String,
+    db_name: String,
+    force: bool,
+    no_db_clone: bool,
+    no_repo_clone: bool,
+}
+
 // Create the site directory if it doesn't already exist.
 // If it does exist, and force is true, delete it and recreate it.
-fn create_site_dir(dir: &str, force: bool) -> anyhow::Result<()> {
+fn create_site_dir(opts: &InitOpts) -> anyhow::Result<()> {
+    let dir = &opts.dir;
+    let force = opts.force;
     let site_exists = std::path::Path::new(dir).exists();
     if site_exists && force {
         std::fs::remove_dir_all(dir)?;
@@ -59,8 +77,11 @@ fn create_site_dir(dir: &str, force: bool) -> anyhow::Result<()> {
 
 // Create the dolt database directory inside of the site directory.
 // If force is true, delete the directory and recreate it.
-fn create_db_dir(site_dir: &str, db_name: &str, force: bool) -> anyhow::Result<PathBuf> {
-    let db_dir = Path::new(site_dir).join(db_name);
+fn create_db_dir(opts: &InitOpts) -> anyhow::Result<PathBuf> {
+    let dir = &opts.dir;
+    let db_name = &opts.db_name;
+    let force = opts.force;
+    let db_dir = Path::new(dir).join(db_name);
     if db_dir.exists() && force {
         std::fs::remove_dir_all(&db_dir)?;
     } else if db_dir.exists() {
@@ -74,8 +95,9 @@ fn create_db_dir(site_dir: &str, db_name: &str, force: bool) -> anyhow::Result<P
 }
 
 // Use the dolt command to clone the initial database state from the remote.
-fn clone_db(site_dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow::Result<PathBuf> {
-    let db_dir = create_db_dir(site_dir, db_name, force)?;
+fn clone_db(opts: &InitOpts) -> anyhow::Result<PathBuf> {
+    let db_repo = &opts.db_repo;
+    let db_dir = create_db_dir(&opts)?;
     let db_dir_str = db_dir
         .to_str()
         .context("could not get name of the database directory")?;
@@ -83,12 +105,20 @@ fn clone_db(site_dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow
     Ok(db_dir)
 }
 
-async fn init(dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow::Result<()> {
+async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     // Create the site directory.
-    create_site_dir(dir, force)?;
+    create_site_dir(&opts)?;
+
+    let db_dir: PathBuf;
 
     // Clone the base database and start it up.
-    let db_dir = clone_db(dir, db_repo, db_name, force)?;
+    if !opts.no_db_clone {
+        db_dir = clone_db(&opts)?;
+    } else {
+        db_dir = PathBuf::from(&opts.dir).join(&opts.db_name);
+    }
+
+    // Start the database
     let db_dir_str = db_dir
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("failed to get database directory as string"))?;
@@ -97,7 +127,7 @@ async fn init(dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow::R
     // Connect to the database.
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
-        .connect(&format!("mysql://root@127.0.0.1:3306/{}", db_name))
+        .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
         .await?;
     let mut tx = pool.begin().await?;
 
@@ -107,12 +137,18 @@ async fn init(dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow::R
     // Clone each of the repos.
     for repo in repos {
         let (repo_url, repo_name) = repo;
-        let repo_dir = Path::new(dir).join(&repo_name);
+        let repo_dir = Path::new(&opts.dir).join(&repo_name);
         let repo_dir_str = repo_dir
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("failed to get repo directory as string"))
             .unwrap();
-        git::clone(&repo_url, repo_dir_str)?;
+
+        println!("Cloning {} into {}", repo_url, repo_dir_str);
+        if !opts.no_repo_clone {
+            git::clone(&repo_url, repo_dir_str)?;
+        } else {
+            println!("Skipping cloning of {}", repo_url);
+        }
     }
 
     // Clean up and shut down
@@ -132,16 +168,30 @@ async fn main() -> anyhow::Result<()> {
             let dir = matches.get_one::<String>("dir").ok_or_else(|| {
                 anyhow::anyhow!("No directory specified. Use -d or --dir to specify a directory.")
             })?;
+
             let db_repo = matches.get_one::<String>("db-repo").ok_or_else(|| {
                 anyhow::anyhow!("No Dolt DB remote specified. Use -r or --db-remote to specify a Dolt DB remote.")
             })?;
+
             let db_name = matches.get_one::<String>("db-name").ok_or_else(|| {
                 anyhow::anyhow!(
                     "No Dolt DB name specified. Use -n or --db-name to specify a Dolt DB name."
                 )
             })?;
+
+            let no_db_clone = matches.get_flag("no-db-clone");
+            let no_repo_clone = matches.get_flag("no-repo-clone");
             let force = matches.get_flag("force");
-            init(dir, db_repo, db_name, force).await?;
+
+            let opts = InitOpts {
+                dir: dir.clone(),
+                db_repo: db_repo.clone(),
+                db_name: db_name.clone(),
+                force,
+                no_db_clone,
+                no_repo_clone,
+            };
+            init(&opts).await?;
         }
         _ => unreachable!(),
     }
