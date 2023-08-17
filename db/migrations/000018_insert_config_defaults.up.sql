@@ -569,7 +569,7 @@ VALUES
     ),
     (
         (SELECT id FROM config_sections WHERE name = 'IRODS'),
-        'WebDav.AnonURI',
+        'WebDAV.AnonURI',
         'https://data.cyverse.rocks/dav-anon',
         (SELECT id FROM config_value_types WHERE name = 'string')
     );
