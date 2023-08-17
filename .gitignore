@@ -10,3 +10,4 @@ db/de_releases
 .clj-kondo
 .lsp
 *.pdb
+.sqlhistory
