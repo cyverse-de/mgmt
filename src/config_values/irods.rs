@@ -268,6 +268,7 @@ impl Irods {
         theme: &ColorfulTheme,
         env_id: u64,
     ) -> anyhow::Result<()> {
+        self.amqp.set_section("IRODS")?;
         self.amqp.ask_for_info(tx, theme, env_id, "iRODS").await?;
 
         let host = Input::<String>::with_theme(theme)

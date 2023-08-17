@@ -442,6 +442,7 @@ impl DE {
         theme: &ColorfulTheme,
         env_id: u64,
     ) -> anyhow::Result<()> {
+        self.amqp.set_section("DE")?;
         self.amqp.ask_for_info(tx, theme, env_id, "DE").await?;
 
         let base_uri = Input::<String>::with_theme(theme)
