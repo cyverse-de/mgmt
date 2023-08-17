@@ -4,6 +4,7 @@
 
 use anyhow::Context;
 use clap::{arg, ArgAction, Command};
+use mgmt::config_values::config;
 use mgmt::db;
 use mgmt::dolt;
 use mgmt::git;
@@ -41,7 +42,10 @@ fn cli() -> Command {
                     .value_parser(clap::value_parser!(bool)),
                 arg!(-f --force "Overwrite existing files")
                     .action(ArgAction::SetTrue)
-                    .value_parser(clap::value_parser!(bool))
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(-E --"no-env" "Do not prompt the user for values for an environment")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
             ]),
         )
 }
@@ -54,6 +58,7 @@ struct InitOpts {
     force: bool,
     no_db_clone: bool,
     no_repo_clone: bool,
+    no_env: bool,
 }
 
 // Create the site directory if it doesn't already exist.
@@ -151,6 +156,11 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
         }
     }
 
+    if !opts.no_env {
+        let mut env_config = config::ConfigValues::default();
+        env_config.ask_for_info(&mut tx).await?;
+    }
+
     // Clean up and shut down
     tx.commit().await?;
     pool.close().await;
@@ -182,6 +192,7 @@ async fn main() -> anyhow::Result<()> {
             let no_db_clone = matches.get_flag("no-db-clone");
             let no_repo_clone = matches.get_flag("no-repo-clone");
             let force = matches.get_flag("force");
+            let no_env = matches.get_flag("no-env");
 
             let opts = InitOpts {
                 dir: dir.clone(),
@@ -190,8 +201,12 @@ async fn main() -> anyhow::Result<()> {
                 force,
                 no_db_clone,
                 no_repo_clone,
+                no_env,
             };
             init(&opts).await?;
+            println!("Site initialized in {}", dir);
+            println!("Use the 'mgmt-configs values render` command to generate the configuration values files for an environment.");
+            println!("Use the 'mgmt` to deploy an environment into a cluster.");
         }
         _ => unreachable!(),
     }
