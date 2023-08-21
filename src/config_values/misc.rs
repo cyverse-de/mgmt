@@ -1105,14 +1105,8 @@ impl Qms {
             .default(0)
             .items(&["Yes", "No"])
             .interact()?;
-        let enabled_id = set_config_value(
-            tx,
-            "QMS",
-            "Enabled",
-            &format!("{}", enabled == 0),
-            "boolean",
-        )
-        .await?;
+        let enabled_id =
+            set_config_value(tx, "QMS", "Enabled", &format!("{}", enabled == 0), "bool").await?;
         add_env_cfg_value(tx, env_id, enabled_id).await?;
         self.enabled = Some(enabled == 0);
 
