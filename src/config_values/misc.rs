@@ -863,7 +863,7 @@ impl Analytics {
             "Analytics",
             "Enabled",
             &format!("{}", enabled == 0),
-            "boolean",
+            "bool",
         )
         .await?;
         add_env_cfg_value(tx, env_id, enabled_id).await?;
