@@ -143,6 +143,11 @@ fn cli() -> Command {
                         .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(
+                                -f --file <FILE> "The file to render the config values to"
+                            )
+                                .required(true)
+                                .value_parser(clap::value_parser!(PathBuf)),
+                            arg!(
                                 -e --"environment" <ENVIRONMENT>
                                     "The environment to render the config values for"
                             ),
@@ -289,6 +294,8 @@ fn cli() -> Command {
                 .subcommand(
                     Command::new("render")
                         .args_conflicts_with_subcommands(true)
+                        .arg(arg!(-f --file <FILE> "The file to render the config values to")
+                            .value_parser(clap::value_parser!(PathBuf))),
                 ),
         )
 }
@@ -428,7 +435,10 @@ async fn list_default_values(
 /**
  * Handler for the `mgmt-configs defaults render` command.
  */
-async fn render_default_values(pool: &Pool<MySql>) -> anyhow::Result<()> {
+async fn render_default_values(
+    pool: &Pool<MySql>,
+    output_file: Option<PathBuf>,
+) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
 
     let all_default_cfgs = db::list_default_config_values(&mut tx, None, None).await?;
@@ -439,10 +449,16 @@ async fn render_default_values(pool: &Pool<MySql>) -> anyhow::Result<()> {
     cv.reset_sections()?;
     cv.cfg_set_keys(all_default_cfgs)?;
 
-    let yaml = serde_yaml::to_string(&cv)?;
-    println!("{}", yaml);
+    if let Some(output_file) = output_file {
+        let yaml = serde_yaml::to_string(&cv)?;
+        std::fs::write(output_file, yaml)?;
+    } else {
+        let yaml = serde_yaml::to_string(&cv)?;
+        println!("{}", yaml);
+    }
 
     tx.commit().await?;
+
     Ok(())
 }
 
@@ -562,6 +578,7 @@ async fn render_values(
     pool: &Pool<MySql>,
     environment: &str,
     opts: &config::SectionOptions,
+    output_file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut all_cfgs: Vec<Configuration> = Vec::new();
@@ -593,8 +610,15 @@ async fn render_values(
     cv.reset_sections()?;
     cv.cfg_set_keys(all_cfgs)?;
 
-    let yaml = serde_yaml::to_string(&cv)?;
-    println!("{}", yaml);
+    tx.commit().await?;
+
+    if let Some(output_file) = output_file {
+        let yaml = serde_yaml::to_string(&cv)?;
+        std::fs::write(output_file, yaml)?;
+    } else {
+        let yaml = serde_yaml::to_string(&cv)?;
+        println!("{}", yaml);
+    }
 
     Ok(())
 }
@@ -826,8 +850,9 @@ async fn main() -> anyhow::Result<()> {
                     list_default_values(&pool, section, key).await?;
                 }
 
-                ("render", _) => {
-                    render_default_values(&pool).await?;
+                ("render", sub_m) => {
+                    let output_file = sub_m.get_one::<PathBuf>("file").cloned();
+                    render_default_values(&pool, output_file).await?;
                 }
 
                 (name, _) => {
@@ -939,8 +964,12 @@ async fn main() -> anyhow::Result<()> {
                             "No environment specified. Use --environment <environment> to specify an environment."
                         )
                     })?;
+                    let output_file = match sub_m.get_one::<PathBuf>("file") {
+                        Some(file) => Some(file.clone()),
+                        None => None,
+                    };
                     let opts = config::SectionOptions::new(sub_m);
-                    render_values(&pool, &environment, &opts).await?;
+                    render_values(&pool, &environment, &opts, output_file).await?;
                 }
 
                 ("import", sub_m) => {
