@@ -151,6 +151,26 @@ impl SectionOptions {
         }
     }
 
+    pub fn set_all(&mut self, all: bool) -> anyhow::Result<()> {
+        self.include_admin = all;
+        self.include_analytics = all;
+        self.include_agave = all;
+        self.include_base_urls = all;
+        self.include_cas = all;
+        self.include_docker = all;
+        self.include_infosquito = all;
+        self.include_intercom = all;
+        self.include_jaeger = all;
+        self.include_jobs = all;
+        self.include_jvmpopts = all;
+        self.include_permanent_id = all;
+        self.include_qa = all;
+        self.include_qms = all;
+        self.include_unleash = all;
+
+        Ok(())
+    }
+
     pub fn include_section(&self, section: &str) -> bool {
         match section {
             "Admin" => self.include_admin,

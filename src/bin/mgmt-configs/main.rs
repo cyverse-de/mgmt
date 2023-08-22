@@ -285,6 +285,10 @@ fn cli() -> Command {
                                 .required(false)
                                 .value_parser(clap::value_parser!(String)),
                         ]),
+                )
+                .subcommand(
+                    Command::new("render")
+                        .args_conflicts_with_subcommands(true)
                 ),
         )
 }
@@ -418,6 +422,27 @@ async fn list_default_values(
             println!("{}.{} = {}", section, key, value);
         }
     }
+    Ok(())
+}
+
+/**
+ * Handler for the `mgmt-configs defaults render` command.
+ */
+async fn render_default_values(pool: &Pool<MySql>) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+
+    let all_default_cfgs = db::list_default_config_values(&mut tx, None, None).await?;
+    let mut cv = config::ConfigValues::default();
+    let mut section_options = config::SectionOptions::default();
+    section_options.set_all(true)?;
+    cv.set_section_options(section_options);
+    cv.reset_sections()?;
+    cv.cfg_set_keys(all_default_cfgs)?;
+
+    let yaml = serde_yaml::to_string(&cv)?;
+    println!("{}", yaml);
+
+    tx.commit().await?;
     Ok(())
 }
 
@@ -799,6 +824,10 @@ async fn main() -> anyhow::Result<()> {
                     };
 
                     list_default_values(&pool, section, key).await?;
+                }
+
+                ("render", _) => {
+                    render_default_values(&pool).await?;
                 }
 
                 (name, _) => {
