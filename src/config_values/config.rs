@@ -853,6 +853,10 @@ impl ConfigValues {
             .interact()?;
 
         let env_id = upsert_environment(tx, &environment, &namespace).await?;
+        self.environment = environment.clone();
+        self.namespace = namespace.clone();
+        self.uid_domain = uid_domain.clone();
+        self.timezone = Some(timezone.clone());
 
         let env_cfg_id =
             set_config_value(tx, "TopLevel", "Environment", &environment, "string").await?;
