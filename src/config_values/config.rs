@@ -7,6 +7,7 @@ use crate::config_values::{
 use crate::db::{
     self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration,
 };
+use anyhow::Context;
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -203,7 +204,7 @@ pub struct ConfigValues {
     section_options: SectionOptions,
 
     // Must be user supplied.
-    environment: String,
+    pub environment: String,
 
     // Must be user supplied.
     namespace: String,
@@ -873,8 +874,14 @@ impl ConfigValues {
         self.irods.ask_for_info(tx, &theme, env_id).await?;
 
         // We need the base URI and external host for other settings.
-        let base_uri = self.de.base_uri.clone().unwrap();
-        let irods_external = self.irods.external_host.clone().unwrap();
+        let base_uri = self
+            .de
+            .base_uri
+            .clone()
+            .context("Base URI not set in DE settings.")?;
+        let irods_external = self.irods.external_host.clone().context(
+            "External host not set in iRODS settings.  This is required for DE settings.",
+        )?;
 
         let agave_enabled = Select::with_theme(&theme)
             .with_prompt("Include Agave?")
@@ -1021,18 +1028,6 @@ impl ConfigValues {
                 )
                 .await?;
             self.unleash_db = Some(new_unleash_db);
-        }
-
-        let qa_enabled = Select::with_theme(&theme)
-            .with_prompt("Include QA?")
-            .default(1)
-            .items(&["Yes", "No"])
-            .interact()?;
-
-        if qa_enabled == 0 {
-            let mut new_qa = config_values::qa::QA::default();
-            new_qa.ask_for_info(tx, &theme, env_id).await?;
-            self.qa = Some(new_qa);
         }
 
         let qms_enabled = Select::with_theme(&theme)

@@ -8,6 +8,7 @@ use mgmt::config_values::config;
 use mgmt::db;
 use mgmt::dolt;
 use mgmt::git;
+use mgmt::ops;
 use std::path::{Path, PathBuf};
 
 use sqlx::mysql::MySqlPoolOptions;
@@ -46,6 +47,18 @@ fn cli() -> Command {
                 arg!(-E --"no-env" "Do not prompt the user for values for an environment")
                     .action(ArgAction::SetTrue)
                     .value_parser(clap::value_parser!(bool)),
+                arg!(-D --"no-defaults" "Do not write out the default values to a file in the site directory")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(-V --"no-values" "Do not write out the config values for the environment to a file in the site directory")
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(--"defaults-filename" [DEFAULTS_FILENAME] "The name of the file to write the default values to iin the site directory")
+                    .default_value("defaults.yaml")
+                    .value_parser(clap::value_parser!(String)),
+                arg!(--"values-filename" [VALUES_FILENAME] "The name of the file to write the config values to in the site directory")
+                    .default_value("deployment.yaml")
+                    .value_parser(clap::value_parser!(String)),
             ]),
         )
 }
@@ -59,6 +72,10 @@ struct InitOpts {
     no_db_clone: bool,
     no_repo_clone: bool,
     no_env: bool,
+    no_defaults: bool,
+    no_values: bool,
+    defaults_filename: String,
+    values_filename: String,
 }
 
 // Create the site directory if it doesn't already exist.
@@ -165,16 +182,41 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     }
     println!("Done cloning the repos.\n");
 
+    let mut env_config = config::ConfigValues::default();
+
     if !opts.no_env {
         println!("Setting up the environment...");
-        let mut env_config = config::ConfigValues::default();
         env_config.ask_for_info(&mut tx).await?;
         println!("Done setting up the environment.\n");
     }
 
+    // Write out the default config values into the site directory.
+    if !opts.no_defaults {
+        println!("Writing out the default values...");
+        let defaults_filename = Path::new(&opts.dir).join(&opts.defaults_filename);
+        ops::render_default_values(&pool, Some(defaults_filename)).await?;
+        println!("Done writing out the default values.\n");
+    }
+
+    tx.commit().await?;
+
+    if !opts.no_env && !opts.no_values {
+        println!("Writing out the environment config values...");
+        let values_filename = Path::new(&opts.dir).join(&opts.values_filename);
+        let mut section_option = config::SectionOptions::default();
+        section_option.set_all(true)?;
+        ops::render_values(
+            &pool,
+            &env_config.environment,
+            &section_option,
+            Some(values_filename),
+        )
+        .await?;
+        println!("Done writing out the environment config values.\n");
+    }
+
     // Clean up and shut down
     println!("Shutting down the database...");
-    tx.commit().await?;
     pool.close().await;
     db_handle.kill()?;
     println!("Done shutting down the database.\n");
@@ -206,6 +248,14 @@ async fn main() -> anyhow::Result<()> {
             let no_repo_clone = matches.get_flag("no-repo-clone");
             let force = matches.get_flag("force");
             let no_env = matches.get_flag("no-env");
+            let no_defaults = matches.get_flag("no-defaults");
+            let no_values = matches.get_flag("no-values");
+            let defaults_filename = matches.get_one::<String>("defaults-filename").ok_or_else(|| {
+                anyhow::anyhow!("No defaults filename specified. Use --defaults-filename to specify a defaults filename.")
+            })?;
+            let values_filename = matches.get_one::<String>("values-filename").ok_or_else(|| {
+                anyhow::anyhow!("No values filename specified. Use --values-filename to specify a values filename.")
+            })?;
 
             let opts = InitOpts {
                 dir: dir.clone(),
@@ -215,6 +265,10 @@ async fn main() -> anyhow::Result<()> {
                 no_db_clone,
                 no_repo_clone,
                 no_env,
+                no_defaults,
+                no_values,
+                defaults_filename: defaults_filename.clone(),
+                values_filename: values_filename.clone(),
             };
             init(&opts).await?;
             println!("Site initialized in {}", dir);
