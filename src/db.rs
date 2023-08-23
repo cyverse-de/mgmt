@@ -313,9 +313,6 @@ pub async fn set_config_value(
     .fetch_one(&mut **tx)
     .await?;
 
-    println!("section_record: {:?}", section_record);
-    println!("key: {:?}", key);
-
     let section_id = section_record
         .id
         .ok_or_else(|| anyhow::anyhow!("Failed to get section id for section {}", section))?;

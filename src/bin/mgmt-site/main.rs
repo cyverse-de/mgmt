@@ -116,29 +116,36 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
 
     let db_dir: PathBuf;
 
-    // Clone the base database and start it up.
+    println!("Cloning the database from {}...", &opts.db_repo);
+    // Clone the base database.
     if !opts.no_db_clone {
         db_dir = clone_db(&opts)?;
     } else {
         db_dir = PathBuf::from(&opts.dir).join(&opts.db_name);
     }
+    println!("Done cloning the database.\n");
 
+    println!("Starting the database...");
     // Start the database
     let db_dir_str = db_dir
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("failed to get database directory as string"))?;
     let db_handle = dolt::start(db_dir_str)?;
+    println!("Done staring the database.\n");
 
+    println!("Connecting to the database...");
     // Connect to the database.
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
         .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
         .await?;
     let mut tx = pool.begin().await?;
+    println!("Done connecting to the database.\n");
 
     // Get the list of repos.
     let repos = db::get_repos(&mut tx).await?;
 
+    println!("Cloning the repos...");
     // Clone each of the repos.
     for repo in repos {
         let (repo_url, repo_name) = repo;
@@ -154,17 +161,23 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
         } else {
             println!("Skipping cloning of {}", repo_url);
         }
+        println!("");
     }
+    println!("Done cloning the repos.\n");
 
     if !opts.no_env {
+        println!("Setting up the environment...");
         let mut env_config = config::ConfigValues::default();
         env_config.ask_for_info(&mut tx).await?;
+        println!("Done setting up the environment.\n");
     }
 
     // Clean up and shut down
+    println!("Shutting down the database...");
     tx.commit().await?;
     pool.close().await;
     db_handle.kill()?;
+    println!("Done shutting down the database.\n");
 
     Ok(())
 }
@@ -205,8 +218,6 @@ async fn main() -> anyhow::Result<()> {
             };
             init(&opts).await?;
             println!("Site initialized in {}", dir);
-            println!("Use the 'mgmt-configs values render` command to generate the configuration values files for an environment.");
-            println!("Use the 'mgmt` to deploy an environment into a cluster.");
         }
         _ => unreachable!(),
     }

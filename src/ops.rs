@@ -323,8 +323,8 @@ pub async fn render_values(
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut all_cfgs: Vec<Configuration> = Vec::new();
-
     let all_default_cfgs = db::list_default_config_values(&mut tx, None, None).await?;
+
     for default in all_default_cfgs
         .into_iter()
         .filter(|cfg| opts.include_section(&cfg.section.clone().unwrap_or_default()))
