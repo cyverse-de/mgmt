@@ -92,7 +92,8 @@ fn create_site_dir(opts: &InitOpts) -> anyhow::Result<()> {
             dir
         ));
     } else {
-        std::fs::create_dir_all(dir)?;
+        let repo_dir = Path::new(dir).join("repos");
+        std::fs::create_dir_all(repo_dir)?;
     }
     Ok(())
 }
@@ -166,7 +167,7 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     // Clone each of the repos.
     for repo in repos {
         let (repo_url, repo_name) = repo;
-        let repo_dir = Path::new(&opts.dir).join(&repo_name);
+        let repo_dir = Path::new(&opts.dir).join("repos").join(&repo_name);
         let repo_dir_str = repo_dir
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("failed to get repo directory as string"))
