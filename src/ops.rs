@@ -1,45 +1,32 @@
+//! # Operations
+//!
+//! The `ops` module contains functions that are used across the various `mgmt`
+//! subcommands. This includes functions for creating the site directory,
+//! cloning repos into it, and the various handlers for the subcommands
+//! implemented by the tools inside this crate.
+//!
 use crate::config_values::config;
 use crate::db::{self, Configuration, LoadFromConfiguration};
-use crate::git;
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use sqlx::{MySql, Pool};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-pub fn create_project_dir(project_name: &str) -> anyhow::Result<PathBuf> {
-    let project_dir = Path::new(project_name);
-    if project_dir.exists() {
-        anyhow::bail!("Project directory already exists");
-    }
-    std::fs::create_dir(project_dir)?;
-    Ok(project_dir.to_path_buf())
-}
-
-pub fn clone_repos(project_dir: &Path, repos: &[url::Url]) -> anyhow::Result<()> {
-    for repo_url in repos {
-        let repo_name = repo_url
-            .path_segments()
-            .context("missing path for repo url")?
-            .last()
-            .context("empty path for repo url")?;
-
-        let repo_dir = project_dir.join(repo_name);
-        if repo_dir.exists() {
-            continue;
-        }
-
-        git::clone(
-            repo_url.as_str(),
-            &repo_dir
-                .to_str()
-                .context("failed to create repo dir string")?,
-        )?;
-    }
-    Ok(())
-}
-
-/**
- * Handler for the `mgmt-configs env populate` command.
- */
+/// Adds a set of configuration values for an environment to the database.
+/// Interactively prompts the user for all of the values, including the
+/// environment.
+///
+/// Handler for the `mgmt-configs env populate` command.
+///
+/// # Example
+///
+/// ```ignore
+///     let pool = MySqlPoolOptions::new()
+///        .max_connections(5)
+///        .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
+///        .await?;
+///
+///     populate_env(&pool).await?;
+/// ```
 pub async fn populate_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut env_config = config::ConfigValues::default();
@@ -48,18 +35,29 @@ pub async fn populate_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs sections add` command.
- */
+/// Adds a configuration section to the database.
+///
+/// Handler for the `mgmt-configs sections add` command.
+///
+/// # Example
+/// ```ignore
+///    add_section(&pool, "Agave").await?;
+/// ```
 pub async fn add_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     db::add_section(&mut tx, &section).await?;
     tx.commit().await?;
     Ok(())
 }
-/**
- * Handler for the `mgmt-configs sections delete` command.
- */
+/// Deletes a configuration section from the database. Creates a transaction
+/// that either commits for rolls back before the function returns.
+///
+/// Handler for the `mgmt-configs sections delete` command.
+///
+/// # Example
+/// ```ignore
+///     delete_section(&pool, "Agave").await?;
+/// ```
 pub async fn delete_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     db::delete_section(&mut tx, &section).await?;
@@ -67,9 +65,14 @@ pub async fn delete_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs sections list` command.
- */
+/// Prints the list of configuration sections to stdout.
+///
+/// Handler for the `mgmt-configs sections list` command.
+///
+/// # Example
+/// ```ignore
+///    list_sections(&pool).await?;
+/// ```
 pub async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let sections = db::list_sections(&mut tx).await?;
@@ -80,9 +83,14 @@ pub async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs defaults set` command.
- */
+/// Sets a default configuration value in the database.
+///
+/// Handler for the `mgmt-configs defaults set` command.
+///
+/// # Example
+/// ```ignore
+///    set_default_value(&pool, "Agave", "Key", "12345", "string").await?;
+/// ```
 pub async fn set_default_value(
     pool: &Pool<MySql>,
     section: &str,
@@ -103,9 +111,15 @@ pub async fn set_default_value(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs defaults get` command.
- */
+/// Gets a default configuration value from the database and prints it to
+/// stdout.
+///
+/// Handler for the `mgmt-configs defaults get` command.
+///
+/// # Example
+/// ```ignore
+///   get_default_value(&pool, "Agave", "Key").await?;
+/// ```
 pub async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let cfg: db::Configuration;
@@ -127,9 +141,15 @@ pub async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> 
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs defaults delete` command.
- */
+/// Deletes a default configuration value from the database and prints out a
+/// status message to stdout.
+///
+/// Handler for the `mgmt-configs defaults delete` command.
+///
+/// # Example
+/// ```ignore
+///     delete_default_value(&pool, "Agave", "Key").await?;
+/// ```
 pub async fn delete_default_value(
     pool: &Pool<MySql>,
     section: &str,
@@ -154,9 +174,31 @@ pub async fn delete_default_value(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs defaults list` command.
- */
+/// Lists default configuration values from the database and prints them to
+/// stdout.
+///
+/// Handler for the `mgmt-configs defaults list` command.
+///
+/// # Example
+/// To list all of the default configuation values:
+/// ```ignore
+///    list_default_values(&pool, None, None).await?;
+/// ```
+///
+/// To list all of the default configuration values for a section:
+/// ```ignore
+///   list_default_values(&pool, Some("Agave"), None).await?;
+/// ```
+///
+/// To list all of the default configuration values for a section and key:
+/// ```ignore
+///     list_default_values(&pool, Some("Agave"), Some("Key"))
+/// ```
+///
+/// To list all of the default configuration values for a key:
+/// ```ignore
+///    list_default_values(&pool, None, Some("Key"))
+/// ```
 pub async fn list_default_values(
     pool: &Pool<MySql>,
     section: Option<&str>,
@@ -173,9 +215,22 @@ pub async fn list_default_values(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs defaults render` command.
- */
+/// Gets all of the default configuration values from the database and
+/// serializes them to YAML. If an output file is specified, the YAML is
+/// written to that file. Otherwise, the YAML is printed to stdout.
+///
+/// Handler for the `mgmt-configs defaults render` command.
+///
+/// # Example
+/// To render all of the default configuration values to stdout:
+/// ```ignore
+///     render_default_values(&pool, None).await?;
+/// ```
+///
+/// To render all of the default configuration values to a file:
+/// ```ignore
+///     render_default_values(&pool, Some(PathBuf::from("defaults.yaml"))).await?;
+/// ```
 pub async fn render_default_values(
     pool: &Pool<MySql>,
     output_file: Option<PathBuf>,
@@ -203,9 +258,14 @@ pub async fn render_default_values(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs values set` command.
- */
+/// Sets a configuration value for an environment in the database.
+///
+/// Handler for the `mgmt-configs values set` command.
+///
+/// # Example
+/// ```ignore
+///    set_value(&pool, "prod", "Agave", "Key", "12345", "string").await?;
+/// ```
 pub async fn set_value(
     pool: &Pool<MySql>,
     environment: &str,
@@ -240,9 +300,17 @@ pub async fn set_value(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs values get` command.
- */
+/// Gets a configuration value for an environment from the database and prints
+/// it to stdout. If the value is not found in the environment, the default
+/// value is printed instead. If the default value is not found, an error is
+/// returned.
+///
+/// Handler for the `mgmt-configs values get` command.
+///
+/// # Example
+/// ```ignore
+///    get_value(&pool, "prod", "Agave", "Key").await?;
+/// ```
 pub async fn get_value(
     pool: &Pool<MySql>,
     environment: &str,
@@ -273,9 +341,15 @@ pub async fn get_value(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs values delete` command.
- */
+/// Deletes a configuration value from an environment in the database and
+/// prints a status message to stdout.
+///
+/// Handler for the `mgmt-configs values delete` command.
+///
+/// # Example
+/// ```ignore
+///   delete_value(&pool, "prod", "Agave", "Key").await?;
+/// ```
 pub async fn delete_value(
     pool: &Pool<MySql>,
     environment: &str,
@@ -292,9 +366,26 @@ pub async fn delete_value(
     Ok(())
 }
 
-/**
- * Handler for the `mgmt-configs values list` command.
- */
+/// Lists configuration values for an environment from the database and prints
+/// them to stdout.
+///
+/// Handler for the `mgmt-configs values list` command.
+///
+/// # Example
+/// To list all of the configuration values for an environment:
+/// ```ignore
+///     list_values(&pool, Some("prod"), None, None).await?;
+/// ```
+///
+/// To list all of the configuration values for a section in an environment:
+/// ```ignore
+///     list_values(&pool, Some("prod"), Some("Agave"), None).await?;
+/// ```
+///
+/// To list all of the configuration values for a key in an environment:
+/// ```ignore
+///     list_values(&pool, Some("prod"), None, Some("Key")).await?;
+/// ```
 pub async fn list_values(
     pool: &Pool<MySql>,
     environment: Option<&str>,
@@ -312,9 +403,22 @@ pub async fn list_values(
     Ok(())
 }
 
-/**
- * Handler  for the `mgmt-configs values render` command.
- */
+/// Gets all of the configuration values for an environment from the database
+/// and serializes them to YAML. If an output file is specified, the YAML is
+/// written to that file. Otherwise, the YAML is printed to stdout.
+///
+/// Handler  for the `mgmt-configs values render` command.
+///
+/// # Example
+/// To render all of the configuration values for an environment to stdout:
+/// ```ignore
+///    render_values(&pool, "prod", &opts, None).await?;
+/// ```
+///
+/// To render all of the configuration values for an environment to a file:
+/// ```ignore
+///   render_values(&pool, "prod", &opts, Some(PathBuf::from("prod.yaml"))).await?;
+/// ```
 pub async fn render_values(
     pool: &Pool<MySql>,
     environment: &str,
@@ -364,9 +468,15 @@ pub async fn render_values(
     Ok(())
 }
 
-/**
- * Handler for importing files.
- */
+/// Imports a YAML file into the database. The YAML file must be in the same
+/// format as the output of the `mgmt-configs values render` command.
+///
+/// Handler for importing files.
+///
+/// # Example
+/// ```ignore
+///    import_yaml_file(&pool, PathBuf::from("prod.yaml"), "prod").await?;
+/// ```
 pub async fn import_yaml_file(
     pool: &Pool<MySql>,
     path: PathBuf,
