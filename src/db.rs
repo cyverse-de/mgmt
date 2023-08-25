@@ -13,11 +13,20 @@ pub struct ConfigurationValue {
     pub value_type: Option<String>,
 }
 
+/// The trait that all domain objects need to implement so they can load
+/// their state from configuration values retrieved from the database.
 pub trait LoadFromDatabase {
+    /// Returns the configuration section name for the domain object. Nested configuration blocks
+    /// should return the name of the outermost block. For example: `DashboardAggregator` instead of
+    /// `DashboardAggregator.Website` or `Website`.
     fn get_section(&self) -> String;
 
+    /// Sets a field on the domain object to the configuration value retrieved from the database.
     fn cfg_set_key(&mut self, cfg: &ConfigurationValue) -> anyhow::Result<()>;
 
+    /// Sets all the fields on the domain object to the configuration values retrieved from the database.
+    /// The default implementation is usually sufficient for the domain objects, but a couple may need
+    /// custom logic.
     fn cfg_set_keys(&mut self, cfgs: Vec<ConfigurationValue>) -> anyhow::Result<()> {
         cfgs.into_iter()
             .try_for_each(|cfg| self.cfg_set_key(&cfg))?;
