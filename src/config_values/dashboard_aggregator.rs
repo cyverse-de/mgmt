@@ -73,7 +73,8 @@ impl Website {
             .default("https://cyverse.org".into())
             .interact()?;
 
-        let url_id = set_config_value(tx, "DashboardAggregator", "URL", &url, "string").await?;
+        let url_id =
+            set_config_value(tx, "DashboardAggregator", "Website.URL", &url, "string").await?;
         add_env_cfg_value(tx, env_id, url_id).await?;
         self.url = Url::parse(&url).ok();
 
@@ -107,7 +108,7 @@ impl LoadFromConfiguration for DashboardAggregator {
     fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
         if let Some(key) = cfg.key.clone() {
             match key.as_str() {
-                "URL" => {
+                "Website.URL" => {
                     let mut ws = Website::default();
                     ws.cfg_set_key(cfg)?;
                     self.website = Some(ws);

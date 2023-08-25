@@ -35,7 +35,7 @@ VALUES
     ('https://github.com/cyverse-de/monkey', 'master', 'monkey'),
     ('https://github.com/cyverse-de/notifications', 'master', 'notifications'),
     ('https://github.com/cyverse-de/permissions', 'main', 'permissions'),
-    ('https://github.com/cyverse-de/qms', 'main', 'qms'),
+    ('https://github.com/cyverse/QMS', 'main', 'qms'),
     ('https://github.com/cyverse-de/qms-adapter', 'main', 'qms-adapter'),
     ('https://github.com/cyverse-de/requests', 'main', 'requests'),
     ('https://github.com/cyverse-de/resource-usage-api', 'main', 'resource-usage-api'),

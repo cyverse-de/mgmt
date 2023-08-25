@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT url, name FROM repos\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "url",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "52793754090a573dee9f8d0caece9ccbd588956c2a50c07e148a6d6e3f5fb344"
+}

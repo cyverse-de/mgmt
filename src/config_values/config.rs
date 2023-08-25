@@ -7,6 +7,7 @@ use crate::config_values::{
 use crate::db::{
     self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration,
 };
+use anyhow::Context;
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -151,6 +152,26 @@ impl SectionOptions {
         }
     }
 
+    pub fn set_all(&mut self, all: bool) -> anyhow::Result<()> {
+        self.include_admin = all;
+        self.include_analytics = all;
+        self.include_agave = all;
+        self.include_base_urls = all;
+        self.include_cas = all;
+        self.include_docker = all;
+        self.include_infosquito = all;
+        self.include_intercom = all;
+        self.include_jaeger = all;
+        self.include_jobs = all;
+        self.include_jvmpopts = all;
+        self.include_permanent_id = all;
+        self.include_qa = all;
+        self.include_qms = all;
+        self.include_unleash = all;
+
+        Ok(())
+    }
+
     pub fn include_section(&self, section: &str) -> bool {
         match section {
             "Admin" => self.include_admin,
@@ -183,7 +204,7 @@ pub struct ConfigValues {
     section_options: SectionOptions,
 
     // Must be user supplied.
-    environment: String,
+    pub environment: String,
 
     // Must be user supplied.
     namespace: String,
@@ -832,6 +853,10 @@ impl ConfigValues {
             .interact()?;
 
         let env_id = upsert_environment(tx, &environment, &namespace).await?;
+        self.environment = environment.clone();
+        self.namespace = namespace.clone();
+        self.uid_domain = uid_domain.clone();
+        self.timezone = Some(timezone.clone());
 
         let env_cfg_id =
             set_config_value(tx, "TopLevel", "Environment", &environment, "string").await?;
@@ -853,8 +878,14 @@ impl ConfigValues {
         self.irods.ask_for_info(tx, &theme, env_id).await?;
 
         // We need the base URI and external host for other settings.
-        let base_uri = self.de.base_uri.clone().unwrap();
-        let irods_external = self.irods.external_host.clone().unwrap();
+        let base_uri = self
+            .de
+            .base_uri
+            .clone()
+            .context("Base URI not set in DE settings.")?;
+        let irods_external = self.irods.external_host.clone().context(
+            "External host not set in iRODS settings.  This is required for DE settings.",
+        )?;
 
         let agave_enabled = Select::with_theme(&theme)
             .with_prompt("Include Agave?")
@@ -1001,18 +1032,6 @@ impl ConfigValues {
                 )
                 .await?;
             self.unleash_db = Some(new_unleash_db);
-        }
-
-        let qa_enabled = Select::with_theme(&theme)
-            .with_prompt("Include QA?")
-            .default(1)
-            .items(&["Yes", "No"])
-            .interact()?;
-
-        if qa_enabled == 0 {
-            let mut new_qa = config_values::qa::QA::default();
-            new_qa.ask_for_info(tx, &theme, env_id).await?;
-            self.qa = Some(new_qa);
         }
 
         let qms_enabled = Select::with_theme(&theme)

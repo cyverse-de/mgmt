@@ -193,7 +193,7 @@ impl LoadFromConfiguration for QADE {
                 "DE.FirstName" => self.first_name = Some(cfg.value.clone().unwrap_or_default()),
                 "DE.LastName" => self.last_name = Some(cfg.value.clone().unwrap_or_default()),
                 "DE.LocalUser" => self.local_user = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.JWTName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
+                "DE.JwtName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
                 "DE.AdminPassword" => {
                     self.admin_password = Some(cfg.value.clone().unwrap_or_default())
                 }
@@ -270,7 +270,7 @@ impl From<QADE> for Vec<db::Configuration> {
             vec.push(db::Configuration {
                 id: None,
                 section: Some(section.clone()),
-                key: Some("DE.JWTName".to_string()),
+                key: Some("DE.JwtName".to_string()),
                 value: Some(jwt_name),
                 value_type: Some("string".to_string()),
             });
@@ -354,7 +354,7 @@ impl QADE {
         add_env_cfg_value(tx, env_id, local_user_id).await?;
         self.local_user = Some(local_user);
 
-        let jwt_name_id = set_config_value(tx, "QA", "DE.JWTName", &jwt_name, "string").await?;
+        let jwt_name_id = set_config_value(tx, "QA", "DE.JwtName", &jwt_name, "string").await?;
         add_env_cfg_value(tx, env_id, jwt_name_id).await?;
         self.jwt_name = Some(jwt_name);
 
@@ -414,14 +414,14 @@ impl LoadFromConfiguration for QALegacy {
                 "Legacy.FirstName" => self.first_name = Some(cfg.value.clone().unwrap_or_default()),
                 "Legacy.LastName" => self.last_name = Some(cfg.value.clone().unwrap_or_default()),
                 "Legacy.LocalUser" => self.local_user = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.JWTName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
+                "Legacy.JwtName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
                 "Legacy.AdminPassword" => {
                     self.admin_password = Some(cfg.value.clone().unwrap_or_default())
                 }
                 "Legacy.AdminPassword2" => {
                     self.admin_password2 = Some(cfg.value.clone().unwrap_or_default())
                 }
-                "Legacy.JWTPrivPass" => {
+                "Legacy.JwtPrivPass" => {
                     self.jwt_priv_pass = Some(cfg.value.clone().unwrap_or_default())
                 }
                 _ => (),
@@ -497,7 +497,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
             vec.push(db::Configuration {
                 id: None,
                 section: Some(section.clone()),
-                key: Some("Legacy.JWTName".to_string()),
+                key: Some("Legacy.JwtName".to_string()),
                 value: Some(jwt_name),
                 value_type: Some("string".to_string()),
             });
@@ -527,7 +527,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
             vec.push(db::Configuration {
                 id: None,
                 section: Some(section.clone()),
-                key: Some("Legacy.JWTPrivPass".to_string()),
+                key: Some("Legacy.JwtPrivPass".to_string()),
                 value: Some(jwt_priv_pass),
                 value_type: Some("string".to_string()),
             });
@@ -614,7 +614,7 @@ impl QALegacy {
         add_env_cfg_value(tx, env_id, local_user_id).await?;
         self.local_user = Some(local_user);
 
-        let jwt_name_id = set_config_value(tx, "QA", "Legacy.JWTName", &jwt_name, "string").await?;
+        let jwt_name_id = set_config_value(tx, "QA", "Legacy.JwtName", &jwt_name, "string").await?;
         add_env_cfg_value(tx, env_id, jwt_name_id).await?;
         self.jwt_name = Some(jwt_name);
 
@@ -635,7 +635,7 @@ impl QALegacy {
         self.admin_password2 = Some(admin_password2);
 
         let jwt_priv_pass_id =
-            set_config_value(tx, "QA", "Legacy.JWTPrivPass", &jwt_priv_pass, "string").await?;
+            set_config_value(tx, "QA", "Legacy.JwtPrivPass", &jwt_priv_pass, "string").await?;
         add_env_cfg_value(tx, env_id, jwt_priv_pass_id).await?;
         self.jwt_priv_pass = Some(jwt_priv_pass);
 

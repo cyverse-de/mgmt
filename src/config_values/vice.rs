@@ -90,10 +90,11 @@ impl ViceFileTransfers {
             .default("latest".into())
             .interact()?;
 
-        let image_id = set_config_value(tx, "ViceFileTransfers", "Image", &image, "string").await?;
+        let image_id =
+            set_config_value(tx, "VICE", "FileTransfers.Image", &image, "string").await?;
         add_env_cfg_value(tx, env_id, image_id).await?;
 
-        let tag_id = set_config_value(tx, "ViceFileTransfers", "Tag", &tag, "string").await?;
+        let tag_id = set_config_value(tx, "VICE", "FileTransfers.Tag", &tag, "string").await?;
         add_env_cfg_value(tx, env_id, tag_id).await?;
 
         self.image = Some(image);
@@ -176,8 +177,8 @@ impl ViceDefaultBackend {
 
         let lpt_id = set_config_value(
             tx,
-            "ViceDefaultBackend",
-            "LoadingPageTemplateString",
+            "VICE",
+            "DefaultBackend.LoadingPageTemplateString",
             &loading_page_template_string,
             "string",
         )
@@ -471,7 +472,7 @@ impl Vice {
             "VICE",
             "UseCSIDriver",
             &format!("{}", use_csi_data == 0),
-            "boolean",
+            "bool",
         )
         .await?;
         add_env_cfg_value(tx, env_id, use_csi_data_id).await?;
