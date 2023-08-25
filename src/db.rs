@@ -34,6 +34,14 @@ pub trait LoadFromDatabase {
     }
 }
 
+/// Updates or inserts an environment into the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::upsert_environment(&mut tx, "dev", "dev").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn upsert_environment(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -51,6 +59,18 @@ pub async fn upsert_environment(
         .last_insert_id())
 }
 
+/// Returns a listing of the environments stored in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_envs(&mut tx).await?;
+/// tx.commit().await?;
+///
+/// for env in result {
+///     println!("{}", env);
+/// }
+/// ```
 pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<String>> {
     let envs = sqlx::query!(
         r#"
@@ -63,6 +83,14 @@ pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<St
     Ok(envs.into_iter().filter_map(|e| e.name).collect())
 }
 
+/// Deletes an environment from the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::delete_env(&mut tx, "dev").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn delete_env(tx: &mut Transaction<'_, MySql>, environment: &str) -> anyhow::Result<u64> {
     Ok(sqlx::query!(
         r#"
@@ -75,6 +103,14 @@ pub async fn delete_env(tx: &mut Transaction<'_, MySql>, environment: &str) -> a
     .last_insert_id())
 }
 
+/// Returns the primary key of the environment from the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_env_id(&mut tx, "dev").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn get_env_id(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -91,6 +127,15 @@ pub async fn get_env_id(
     Ok(env_id.id)
 }
 
+/// Returns a listing of the url and name of the repositories stored in the
+/// database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_repos(&mut tx).await?;
+/// tx.commit().await?;
+/// ```
 pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(String, String)>> {
     let repos = sqlx::query!(
         r#"
@@ -114,6 +159,15 @@ pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(S
         .collect())
 }
 
+/// Adds a new configuration section to the database. Returns the primary key
+/// of the new section.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_section(&mut tx, "DashboardAggregator").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn add_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<u64> {
     Ok(sqlx::query!(
         r#"
@@ -126,6 +180,16 @@ pub async fn add_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyh
     .last_insert_id())
 }
 
+/// Returns whether the section exists in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::has_section(&mut tx, "DashboardAggregator").await?;
+/// tx.commit().await?;
+///
+/// assert!(result);
+/// ```
 pub async fn has_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<bool> {
     let section = sqlx::query!(
         r#"
@@ -139,6 +203,15 @@ pub async fn has_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyh
     Ok(section.is_some())
 }
 
+/// Deletes a configuration section from the database. Returns the primary key
+/// of the deleted section.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::delete_section(&mut tx, "DashboardAggregator").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn delete_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<u64> {
     Ok(sqlx::query!(
         r#"
@@ -151,6 +224,18 @@ pub async fn delete_section(tx: &mut Transaction<'_, MySql>, section: &str) -> a
     .last_insert_id())
 }
 
+/// Returns a listing of the configuration sections stored in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_sections(&mut tx).await?;
+/// tx.commit().await?;
+///
+/// for section in result {
+///    println!("{}", section);
+/// }
+/// ```
 pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<String>> {
     let sections = sqlx::query!(
         r#"
