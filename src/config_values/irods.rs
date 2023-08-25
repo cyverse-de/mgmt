@@ -1,5 +1,5 @@
 use crate::config_values::amqp::Amqp;
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -15,12 +15,12 @@ pub struct IrodsWebDav {
     anon_uri: Option<Url>,
 }
 
-impl LoadFromConfiguration for IrodsWebDav {
+impl LoadFromDatabase for IrodsWebDav {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "WebDAV.AnonURI" => self.anon_uri = Url::parse(&value).ok(),
@@ -40,9 +40,9 @@ impl Default for IrodsWebDav {
     }
 }
 
-impl From<IrodsWebDav> for Vec<db::Configuration> {
-    fn from(iwd: IrodsWebDav) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<IrodsWebDav> for Vec<db::ConfigurationValue> {
+    fn from(iwd: IrodsWebDav) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if iwd.section.is_empty() {
@@ -52,7 +52,7 @@ impl From<IrodsWebDav> for Vec<db::Configuration> {
         }
 
         if let Some(anon_uri) = iwd.anon_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("WebDAV.AnonURI".to_string()),
@@ -107,9 +107,9 @@ pub struct Irods {
     quota_root_resources: Option<String>,
 }
 
-impl From<Irods> for Vec<db::Configuration> {
-    fn from(i: Irods) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Irods> for Vec<db::ConfigurationValue> {
+    fn from(i: Irods) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if i.section.is_empty() {
@@ -118,7 +118,7 @@ impl From<Irods> for Vec<db::Configuration> {
             section = i.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Host".to_string()),
@@ -126,7 +126,7 @@ impl From<Irods> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("User".to_string()),
@@ -134,7 +134,7 @@ impl From<Irods> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Zone".to_string()),
@@ -142,7 +142,7 @@ impl From<Irods> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),
@@ -151,7 +151,7 @@ impl From<Irods> for Vec<db::Configuration> {
         });
 
         if let Some(admin_users) = i.admin_users {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("AdminUsers".to_string()),
@@ -161,7 +161,7 @@ impl From<Irods> for Vec<db::Configuration> {
         }
 
         if let Some(perms_filter) = i.perms_filter {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("PermsFilter".to_string()),
@@ -171,7 +171,7 @@ impl From<Irods> for Vec<db::Configuration> {
         }
 
         if let Some(external_host) = i.external_host {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ExternalHost".to_string()),
@@ -181,7 +181,7 @@ impl From<Irods> for Vec<db::Configuration> {
         }
 
         if let Some(quota_root_resources) = i.quota_root_resources {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("QuotaRootResources".to_string()),
@@ -191,26 +191,26 @@ impl From<Irods> for Vec<db::Configuration> {
         }
 
         if let Some(web_dav) = i.web_dav {
-            vec.extend::<Vec<db::Configuration>>(web_dav.into());
+            vec.extend::<Vec<db::ConfigurationValue>>(web_dav.into());
         }
 
-        let mut amqp_vec: Vec<db::Configuration> = i.amqp.into();
+        let mut amqp_vec: Vec<db::ConfigurationValue> = i.amqp.into();
         amqp_vec.iter_mut().for_each(|c| {
             c.section = Some(section.clone());
         });
 
-        vec.extend::<Vec<db::Configuration>>(amqp_vec);
+        vec.extend::<Vec<db::ConfigurationValue>>(amqp_vec);
 
         vec
     }
 }
 
-impl LoadFromConfiguration for Irods {
+impl LoadFromDatabase for Irods {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Host" => self.host = value,

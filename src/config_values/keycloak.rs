@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -26,12 +26,12 @@ impl Default for KeycloakVice {
     }
 }
 
-impl LoadFromConfiguration for KeycloakVice {
+impl LoadFromDatabase for KeycloakVice {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "VICE.ClientID" => self.client_id = value,
@@ -43,9 +43,9 @@ impl LoadFromConfiguration for KeycloakVice {
     }
 }
 
-impl From<KeycloakVice> for Vec<db::Configuration> {
-    fn from(kv: KeycloakVice) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<KeycloakVice> for Vec<db::ConfigurationValue> {
+    fn from(kv: KeycloakVice) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if kv.section.is_empty() {
@@ -54,14 +54,14 @@ impl From<KeycloakVice> for Vec<db::Configuration> {
             section = kv.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("VICE.ClientID".to_string()),
             value: Some(kv.client_id),
             value_type: Some("string".to_string()),
         });
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("VICE.ClientSecret".to_string()),
@@ -140,12 +140,12 @@ impl Default for Keycloak {
     }
 }
 
-impl LoadFromConfiguration for Keycloak {
+impl LoadFromDatabase for Keycloak {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "ServerURI" => self.server_uri = Url::parse(&value).ok(),
@@ -163,9 +163,9 @@ impl LoadFromConfiguration for Keycloak {
     }
 }
 
-impl From<Keycloak> for Vec<db::Configuration> {
-    fn from(k: Keycloak) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Keycloak> for Vec<db::ConfigurationValue> {
+    fn from(k: Keycloak) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if k.section.is_empty() {
@@ -175,7 +175,7 @@ impl From<Keycloak> for Vec<db::Configuration> {
         }
 
         if let Some(server_uri) = k.server_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ServerURI".to_string()),
@@ -184,7 +184,7 @@ impl From<Keycloak> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Realm".to_string()),
@@ -192,7 +192,7 @@ impl From<Keycloak> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("ClientID".to_string()),
@@ -200,7 +200,7 @@ impl From<Keycloak> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("ClientSecret".to_string()),
@@ -208,7 +208,7 @@ impl From<Keycloak> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.extend::<Vec<db::Configuration>>(k.vice.into());
+        vec.extend::<Vec<db::ConfigurationValue>>(k.vice.into());
 
         vec
     }

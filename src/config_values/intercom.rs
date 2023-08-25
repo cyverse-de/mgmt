@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -33,9 +33,9 @@ impl Default for Intercom {
     }
 }
 
-impl From<Intercom> for Vec<db::Configuration> {
-    fn from(i: Intercom) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Intercom> for Vec<db::ConfigurationValue> {
+    fn from(i: Intercom) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if i.section.is_empty() {
@@ -44,7 +44,7 @@ impl From<Intercom> for Vec<db::Configuration> {
             section = i.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Enabled".to_string()),
@@ -52,7 +52,7 @@ impl From<Intercom> for Vec<db::Configuration> {
             value_type: Some("bool".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AppID".to_string()),
@@ -60,7 +60,7 @@ impl From<Intercom> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("CompanyID".to_string()),
@@ -68,7 +68,7 @@ impl From<Intercom> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("CompanyName".to_string()),
@@ -80,12 +80,12 @@ impl From<Intercom> for Vec<db::Configuration> {
     }
 }
 
-impl LoadFromConfiguration for Intercom {
+impl LoadFromDatabase for Intercom {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Enabled" => self.enabled = value.parse::<bool>()?,

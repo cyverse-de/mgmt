@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::db::{self, LoadFromConfiguration};
+use crate::db::{self, LoadFromDatabase};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
@@ -33,9 +33,9 @@ pub struct BaseURLs {
     user_info: Option<Url>,
 }
 
-impl From<BaseURLs> for Vec<db::Configuration> {
-    fn from(base_urls: BaseURLs) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<BaseURLs> for Vec<db::ConfigurationValue> {
+    fn from(base_urls: BaseURLs) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
         if base_urls.section.is_empty() {
             section = "BaseURLs".to_string();
@@ -44,7 +44,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.analyses {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Analyses".to_string()),
@@ -54,7 +54,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.app_exposer {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("AppExposer".to_string()),
@@ -64,7 +64,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.apps {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Apps".to_string()),
@@ -74,7 +74,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.async_tasks {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("AsyncTasks".to_string()),
@@ -84,7 +84,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.dashboard_aggregator {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DashboardAggregator".to_string()),
@@ -94,7 +94,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.data_info {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DataInfo".to_string()),
@@ -104,7 +104,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.grouper_web_services {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("GrouperWebServices".to_string()),
@@ -114,7 +114,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.iplant_email {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("IplantEmail".to_string()),
@@ -124,7 +124,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.iplant_groups {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("IplantGroups".to_string()),
@@ -134,7 +134,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.jex_adapter {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("JexAdapter".to_string()),
@@ -144,7 +144,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.job_status_listener {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("JobStatusListener".to_string()),
@@ -154,7 +154,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.metadata {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Metadata".to_string()),
@@ -164,7 +164,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.notifications {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Notifications".to_string()),
@@ -174,7 +174,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.permissions {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Permissions".to_string()),
@@ -184,7 +184,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.qms {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("QMS".to_string()),
@@ -194,7 +194,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.requests {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Requests".to_string()),
@@ -204,7 +204,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.search {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Search".to_string()),
@@ -214,7 +214,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.terrain {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Terrain".to_string()),
@@ -224,7 +224,7 @@ impl From<BaseURLs> for Vec<db::Configuration> {
         }
 
         if let Some(url) = base_urls.user_info {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("UserInfo".to_string()),
@@ -237,12 +237,12 @@ impl From<BaseURLs> for Vec<db::Configuration> {
     }
 }
 
-impl LoadFromConfiguration for BaseURLs {
+impl LoadFromDatabase for BaseURLs {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Analyses" => self.analyses = Url::parse(&value).ok(),

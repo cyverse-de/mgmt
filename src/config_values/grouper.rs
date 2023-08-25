@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -28,12 +28,12 @@ impl Default for GrouperLoader {
     }
 }
 
-impl LoadFromConfiguration for GrouperLoader {
+impl LoadFromDatabase for GrouperLoader {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Loader.URI" => self.uri = Url::parse(&value).ok(),
@@ -46,9 +46,9 @@ impl LoadFromConfiguration for GrouperLoader {
     }
 }
 
-impl From<GrouperLoader> for Vec<db::Configuration> {
-    fn from(gl: GrouperLoader) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<GrouperLoader> for Vec<db::ConfigurationValue> {
+    fn from(gl: GrouperLoader) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if gl.section.is_empty() {
@@ -58,7 +58,7 @@ impl From<GrouperLoader> for Vec<db::Configuration> {
         }
 
         if let Some(uri) = gl.uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Loader.URI".to_string()),
@@ -67,7 +67,7 @@ impl From<GrouperLoader> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Loader.User".to_string()),
@@ -75,7 +75,7 @@ impl From<GrouperLoader> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Loader.Password".to_string()),
@@ -146,12 +146,12 @@ impl Default for Grouper {
     }
 }
 
-impl LoadFromConfiguration for Grouper {
+impl LoadFromDatabase for Grouper {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "MorphString" => self.morph_string = value,
@@ -168,9 +168,9 @@ impl LoadFromConfiguration for Grouper {
     }
 }
 
-impl From<Grouper> for Vec<db::Configuration> {
-    fn from(g: Grouper) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Grouper> for Vec<db::ConfigurationValue> {
+    fn from(g: Grouper) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if g.section.is_empty() {
@@ -179,7 +179,7 @@ impl From<Grouper> for Vec<db::Configuration> {
             section = g.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("MorphString".to_string()),
@@ -187,7 +187,7 @@ impl From<Grouper> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),
@@ -195,7 +195,7 @@ impl From<Grouper> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("FolderNamePrefix".to_string()),
@@ -203,7 +203,7 @@ impl From<Grouper> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.extend::<Vec<db::Configuration>>(g.loader.into());
+        vec.extend::<Vec<db::ConfigurationValue>>(g.loader.into());
 
         vec
     }

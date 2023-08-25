@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -13,12 +13,12 @@ pub struct Docker {
     tag: String,
 }
 
-impl LoadFromConfiguration for Docker {
+impl LoadFromDatabase for Docker {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Tag" => self.tag = value,
@@ -37,8 +37,8 @@ impl LoadFromConfiguration for Docker {
     }
 }
 
-impl From<Docker> for Vec<db::Configuration> {
-    fn from(docker: Docker) -> Vec<db::Configuration> {
+impl From<Docker> for Vec<db::ConfigurationValue> {
+    fn from(docker: Docker) -> Vec<db::ConfigurationValue> {
         let mut cfgs = Vec::new();
         let section: String;
 
@@ -49,7 +49,7 @@ impl From<Docker> for Vec<db::Configuration> {
         }
 
         if let Some(trusted_registries) = docker.trusted_registries {
-            cfgs.push(db::Configuration {
+            cfgs.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("TrustedRegistries".to_string()),
@@ -57,7 +57,7 @@ impl From<Docker> for Vec<db::Configuration> {
                 value_type: Some("string".to_string()),
             });
         }
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Tag".to_string()),

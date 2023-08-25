@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -29,12 +29,12 @@ impl Default for DatabaseConfig {
     }
 }
 
-impl LoadFromConfiguration for DatabaseConfig {
+impl LoadFromDatabase for DatabaseConfig {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value), Some(section)) =
             (cfg.key.clone(), cfg.value.clone(), cfg.section.clone())
         {
@@ -53,9 +53,9 @@ impl LoadFromConfiguration for DatabaseConfig {
     }
 }
 
-impl From<DatabaseConfig> for Vec<db::Configuration> {
-    fn from(db_cfg: DatabaseConfig) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<DatabaseConfig> for Vec<db::ConfigurationValue> {
+    fn from(db_cfg: DatabaseConfig) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if db_cfg.section.is_empty() {
@@ -64,7 +64,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             section = db_cfg.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("User".to_string()),
@@ -72,7 +72,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),
@@ -80,7 +80,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Host".to_string()),
@@ -88,7 +88,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Port".to_string()),
@@ -96,7 +96,7 @@ impl From<DatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("int".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Name".to_string()),
@@ -189,12 +189,12 @@ pub struct QMSDatabaseConfig {
     reinitialize: Option<bool>,
 }
 
-impl LoadFromConfiguration for QMSDatabaseConfig {
+impl LoadFromDatabase for QMSDatabaseConfig {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "User" => self.user = value,
@@ -226,9 +226,9 @@ impl Default for QMSDatabaseConfig {
     }
 }
 
-impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
-    fn from(qmsdb: QMSDatabaseConfig) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<QMSDatabaseConfig> for Vec<db::ConfigurationValue> {
+    fn from(qmsdb: QMSDatabaseConfig) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if qmsdb.section.is_empty() {
@@ -237,7 +237,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             section = qmsdb.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("User".to_string()),
@@ -245,7 +245,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),
@@ -253,7 +253,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Host".to_string()),
@@ -261,7 +261,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Port".to_string()),
@@ -269,7 +269,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("int".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Name".to_string()),
@@ -277,7 +277,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Automigrate".to_string()),
@@ -285,7 +285,7 @@ impl From<QMSDatabaseConfig> for Vec<db::Configuration> {
             value_type: Some("bool".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Reinitialize".to_string()),

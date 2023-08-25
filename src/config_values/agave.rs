@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use sqlx::{MySql, Transaction};
 
@@ -42,9 +42,9 @@ impl Default for Agave {
     }
 }
 
-impl From<Agave> for Vec<db::Configuration> {
-    fn from(agave: Agave) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Agave> for Vec<db::ConfigurationValue> {
+    fn from(agave: Agave) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
         if agave.section.is_empty() {
             section = "Agave".to_string();
@@ -52,7 +52,7 @@ impl From<Agave> for Vec<db::Configuration> {
             section = agave.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Key".to_string()),
@@ -60,7 +60,7 @@ impl From<Agave> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Secret".to_string()),
@@ -68,7 +68,7 @@ impl From<Agave> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("RedirectURI".to_string()),
@@ -76,7 +76,7 @@ impl From<Agave> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("StorageSystem".to_string()),
@@ -84,7 +84,7 @@ impl From<Agave> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("CallbackBaseURI".to_string()),
@@ -93,7 +93,7 @@ impl From<Agave> for Vec<db::Configuration> {
         });
 
         if let Some(rt) = agave.read_timeout {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ReadTimeout".to_string()),
@@ -103,7 +103,7 @@ impl From<Agave> for Vec<db::Configuration> {
         }
 
         if let Some(enabled) = agave.enabled {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Enabled".to_string()),
@@ -113,7 +113,7 @@ impl From<Agave> for Vec<db::Configuration> {
         }
 
         if let Some(jobs_enabled) = agave.jobs_enabled {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("JobsEnabled".to_string()),
@@ -126,12 +126,12 @@ impl From<Agave> for Vec<db::Configuration> {
     }
 }
 
-impl LoadFromConfiguration for Agave {
+impl LoadFromDatabase for Agave {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Key" => self.key = value,

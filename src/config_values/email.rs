@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -30,12 +30,12 @@ impl Default for Email {
     }
 }
 
-impl LoadFromConfiguration for Email {
+impl LoadFromDatabase for Email {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Src" => self.src = value,
@@ -49,8 +49,8 @@ impl LoadFromConfiguration for Email {
     }
 }
 
-impl From<Email> for Vec<db::Configuration> {
-    fn from(email: Email) -> Vec<db::Configuration> {
+impl From<Email> for Vec<db::ConfigurationValue> {
+    fn from(email: Email) -> Vec<db::ConfigurationValue> {
         let mut cfgs = Vec::new();
         let section: String;
 
@@ -60,28 +60,28 @@ impl From<Email> for Vec<db::Configuration> {
             section = email.section.clone();
         }
 
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Src".to_string()),
             value: Some(email.src),
             value_type: Some("string".to_string()),
         });
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Dest".to_string()),
             value: Some(email.dest),
             value_type: Some("string".to_string()),
         });
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("PermIDRequestDest".to_string()),
             value: Some(email.perm_id_request_dest),
             value_type: Some("string".to_string()),
         });
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("SupportDest".to_string()),

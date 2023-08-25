@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -30,12 +30,12 @@ impl Default for Elasticsearch {
     }
 }
 
-impl LoadFromConfiguration for Elasticsearch {
+impl LoadFromDatabase for Elasticsearch {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "BaseURI" => self.base_uri = Url::parse(&value).ok(),
@@ -49,9 +49,9 @@ impl LoadFromConfiguration for Elasticsearch {
     }
 }
 
-impl From<Elasticsearch> for Vec<db::Configuration> {
-    fn from(es: Elasticsearch) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Elasticsearch> for Vec<db::ConfigurationValue> {
+    fn from(es: Elasticsearch) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if es.section.is_empty() {
@@ -61,7 +61,7 @@ impl From<Elasticsearch> for Vec<db::Configuration> {
         }
 
         if let Some(base_uri) = es.base_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
@@ -70,7 +70,7 @@ impl From<Elasticsearch> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Username".to_string()),
@@ -78,7 +78,7 @@ impl From<Elasticsearch> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),
@@ -86,7 +86,7 @@ impl From<Elasticsearch> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Index".to_string()),

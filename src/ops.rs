@@ -6,7 +6,7 @@
 //! implemented by the tools inside this crate.
 //!
 use crate::config_values::config;
-use crate::db::{self, Configuration, LoadFromConfiguration};
+use crate::db::{self, ConfigurationValue, LoadFromDatabase};
 use anyhow::anyhow;
 use sqlx::{MySql, Pool};
 use std::path::PathBuf;
@@ -122,7 +122,7 @@ pub async fn set_default_value(
 /// ```
 pub async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-    let cfg: db::Configuration;
+    let cfg: db::ConfigurationValue;
     let has_section = db::has_section(&mut tx, section).await?;
     if has_section {
         let has_default_value = db::has_default_config_value(&mut tx, section, key).await?;
@@ -318,7 +318,7 @@ pub async fn get_value(
     key: &str,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-    let cfg: db::Configuration;
+    let cfg: db::ConfigurationValue;
 
     let has_config_value = db::has_config_value(&mut tx, environment, section, key).await?;
     if has_config_value {
@@ -426,7 +426,7 @@ pub async fn render_values(
     output_file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
-    let mut all_cfgs: Vec<Configuration> = Vec::new();
+    let mut all_cfgs: Vec<ConfigurationValue> = Vec::new();
     let all_default_cfgs = db::list_default_config_values(&mut tx, None, None).await?;
 
     for default in all_default_cfgs
@@ -485,7 +485,7 @@ pub async fn import_yaml_file(
     let mut tx = pool.begin().await?;
     let file = std::fs::File::open(path)?;
     let cv: config::ConfigValues = serde_yaml::from_reader(file)?;
-    let items: Vec<db::Configuration> = cv.into();
+    let items: Vec<db::ConfigurationValue> = cv.into();
     for item in items.into_iter() {
         if let (Some(section), Some(key), Some(value), Some(value_type)) = (
             item.section.clone(),

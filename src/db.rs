@@ -1,11 +1,24 @@
+//! # Database Access
+//!
+//! This module contains all the database access code for the application.
 use sqlx::{MySql, Row, Transaction};
 
-pub trait LoadFromConfiguration {
+/// Represents a single configuration value as stored in the database.
+#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ConfigurationValue {
+    pub id: Option<i64>,
+    pub section: Option<String>,
+    pub key: Option<String>,
+    pub value: Option<String>,
+    pub value_type: Option<String>,
+}
+
+pub trait LoadFromDatabase {
     fn get_section(&self) -> String;
 
-    fn cfg_set_key(&mut self, cfg: &Configuration) -> anyhow::Result<()>;
+    fn cfg_set_key(&mut self, cfg: &ConfigurationValue) -> anyhow::Result<()>;
 
-    fn cfg_set_keys(&mut self, cfgs: Vec<Configuration>) -> anyhow::Result<()> {
+    fn cfg_set_keys(&mut self, cfgs: Vec<ConfigurationValue>) -> anyhow::Result<()> {
         cfgs.into_iter()
             .try_for_each(|cfg| self.cfg_set_key(&cfg))?;
         Ok(())
@@ -141,22 +154,13 @@ pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Ve
     Ok(sections.into_iter().filter_map(|s| s.name).collect())
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Configuration {
-    pub id: Option<i64>,
-    pub section: Option<String>,
-    pub key: Option<String>,
-    pub value: Option<String>,
-    pub value_type: Option<String>,
-}
-
 pub async fn get_default_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
     key: &str,
-) -> anyhow::Result<Configuration> {
+) -> anyhow::Result<ConfigurationValue> {
     let default = sqlx::query_as!(
-        Configuration,
+        ConfigurationValue,
         r#"
                 SELECT
                     config_defaults.id AS `id: i64`,
@@ -247,7 +251,7 @@ pub async fn list_default_config_values(
     tx: &mut Transaction<'_, MySql>,
     section: Option<&str>,
     key: Option<&str>,
-) -> anyhow::Result<Vec<Configuration>> {
+) -> anyhow::Result<Vec<ConfigurationValue>> {
     let query = String::from(
         r#"
 SELECT 
@@ -285,7 +289,7 @@ INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_ty
         .fetch_all(&mut **tx)
         .await?
         .iter()
-        .map(|r| Configuration {
+        .map(|r| ConfigurationValue {
             id: Some(r.get("id")),
             section: Some(r.get("section")),
             key: Some(r.get("key")),
@@ -404,9 +408,9 @@ pub async fn get_config_value(
     environment: &str,
     section: &str,
     key: &str,
-) -> anyhow::Result<Configuration> {
+) -> anyhow::Result<ConfigurationValue> {
     let cfg = sqlx::query_as!(
-        Configuration,
+        ConfigurationValue,
         r#"
                 SELECT 
                     config_values.id AS `id: i64`,
@@ -458,7 +462,7 @@ pub async fn list_config_values(
     environment: Option<&str>,
     section: Option<&str>,
     key: Option<&str>,
-) -> anyhow::Result<Vec<Configuration>> {
+) -> anyhow::Result<Vec<ConfigurationValue>> {
     let query = String::from(
         r#"
 SELECT 
@@ -505,7 +509,7 @@ INNER JOIN config_value_types ON config_values.value_type_id = config_value_type
         .fetch_all(&mut **tx)
         .await?
         .iter()
-        .map(|r| Configuration {
+        .map(|r| ConfigurationValue {
             id: r.get("id"),
             section: r.get("section"),
             key: r.get("key"),

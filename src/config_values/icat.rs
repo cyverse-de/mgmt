@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -29,12 +29,12 @@ impl Default for Icat {
     }
 }
 
-impl LoadFromConfiguration for Icat {
+impl LoadFromDatabase for Icat {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Host" => self.host = value,
@@ -48,9 +48,9 @@ impl LoadFromConfiguration for Icat {
     }
 }
 
-impl From<Icat> for Vec<db::Configuration> {
-    fn from(i: Icat) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Icat> for Vec<db::ConfigurationValue> {
+    fn from(i: Icat) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if i.section.is_empty() {
@@ -59,7 +59,7 @@ impl From<Icat> for Vec<db::Configuration> {
             section = i.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Host".to_string()),
@@ -67,7 +67,7 @@ impl From<Icat> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Port".to_string()),
@@ -75,7 +75,7 @@ impl From<Icat> for Vec<db::Configuration> {
             value_type: Some("int".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("User".to_string()),
@@ -83,7 +83,7 @@ impl From<Icat> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Password".to_string()),

@@ -4,9 +4,7 @@ use crate::config_values::{
     elasticsearch::Elasticsearch, email::Email, grouper::Grouper, icat::Icat,
     infosquito::Infosquito,
 };
-use crate::db::{
-    self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromConfiguration,
-};
+use crate::db::{self, add_env_cfg_value, set_config_value, upsert_environment, LoadFromDatabase};
 use anyhow::Context;
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
@@ -387,12 +385,12 @@ impl Default for ConfigValues {
     }
 }
 
-impl LoadFromConfiguration for ConfigValues {
+impl LoadFromDatabase for ConfigValues {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Environment" => self.environment = value,
@@ -405,7 +403,7 @@ impl LoadFromConfiguration for ConfigValues {
         Ok(())
     }
 
-    fn cfg_set_keys(&mut self, cfgs: Vec<crate::db::Configuration>) -> anyhow::Result<()> {
+    fn cfg_set_keys(&mut self, cfgs: Vec<crate::db::ConfigurationValue>) -> anyhow::Result<()> {
         cfgs.iter().for_each(|cfg| {
             if let Some(section) = cfg.section.clone() {
                 match section.as_str() {
@@ -550,9 +548,9 @@ impl LoadFromConfiguration for ConfigValues {
     }
 }
 
-impl From<ConfigValues> for Vec<db::Configuration> {
-    fn from(cv: ConfigValues) -> Vec<db::Configuration> {
-        let mut cfgs: Vec<db::Configuration> = Vec::new();
+impl From<ConfigValues> for Vec<db::ConfigurationValue> {
+    fn from(cv: ConfigValues) -> Vec<db::ConfigurationValue> {
+        let mut cfgs: Vec<db::ConfigurationValue> = Vec::new();
 
         let section: String;
         if cv.section.is_empty() {
@@ -561,7 +559,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             section = cv.section.clone();
         }
 
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Environment".to_string()),
@@ -569,7 +567,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("Namespace".to_string()),
@@ -577,7 +575,7 @@ impl From<ConfigValues> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        cfgs.push(db::Configuration {
+        cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("UIDDomain".to_string()),
@@ -588,74 +586,74 @@ impl From<ConfigValues> for Vec<db::Configuration> {
         // Agave section is optional, so check before adding it.
         if cv.section_options.include_section("Agave") {
             if let Some(agave) = cv.agave {
-                cfgs.extend::<Vec<db::Configuration>>(agave.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(agave.into());
             }
         }
 
         // BaseURLs is optional, so check before adding it.
         if cv.section_options.include_section("BaseURLs") {
             if let Some(base_urls) = cv.base_urls {
-                cfgs.extend::<Vec<db::Configuration>>(base_urls.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(base_urls.into());
             }
         }
 
         if let Some(dashboard_aggregator) = cv.dashboard_aggregator {
-            cfgs.extend::<Vec<db::Configuration>>(dashboard_aggregator.into());
+            cfgs.extend::<Vec<db::ConfigurationValue>>(dashboard_aggregator.into());
         }
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.de.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.de.into());
 
         // Docker is optional, so check before adding it.
         if cv.section_options.include_section("Docker") {
             if let Some(docker) = cv.docker {
-                cfgs.extend::<Vec<db::Configuration>>(docker.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(docker.into());
             }
         }
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.elasticsearch.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.elasticsearch.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.email.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.email.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.grouper.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.grouper.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.icat.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.icat.into());
 
         // Infosquito is optional, so check before adding it.
         if cv.section_options.include_section("Infosquito") {
             if let Some(infosquito) = cv.infosquito {
-                cfgs.extend::<Vec<db::Configuration>>(infosquito.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(infosquito.into());
             }
         }
 
         // Intercom is optional, so check before adding it.
         if cv.section_options.include_section("Intercom") {
             if let Some(intercom) = cv.intercom {
-                cfgs.extend::<Vec<db::Configuration>>(intercom.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(intercom.into());
             }
         }
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.irods.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.irods.into());
 
         // Jobs is optional, so check before adding it.
         if cv.section_options.include_section("Jobs") {
             if let Some(jobs) = cv.jobs {
-                cfgs.extend::<Vec<db::Configuration>>(jobs.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(jobs.into());
             }
         }
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.keycloak.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.keycloak.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.pgp.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.pgp.into());
 
         // PermanentID is optional, so check before adding it.
         if cv.section_options.include_section("PermanentID") {
             if let Some(permanent_id) = cv.permanent_id {
-                cfgs.extend::<Vec<db::Configuration>>(permanent_id.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(permanent_id.into());
             }
         }
 
         if let Some(timezone) = cv.timezone {
-            cfgs.push(db::Configuration {
+            cfgs.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Timezone".to_string()),
@@ -667,97 +665,97 @@ impl From<ConfigValues> for Vec<db::Configuration> {
         // Unleash is optional, so check before adding it.
         if cv.section_options.include_section("Unleash") {
             if let Some(unleash) = cv.unleash {
-                cfgs.extend::<Vec<db::Configuration>>(unleash.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(unleash.into());
             }
         }
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.user_portal.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.user_portal.into());
 
-        cfgs.extend::<Vec<db::Configuration>>(cv.vice.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(cv.vice.into());
 
-        let mut de_db_cfgs: Vec<db::Configuration> = cv.de_db.into();
+        let mut de_db_cfgs: Vec<db::ConfigurationValue> = cv.de_db.into();
         de_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("DEDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(de_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(de_db_cfgs.into());
 
-        let mut grouper_db_cfgs: Vec<db::Configuration> = cv.grouper_db.into();
+        let mut grouper_db_cfgs: Vec<db::ConfigurationValue> = cv.grouper_db.into();
         grouper_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("GrouperDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(grouper_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(grouper_db_cfgs.into());
 
-        let mut notifications_db_cfgs: Vec<db::Configuration> = cv.notifications_db.into();
+        let mut notifications_db_cfgs: Vec<db::ConfigurationValue> = cv.notifications_db.into();
         notifications_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("NotificationsDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(notifications_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(notifications_db_cfgs.into());
 
-        let mut permissions_db_cfgs: Vec<db::Configuration> = cv.permissions_db.into();
+        let mut permissions_db_cfgs: Vec<db::ConfigurationValue> = cv.permissions_db.into();
         permissions_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("PermissionsDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(permissions_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(permissions_db_cfgs.into());
 
-        let mut qms_db_cfgs: Vec<db::Configuration> = cv.qms_db.into();
+        let mut qms_db_cfgs: Vec<db::ConfigurationValue> = cv.qms_db.into();
         qms_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("QMSDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(qms_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(qms_db_cfgs.into());
 
-        let mut metadata_db_cfgs: Vec<db::Configuration> = cv.metadata_db.into();
+        let mut metadata_db_cfgs: Vec<db::ConfigurationValue> = cv.metadata_db.into();
         metadata_db_cfgs.iter_mut().for_each(|cfg| {
             cfg.section = Some("MetadataDB".to_string());
         });
-        cfgs.extend::<Vec<db::Configuration>>(metadata_db_cfgs.into());
+        cfgs.extend::<Vec<db::ConfigurationValue>>(metadata_db_cfgs.into());
 
         // UnleashDB is optional, so check before adding it.
         if cv.section_options.include_section("Unleash") {
             if let Some(unleash_db) = cv.unleash_db {
-                let mut unleash_db_cfgs: Vec<db::Configuration> = unleash_db.into();
+                let mut unleash_db_cfgs: Vec<db::ConfigurationValue> = unleash_db.into();
                 unleash_db_cfgs.iter_mut().for_each(|cfg| {
                     cfg.section = Some("UnleashDB".to_string());
                 });
-                cfgs.extend::<Vec<db::Configuration>>(unleash_db_cfgs.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(unleash_db_cfgs.into());
             }
         }
 
         // Admin is optional, so check before adding it.
         if cv.section_options.include_section("Admin") {
             if let Some(admin) = cv.admin {
-                cfgs.extend::<Vec<db::Configuration>>(admin.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(admin.into());
             }
         }
 
         // Analytics is optional, so check before adding it.
         if cv.section_options.include_section("Analytics") {
             if let Some(analytics) = cv.analytics {
-                cfgs.extend::<Vec<db::Configuration>>(analytics.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(analytics.into());
             }
         }
 
         if let Some(harbor) = cv.harbor {
-            cfgs.extend::<Vec<db::Configuration>>(harbor.into());
+            cfgs.extend::<Vec<db::ConfigurationValue>>(harbor.into());
         }
 
         // QMS is optional, so check before adding it.
         if cv.section_options.include_section("QMS") {
             if let Some(qms) = cv.qms {
-                cfgs.extend::<Vec<db::Configuration>>(qms.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(qms.into());
             }
         }
 
         // Jaeger is optional, so check before adding it.
         if cv.section_options.include_section("Jaeger") {
             if let Some(jaeger) = cv.jaeger {
-                cfgs.extend::<Vec<db::Configuration>>(jaeger.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(jaeger.into());
             }
         }
 
         // QA is optional, so check before adding it.
         if cv.section_options.include_section("QA") {
             if let Some(qa) = cv.qa {
-                cfgs.extend::<Vec<db::Configuration>>(qa.into());
+                cfgs.extend::<Vec<db::ConfigurationValue>>(qa.into());
             }
         }
 

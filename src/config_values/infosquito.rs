@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -23,12 +23,12 @@ impl Default for Infosquito {
     }
 }
 
-impl LoadFromConfiguration for Infosquito {
+impl LoadFromDatabase for Infosquito {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "DayNum" => self.day_num = Some(value.parse::<u8>()?),
@@ -40,9 +40,9 @@ impl LoadFromConfiguration for Infosquito {
     }
 }
 
-impl From<Infosquito> for Vec<db::Configuration> {
-    fn from(i: Infosquito) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Infosquito> for Vec<db::ConfigurationValue> {
+    fn from(i: Infosquito) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if i.section.is_empty() {
@@ -51,7 +51,7 @@ impl From<Infosquito> for Vec<db::Configuration> {
             section = i.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("DayNum".to_string()),
@@ -59,7 +59,7 @@ impl From<Infosquito> for Vec<db::Configuration> {
             value_type: Some("int".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("PrefixLength".to_string()),

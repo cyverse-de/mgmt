@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -30,9 +30,9 @@ impl Default for Amqp {
     }
 }
 
-impl From<Amqp> for Vec<db::Configuration> {
-    fn from(amqp: Amqp) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Amqp> for Vec<db::ConfigurationValue> {
+    fn from(amqp: Amqp) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
         if !amqp.section.is_empty() {
             section = amqp.section;
@@ -41,7 +41,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         }
 
         // Add User configuration.
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AMQP.User".to_string()),
@@ -50,7 +50,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         });
 
         // Add password configuration
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AMQP.Password".to_string()),
@@ -59,7 +59,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         });
 
         // Add host configuration
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AMQP.Host".to_string()),
@@ -68,7 +68,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         });
 
         // Add port configuration
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AMQP.Port".to_string()),
@@ -77,7 +77,7 @@ impl From<Amqp> for Vec<db::Configuration> {
         });
 
         // Add vhost configuration
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("AMQP.Vhost".to_string()),
@@ -89,12 +89,12 @@ impl From<Amqp> for Vec<db::Configuration> {
     }
 }
 
-impl LoadFromConfiguration for Amqp {
+impl LoadFromDatabase for Amqp {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "AMQP.User" => self.user = value,

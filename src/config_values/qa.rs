@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use anyhow::Context;
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
@@ -27,12 +27,12 @@ impl Default for QACeph {
     }
 }
 
-impl LoadFromConfiguration for QACeph {
+impl LoadFromDatabase for QACeph {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         match cfg.key.as_ref() {
             Some(key) => match key.as_str() {
                 "Ceph.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
@@ -47,9 +47,9 @@ impl LoadFromConfiguration for QACeph {
     }
 }
 
-impl From<QACeph> for Vec<db::Configuration> {
-    fn from(ceph: QACeph) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<QACeph> for Vec<db::ConfigurationValue> {
+    fn from(ceph: QACeph) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
 
         let section: String;
         if ceph.section.is_empty() {
@@ -59,7 +59,7 @@ impl From<QACeph> for Vec<db::Configuration> {
         }
 
         if let Some(password) = ceph.password {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Ceph.Password".to_string()),
@@ -69,7 +69,7 @@ impl From<QACeph> for Vec<db::Configuration> {
         }
 
         if let Some(username) = ceph.username {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Ceph.Username".to_string()),
@@ -79,7 +79,7 @@ impl From<QACeph> for Vec<db::Configuration> {
         }
 
         if let Some(first_name) = ceph.first_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Ceph.FirstName".to_string()),
@@ -89,7 +89,7 @@ impl From<QACeph> for Vec<db::Configuration> {
         }
 
         if let Some(last_name) = ceph.last_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Ceph.LastName".to_string()),
@@ -180,12 +180,12 @@ impl Default for QADE {
     }
 }
 
-impl LoadFromConfiguration for QADE {
+impl LoadFromDatabase for QADE {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         match cfg.key.as_ref() {
             Some(key) => match key.as_str() {
                 "DE.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
@@ -205,9 +205,9 @@ impl LoadFromConfiguration for QADE {
     }
 }
 
-impl From<QADE> for Vec<db::Configuration> {
-    fn from(de: QADE) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<QADE> for Vec<db::ConfigurationValue> {
+    fn from(de: QADE) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
 
         let section: String;
         if de.section.is_empty() {
@@ -217,7 +217,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(password) = de.password {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.Password".to_string()),
@@ -227,7 +227,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(username) = de.username {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.Username".to_string()),
@@ -237,7 +237,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(first_name) = de.first_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.FirstName".to_string()),
@@ -247,7 +247,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(last_name) = de.last_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.LastName".to_string()),
@@ -257,7 +257,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(local_user) = de.local_user {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.LocalUser".to_string()),
@@ -267,7 +267,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(jwt_name) = de.jwt_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.JwtName".to_string()),
@@ -277,7 +277,7 @@ impl From<QADE> for Vec<db::Configuration> {
         }
 
         if let Some(admin_password) = de.admin_password {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DE.AdminPassword".to_string()),
@@ -401,12 +401,12 @@ impl Default for QALegacy {
     }
 }
 
-impl LoadFromConfiguration for QALegacy {
+impl LoadFromDatabase for QALegacy {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         match cfg.key.as_ref() {
             Some(key) => match key.as_str() {
                 "Legacy.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
@@ -432,9 +432,9 @@ impl LoadFromConfiguration for QALegacy {
     }
 }
 
-impl From<QALegacy> for Vec<db::Configuration> {
-    fn from(legacy: QALegacy) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<QALegacy> for Vec<db::ConfigurationValue> {
+    fn from(legacy: QALegacy) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
 
         let section: String;
         if legacy.section.is_empty() {
@@ -444,7 +444,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(password) = legacy.password {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.Password".to_string()),
@@ -454,7 +454,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(username) = legacy.username {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.Username".to_string()),
@@ -464,7 +464,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(first_name) = legacy.first_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.FirstName".to_string()),
@@ -474,7 +474,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(last_name) = legacy.last_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.LastName".to_string()),
@@ -484,7 +484,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(local_user) = legacy.local_user {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.LocalUser".to_string()),
@@ -494,7 +494,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(jwt_name) = legacy.jwt_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.JwtName".to_string()),
@@ -504,7 +504,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(admin_password) = legacy.admin_password {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.AdminPassword".to_string()),
@@ -514,7 +514,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(admin_password2) = legacy.admin_password2 {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.AdminPassword2".to_string()),
@@ -524,7 +524,7 @@ impl From<QALegacy> for Vec<db::Configuration> {
         }
 
         if let Some(jwt_priv_pass) = legacy.jwt_priv_pass {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Legacy.JwtPrivPass".to_string()),
@@ -668,12 +668,12 @@ impl Default for QA {
     }
 }
 
-impl LoadFromConfiguration for QA {
+impl LoadFromDatabase for QA {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         let k = cfg.key.as_ref().context("No key")?;
 
         if k.starts_with("Ceph.") {
@@ -688,18 +688,18 @@ impl LoadFromConfiguration for QA {
     }
 }
 
-impl From<QA> for Vec<db::Configuration> {
-    fn from(qa: QA) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<QA> for Vec<db::ConfigurationValue> {
+    fn from(qa: QA) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
 
-        let ceph_vec: Vec<db::Configuration> = qa.ceph.into();
-        vec.extend::<Vec<db::Configuration>>(ceph_vec);
+        let ceph_vec: Vec<db::ConfigurationValue> = qa.ceph.into();
+        vec.extend::<Vec<db::ConfigurationValue>>(ceph_vec);
 
-        let de_vec: Vec<db::Configuration> = qa.de.into();
-        vec.extend::<Vec<db::Configuration>>(de_vec);
+        let de_vec: Vec<db::ConfigurationValue> = qa.de.into();
+        vec.extend::<Vec<db::ConfigurationValue>>(de_vec);
 
-        let legacy_vec: Vec<db::Configuration> = qa.legacy.into();
-        vec.extend::<Vec<db::Configuration>>(legacy_vec);
+        let legacy_vec: Vec<db::ConfigurationValue> = qa.legacy.into();
+        vec.extend::<Vec<db::ConfigurationValue>>(legacy_vec);
 
         vec
     }

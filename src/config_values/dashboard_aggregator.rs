@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -22,12 +22,12 @@ impl Default for Website {
     }
 }
 
-impl LoadFromConfiguration for Website {
+impl LoadFromDatabase for Website {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "URL" => self.url = Url::parse(&value).ok(),
@@ -38,7 +38,7 @@ impl LoadFromConfiguration for Website {
     }
 }
 
-impl From<Website> for Vec<db::Configuration> {
+impl From<Website> for Vec<db::ConfigurationValue> {
     fn from(website: Website) -> Self {
         let mut cfgs = Vec::new();
         let section: String;
@@ -49,7 +49,7 @@ impl From<Website> for Vec<db::Configuration> {
         }
 
         if let Some(url) = website.url {
-            cfgs.push(db::Configuration {
+            cfgs.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("URL".to_string()),
@@ -100,12 +100,12 @@ impl Default for DashboardAggregator {
     }
 }
 
-impl LoadFromConfiguration for DashboardAggregator {
+impl LoadFromDatabase for DashboardAggregator {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let Some(key) = cfg.key.clone() {
             match key.as_str() {
                 "Website.URL" => {
@@ -120,12 +120,12 @@ impl LoadFromConfiguration for DashboardAggregator {
     }
 }
 
-impl From<DashboardAggregator> for Vec<db::Configuration> {
+impl From<DashboardAggregator> for Vec<db::ConfigurationValue> {
     fn from(da: DashboardAggregator) -> Self {
         let mut cfgs = Vec::new();
 
         if let Some(website) = da.website {
-            cfgs.extend::<Vec<db::Configuration>>(website.into());
+            cfgs.extend::<Vec<db::ConfigurationValue>>(website.into());
         }
         cfgs
     }

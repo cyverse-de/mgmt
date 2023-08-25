@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -23,12 +23,12 @@ impl Default for ViceFileTransfers {
     }
 }
 
-impl LoadFromConfiguration for ViceFileTransfers {
+impl LoadFromDatabase for ViceFileTransfers {
     fn get_section(&self) -> String {
         self.section.clone()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "FileTransfers.Image" => self.image = Some(value),
@@ -40,9 +40,9 @@ impl LoadFromConfiguration for ViceFileTransfers {
     }
 }
 
-impl From<ViceFileTransfers> for Vec<db::Configuration> {
-    fn from(vft: ViceFileTransfers) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<ViceFileTransfers> for Vec<db::ConfigurationValue> {
+    fn from(vft: ViceFileTransfers) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
 
         let section: String;
         if vft.section.is_empty() {
@@ -52,7 +52,7 @@ impl From<ViceFileTransfers> for Vec<db::Configuration> {
         }
 
         if let Some(image) = vft.image {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("FileTransfers.Image".to_string()),
@@ -61,7 +61,7 @@ impl From<ViceFileTransfers> for Vec<db::Configuration> {
             });
         }
         if let Some(tag) = vft.tag {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("FileTransfers.Tag".to_string()),
@@ -122,12 +122,12 @@ impl Default for ViceDefaultBackend {
     }
 }
 
-impl LoadFromConfiguration for ViceDefaultBackend {
+impl LoadFromDatabase for ViceDefaultBackend {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "DefaultBackend.LoadingPageTemplateString" => {
@@ -140,9 +140,9 @@ impl LoadFromConfiguration for ViceDefaultBackend {
     }
 }
 
-impl From<ViceDefaultBackend> for Vec<db::Configuration> {
-    fn from(vdb: ViceDefaultBackend) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<ViceDefaultBackend> for Vec<db::ConfigurationValue> {
+    fn from(vdb: ViceDefaultBackend) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
         if vdb.section.is_empty() {
             section = "VICE".to_string();
@@ -150,7 +150,7 @@ impl From<ViceDefaultBackend> for Vec<db::Configuration> {
             section = vdb.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("DefaultBackend.LoadingPageTemplateString".to_string()),
@@ -245,12 +245,12 @@ impl Default for Vice {
     }
 }
 
-impl LoadFromConfiguration for Vice {
+impl LoadFromDatabase for Vice {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "BaseURI" => self.base_uri = Url::parse(&value).ok(),
@@ -282,9 +282,9 @@ impl LoadFromConfiguration for Vice {
     }
 }
 
-impl From<Vice> for Vec<db::Configuration> {
-    fn from(v: Vice) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Vice> for Vec<db::ConfigurationValue> {
+    fn from(v: Vice) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if v.section.is_empty() {
@@ -294,7 +294,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(base_uri) = v.base_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
@@ -304,11 +304,11 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(ft) = v.file_transfers {
-            vec.extend::<Vec<db::Configuration>>(ft.into());
+            vec.extend::<Vec<db::ConfigurationValue>>(ft.into());
         }
 
         if let Some(ips) = v.image_pull_secret {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ImagePullSecret".to_string()),
@@ -318,7 +318,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(ic) = v.image_cache {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ImageCache".to_string()),
@@ -328,7 +328,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(ucd) = v.use_csi_driver {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("UseCSIDriver".to_string()),
@@ -338,7 +338,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(dcu) = v.default_cas_url {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DefaultCasUrl".to_string()),
@@ -348,7 +348,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(dcv) = v.default_cas_validate {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DefaultCasValidate".to_string()),
@@ -358,7 +358,7 @@ impl From<Vice> for Vec<db::Configuration> {
         }
 
         if let Some(ucm) = v.use_case_chars_min {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("UseCaseCharsMin".to_string()),
@@ -367,7 +367,7 @@ impl From<Vice> for Vec<db::Configuration> {
             });
         }
 
-        vec.extend::<Vec<db::Configuration>>(v.default_backend.into());
+        vec.extend::<Vec<db::ConfigurationValue>>(v.default_backend.into());
 
         vec
     }

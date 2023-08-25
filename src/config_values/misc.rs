@@ -1,4 +1,4 @@
-use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromConfiguration};
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
@@ -24,12 +24,12 @@ impl Default for Jobs {
     }
 }
 
-impl LoadFromConfiguration for Jobs {
+impl LoadFromDatabase for Jobs {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "DataTransferTag" => self.data_transfer_tag = Some(value),
@@ -41,9 +41,9 @@ impl LoadFromConfiguration for Jobs {
     }
 }
 
-impl From<Jobs> for Vec<db::Configuration> {
-    fn from(job: Jobs) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Jobs> for Vec<db::ConfigurationValue> {
+    fn from(job: Jobs) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if job.section.is_empty() {
@@ -53,7 +53,7 @@ impl From<Jobs> for Vec<db::Configuration> {
         }
 
         if let Some(image) = job.data_transfer_image {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DataTransferImage".to_string()),
@@ -63,7 +63,7 @@ impl From<Jobs> for Vec<db::Configuration> {
         }
 
         if let Some(tag) = job.data_transfer_tag {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DataTransferTag".to_string()),
@@ -150,12 +150,12 @@ impl Pgp {
     }
 }
 
-impl LoadFromConfiguration for Pgp {
+impl LoadFromDatabase for Pgp {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "KeyPassword" => self.key_password = value,
@@ -166,9 +166,9 @@ impl LoadFromConfiguration for Pgp {
     }
 }
 
-impl From<Pgp> for Vec<db::Configuration> {
-    fn from(p: Pgp) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Pgp> for Vec<db::ConfigurationValue> {
+    fn from(p: Pgp) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if p.section.is_empty() {
@@ -177,7 +177,7 @@ impl From<Pgp> for Vec<db::Configuration> {
             section = p.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("KeyPassword".to_string()),
@@ -269,12 +269,12 @@ impl PermanentIdDataCite {
     }
 }
 
-impl LoadFromConfiguration for PermanentIdDataCite {
+impl LoadFromDatabase for PermanentIdDataCite {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "DataCite.BaseURI" => self.base_uri = Url::parse(&value).ok(),
@@ -288,9 +288,9 @@ impl LoadFromConfiguration for PermanentIdDataCite {
     }
 }
 
-impl From<PermanentIdDataCite> for Vec<db::Configuration> {
-    fn from(p: PermanentIdDataCite) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<PermanentIdDataCite> for Vec<db::ConfigurationValue> {
+    fn from(p: PermanentIdDataCite) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if p.section.is_empty() {
@@ -300,7 +300,7 @@ impl From<PermanentIdDataCite> for Vec<db::Configuration> {
         }
 
         if let Some(base_uri) = p.base_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("DataCite.BaseURI".to_string()),
@@ -309,7 +309,7 @@ impl From<PermanentIdDataCite> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("DataCite.User".to_string()),
@@ -317,7 +317,7 @@ impl From<PermanentIdDataCite> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("DataCite.Password".to_string()),
@@ -325,7 +325,7 @@ impl From<PermanentIdDataCite> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("DataCite.DOIPrefix".to_string()),
@@ -385,12 +385,12 @@ impl PermanentId {
     }
 }
 
-impl LoadFromConfiguration for PermanentId {
+impl LoadFromDatabase for PermanentId {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "CuratorsGroup" => self.curators_group = value,
@@ -406,9 +406,9 @@ impl LoadFromConfiguration for PermanentId {
     }
 }
 
-impl From<PermanentId> for Vec<db::Configuration> {
-    fn from(p: PermanentId) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<PermanentId> for Vec<db::ConfigurationValue> {
+    fn from(p: PermanentId) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if p.section.is_empty() {
@@ -417,7 +417,7 @@ impl From<PermanentId> for Vec<db::Configuration> {
             section = p.section.clone();
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("CuratorsGroup".to_string()),
@@ -425,7 +425,7 @@ impl From<PermanentId> for Vec<db::Configuration> {
             value_type: Some("string".to_string()),
         });
 
-        vec.extend::<Vec<db::Configuration>>(p.data_cite.into());
+        vec.extend::<Vec<db::ConfigurationValue>>(p.data_cite.into());
 
         vec
     }
@@ -461,12 +461,12 @@ impl Default for Unleash {
     }
 }
 
-impl LoadFromConfiguration for Unleash {
+impl LoadFromDatabase for Unleash {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "BaseURL" => self.base_url = Url::parse(&value).ok(),
@@ -480,9 +480,9 @@ impl LoadFromConfiguration for Unleash {
     }
 }
 
-impl From<Unleash> for Vec<db::Configuration> {
-    fn from(u: Unleash) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Unleash> for Vec<db::ConfigurationValue> {
+    fn from(u: Unleash) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if u.section.is_empty() {
@@ -492,7 +492,7 @@ impl From<Unleash> for Vec<db::Configuration> {
         }
 
         if let Some(base_url) = u.base_url {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("BaseURL".to_string()),
@@ -502,7 +502,7 @@ impl From<Unleash> for Vec<db::Configuration> {
         }
 
         if let Some(api_path) = u.api_path {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("APIPath".to_string()),
@@ -511,7 +511,7 @@ impl From<Unleash> for Vec<db::Configuration> {
             });
         }
 
-        vec.push(db::Configuration {
+        vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
             key: Some("APIToken".to_string()),
@@ -520,7 +520,7 @@ impl From<Unleash> for Vec<db::Configuration> {
         });
 
         if let Some(maintenance_flag) = u.maintenance_flag {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("MaintenanceFlag".to_string()),
@@ -626,12 +626,12 @@ impl UserPortal {
     }
 }
 
-impl LoadFromConfiguration for UserPortal {
+impl LoadFromDatabase for UserPortal {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "BaseURI" => self.base_uri = Some(value),
@@ -642,9 +642,9 @@ impl LoadFromConfiguration for UserPortal {
     }
 }
 
-impl From<UserPortal> for Vec<db::Configuration> {
-    fn from(u: UserPortal) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<UserPortal> for Vec<db::ConfigurationValue> {
+    fn from(u: UserPortal) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if u.section.is_empty() {
@@ -654,7 +654,7 @@ impl From<UserPortal> for Vec<db::Configuration> {
         }
 
         if let Some(base_uri) = u.base_uri {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("BaseURI".to_string()),
@@ -687,12 +687,12 @@ impl Default for Admin {
     }
 }
 
-impl LoadFromConfiguration for Admin {
+impl LoadFromDatabase for Admin {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Groups" => self.groups = Some(value),
@@ -704,9 +704,9 @@ impl LoadFromConfiguration for Admin {
     }
 }
 
-impl From<Admin> for Vec<db::Configuration> {
-    fn from(a: Admin) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Admin> for Vec<db::ConfigurationValue> {
+    fn from(a: Admin) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if a.section.is_empty() {
@@ -716,7 +716,7 @@ impl From<Admin> for Vec<db::Configuration> {
         }
 
         if let Some(groups) = a.groups {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Groups".to_string()),
@@ -726,7 +726,7 @@ impl From<Admin> for Vec<db::Configuration> {
         }
 
         if let Some(attribute) = a.attribute {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Attribute".to_string()),
@@ -788,12 +788,12 @@ impl Default for Analytics {
     }
 }
 
-impl LoadFromConfiguration for Analytics {
+impl LoadFromDatabase for Analytics {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
@@ -805,9 +805,9 @@ impl LoadFromConfiguration for Analytics {
     }
 }
 
-impl From<Analytics> for Vec<db::Configuration> {
-    fn from(a: Analytics) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Analytics> for Vec<db::ConfigurationValue> {
+    fn from(a: Analytics) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if a.section.is_empty() {
@@ -817,7 +817,7 @@ impl From<Analytics> for Vec<db::Configuration> {
         }
 
         if let Some(enabled) = a.enabled {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Enabled".to_string()),
@@ -827,7 +827,7 @@ impl From<Analytics> for Vec<db::Configuration> {
         }
 
         if let Some(id) = a.id {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Id".to_string()),
@@ -908,12 +908,12 @@ impl Default for Harbor {
     }
 }
 
-impl LoadFromConfiguration for Harbor {
+impl LoadFromDatabase for Harbor {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "URL" => self.url = Some(value),
@@ -929,9 +929,9 @@ impl LoadFromConfiguration for Harbor {
     }
 }
 
-impl From<Harbor> for Vec<db::Configuration> {
-    fn from(h: Harbor) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Harbor> for Vec<db::ConfigurationValue> {
+    fn from(h: Harbor) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if h.section.is_empty() {
@@ -941,7 +941,7 @@ impl From<Harbor> for Vec<db::Configuration> {
         }
 
         if let Some(url) = h.url {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("URL".to_string()),
@@ -951,7 +951,7 @@ impl From<Harbor> for Vec<db::Configuration> {
         }
 
         if let Some(project_qa_image_pull_secret_name) = h.project_qa_image_pull_secret_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ProjectQAImagePullSecretName".to_string()),
@@ -961,7 +961,7 @@ impl From<Harbor> for Vec<db::Configuration> {
         }
 
         if let Some(project_qa_robot_name) = h.project_qa_robot_name {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ProjectQARobotName".to_string()),
@@ -971,7 +971,7 @@ impl From<Harbor> for Vec<db::Configuration> {
         }
 
         if let Some(project_qa_robot_secret) = h.project_qa_robot_secret {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("ProjectQARobotSecret".to_string()),
@@ -1052,12 +1052,12 @@ impl Default for Qms {
     }
 }
 
-impl LoadFromConfiguration for Qms {
+impl LoadFromDatabase for Qms {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
@@ -1068,9 +1068,9 @@ impl LoadFromConfiguration for Qms {
     }
 }
 
-impl From<Qms> for Vec<db::Configuration> {
-    fn from(q: Qms) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Qms> for Vec<db::ConfigurationValue> {
+    fn from(q: Qms) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if q.section.is_empty() {
@@ -1080,7 +1080,7 @@ impl From<Qms> for Vec<db::Configuration> {
         }
 
         if let Some(enabled) = q.enabled {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Enabled".to_string()),
@@ -1137,12 +1137,12 @@ impl Default for Jaeger {
     }
 }
 
-impl LoadFromConfiguration for Jaeger {
+impl LoadFromDatabase for Jaeger {
     fn get_section(&self) -> String {
         self.section.to_string()
     }
 
-    fn cfg_set_key(&mut self, cfg: &crate::db::Configuration) -> anyhow::Result<()> {
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Endpoint" => self.endpoint = Url::parse(&value).ok(),
@@ -1154,9 +1154,9 @@ impl LoadFromConfiguration for Jaeger {
     }
 }
 
-impl From<Jaeger> for Vec<db::Configuration> {
-    fn from(j: Jaeger) -> Vec<db::Configuration> {
-        let mut vec: Vec<db::Configuration> = Vec::new();
+impl From<Jaeger> for Vec<db::ConfigurationValue> {
+    fn from(j: Jaeger) -> Vec<db::ConfigurationValue> {
+        let mut vec: Vec<db::ConfigurationValue> = Vec::new();
         let section: String;
 
         if j.section.is_empty() {
@@ -1166,7 +1166,7 @@ impl From<Jaeger> for Vec<db::Configuration> {
         }
 
         if let Some(endpoint) = j.endpoint {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("Endpoint".to_string()),
@@ -1176,7 +1176,7 @@ impl From<Jaeger> for Vec<db::Configuration> {
         }
 
         if let Some(http_endpoint) = j.http_endpoint {
-            vec.push(db::Configuration {
+            vec.push(db::ConfigurationValue {
                 id: None,
                 section: Some(section.clone()),
                 key: Some("HttpEndpoint".to_string()),
