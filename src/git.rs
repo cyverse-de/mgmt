@@ -1,3 +1,6 @@
+//! # Git
+//!
+//! This module provides functions for interacting with git.
 use anyhow::{Context, Result};
 use std::io;
 use std::process::Command;
@@ -20,7 +23,11 @@ fn commit(msg: &str) -> Result<bool> {
 
 /// Uses git to fetch a submodule from the remote repository.
 ///
-///
+/// # Examples
+/// ```ignore
+///     let result = mgmt::git::fetch_submodule("repos/terrain").unwrap();
+///     assert_eq!(result, true);
+/// ```
 pub fn fetch_submodule(submodule_path: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args([
@@ -36,6 +43,12 @@ pub fn fetch_submodule(submodule_path: &str) -> Result<bool> {
         .success())
 }
 
+/// Uses git to clone a repository from the remote repository.
+///
+/// # Examples
+/// ```ignore
+///    let result = mgmt::git::clone("https://github.com/cyverse-de/terrain", "repos/terrain").unwrap();
+/// ```
 pub fn clone(url: &str, path: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args(["clone", url, path])
@@ -44,6 +57,12 @@ pub fn clone(url: &str, path: &str) -> Result<bool> {
         .success())
 }
 
+/// Uses git to update a submodule from the remote repository.
+///
+/// # Examples
+/// ```ignore
+///   let result = mgmt::git::update_submodule("repos/terrain").unwrap();
+/// ```
 pub fn update_submodule(submodule_path: &str) -> Result<bool> {
     fetch_submodule(submodule_path)?;
     Ok(Command::new("git")
@@ -53,6 +72,13 @@ pub fn update_submodule(submodule_path: &str) -> Result<bool> {
         .success())
 }
 
+/// Uses git to look for changes to the remote repository.
+///
+/// # Examples
+/// ```ignore
+///     let result = mgmt::git::staged_changes().unwrap();
+///     assert_eq!(result, true);
+/// ```
 fn staged_changes() -> Result<bool> {
     let output = Command::new("git").arg("status").output()?;
 
@@ -63,6 +89,13 @@ fn staged_changes() -> Result<bool> {
     Ok(!found)
 }
 
+/// Uses git to add and commit changes to the remote repository.
+///
+/// # Examples
+/// ```ignore
+///     let result = mgmt::git::check_in_changes("repos/terrain").unwrap();
+///     assert_eq!(result, true);
+/// ```
 pub fn check_in_changes(project_path: &str) -> Result<bool> {
     add(&project_path)?;
     add("builds")?;
