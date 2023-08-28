@@ -125,7 +125,11 @@ Since `GrouperLoader` is the struct for a nested section, its corresponding `sec
 
 ## Loading domain objects from the database.
 
+Loading domain objects (i.e. configuration sections) from the database allows us to write out the configuration values files as YAML files. This works by querying the database for the configuration values (or the defaults if the values are unset), creating new domain objects from the types in the `config_values` directory, loading the domain objects up with the results of the queries, and then relying on the `serde` crate to write out the domain objects into a YAML file. Most of this process is fairly generic or implemented at a more abstract level, so you'll just need to implement a trait for each domain type that turns a `Vec<db::ConfigurationValue>` into a domain object.
+
 ## Serializing domain objects to the database.
+
+Writing out domain objects to the database allows us to import existing config values files into the database. This works by reading in the files and deserializing them to a `ConfigValues` domain object, as defined in `src/config_values/config.rs`. This will cause all of the other domain objects to get created an populated. Next, each of the domain objects is turned into a vector of ConfigurationValues. Finally, the code iterates through all of the ConfigurationValues and writes them out to the database. As with loading domain objects from the database, most of this logic is fairly generic or implemented at an abstract level, so you'll just need to implement a trait for each new domain type (i.e. configuration section) that can turn an instance of it into a `Vec<db::ConfigurationValue>`.
 
 ## Supporting user prompts for a new value
 
