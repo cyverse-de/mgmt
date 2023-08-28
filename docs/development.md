@@ -1,7 +1,87 @@
 # Development Notes for `mgmt`
 
 ## Adding an environment
+
+New code changes should not be needed for adding a new environment. It's recommended that you use the `mgmt-configs env create`command to add a new environment to the database.
+
 ## Adding a configuration section
+
+Code changes will need to be added to fully support adding a new configuration section. 
+
+If the section is a top-level section containing other values, you'll need to either add a new `.rs` file to the `src/config_values` directory containing the code for the section, or add the section to an existing file in the same location.
+
+Each section in the configuration needs to have it's own Rust struct. For example, the `Grouper` section of the config has a struct in `src/config_values/grouper.rs` that looks like the following:
+
+```rust
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct Grouper {
+    #[serde(skip)]
+    section: String,
+    morph_string: String,
+    password: String,
+    folder_name_prefix: String,
+    loader: GrouperLoader,
+}
+```
+
+The `#[derive(Serialize, Deserialize, Clone)]` part is an attribute macro telling the Rust compiler to generate code that implements the Serialize, Deserialize, and Clone traits for the `Grouper` type. Similarly, the `#[serde(rename_all = "PascalCase")]` attribute macro tells the `serde` crate to rename the fields in the `Grouper` struct when serializing or deserialing it so that their names conform to the Pascal capitalization standard in the emitted representation. You will want to include that for all section structs that you add to the codebase.
+
+The `#[serde(skip)]` field macro over `section: String` tells the `serde` package to skip that field when reading or writing a `Grouper` section out. You'll want to add a `section` field to every config section struct that you add to `mgmt` and you'll want to make sure that it's ignored when writing out the YAML files, so make sure that field macro is included.
+
+`morph_string`, `password`, and `folder_name_prefix` are configuration values contained within the `Grouper` section of the config. We'll cover more on adding configuration values in a later section, so we'll leave it at that for now. Note that the `#[serde(skip)]` macro is missing from these fields, which means that they are serialized and deserialized to/from the emitted representation. Also worth noting is that the `#[serde(rename_all = "PascalCase")]` macro does apply to each of the fields in the struct, so `folder_name_prefix` will turn into `FolderNamePrefix` in any representations of the struct created by `serde`.
+
+The `loader` field is an example of a nested subject with a type of `GrouperLoader`. Subjects nested inside another subject do not need to have their own entry in the `de_releases` database, but they do need to be represented in the codebase so the `serde` crate knows what to do with the values contained within them. The struct for the `GrouperLoader` type looks like this:
+
+```rust
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct GrouperLoader {
+    #[serde(skip)]
+    section: String,
+
+    #[serde(rename = "URI")]
+    uri: Option<Url>,
+
+    user: String,
+    password: String,
+}
+```
+
+All of the same rules for adding a configuration section that were outlined above still apply to a nested section. Some changes to note here are the use of the `#[serde(rename = "URI")]` macro over the `uri` field and the fact that the same field has a type of `Option<Url>`. The `Url` type comes from the `url` module imported at the top of the file (but not shown here). The fact that it's an `Option` means that the field is optional and will be represented as a null value in the serialization output if no non-None value is set as the default and the user does not supply another value.
+
+The generated YAML from the combination of `Grouper` and `GrouperLoader` will result in output that looks like the following:
+
+```yaml
+Grouper:
+  MorphString: asdfasdfasdfa
+  Password: this-is-fake
+  FolderNamePrefix: cyverse:de
+  Loader:
+    URI: http://grouper-loader-example
+    User: a-user
+    Password: a-password
+```
+
+Notice that the name of the `Loader` object comes from the corresponding field name in the `Grouper` type, not from the name of the `GrouperLoader` type.
+
+Finally, add a your new configuration section to the `ConfigValues` type in the `src/config_values/çonfig.rs` file. The `ConfigValues` type represents the configuration as a whole, and you need to add your new section as a field to its struct in order for it to get recognized when working with the configuration later.
+
+Here's a truncated version of the `ConfigValues` struct that shows the `grouper` section being added to it.
+
+```rust
+use crate::config_values::grouper::Grouper;
+...
+
+pub struct ConfigValues {
+  ...
+  grouper: Grouper,
+  ...
+}
+```
+
+The remaining sections of the document will build off of this foundation to support the rest of the features needed from a configuration section in the `mgmt` tool.
+
 ## Adding a new default config value
 ## Adding a new config value
 ## Supporting file imports for a new value
