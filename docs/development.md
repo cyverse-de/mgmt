@@ -4,13 +4,13 @@
 
 New code changes should not be needed for adding a new environment. It's recommended that you use the `mgmt-configs env create`command to add a new environment to the database.
 
-## Adding a configuration section
+## Adding a configuration section as a domain type
 
 Code changes will need to be added to fully support adding a new configuration section. 
 
 If the section is a top-level section containing other values, you'll need to either add a new `.rs` file to the `src/config_values` directory containing the code for the section, or add the section to an existing file in the same location.
 
-Each section in the configuration needs to have it's own Rust struct. For example, the `Grouper` section of the config has a struct in `src/config_values/grouper.rs` that looks like the following:
+Each section in the configuration needs to have it's own Rust struct that acts as a domain type. For example, the `Grouper` section of the config has a struct in `src/config_values/grouper.rs` that looks like the following:
 
 ```rust
 #[derive(Serialize, Deserialize, Clone)]
@@ -83,8 +83,49 @@ pub struct ConfigValues {
 The remaining sections of the document will build off of this foundation to support the rest of the features needed from a configuration section in the `mgmt` tool.
 
 ## Adding a new default config value
-## Adding a new config value
-## Supporting file imports for a new value
-## Supporting file exports for a new value
+
+To add support for a new configuration value, you need to implement the `Default` trait for the type you added for the configuration section. For example, for the `Grouper` section, the `Default` trait implementation looks like this:
+
+```rust
+impl Default for Grouper {
+    fn default() -> Self {
+        Grouper {
+            section: "Grouper".to_string(),
+            morph_string: String::new(),
+            password: String::new(),
+            folder_name_prefix: String::new(),
+            loader: GrouperLoader::default(),
+        }
+    }
+}
+```
+
+The interesting parts here are to make sure that the default for the `section` field matches what the field will look like in the configuration files themselves. For instance here it's set to `Grouper` since the top-level section name is `Grouper`. The `morph_string`, `password`, and `folder_name_prefix` fields have empty strings as their defaults, which means that the serialized configuration will have an empty value (as opposed to null with an unset `Option`) unless the user provides an overriding config value for the field.
+
+The `loader` field has a default value that delegates to GrouperLoader's implementation of the `Default` trait. Here's what that looks like:
+
+```rust
+impl Default for GrouperLoader {
+    fn default() -> Self {
+        GrouperLoader {
+            section: "Grouper".to_string(),
+            uri: None,
+            user: String::new(),
+            password: String::new(),
+        }
+    }
+}
+```
+
+There's a couple of things to note here:
+1. The section is still set to `Grouper` as opposed to `GrouperLoader`.
+2. The default value for the `uri` field is `None`.
+
+Since `GrouperLoader` is the struct for a nested section, its corresponding `section` field should have a default of the name of the outermost containing section --- in this case, `Grouper`. That should be the case regardless of how deeply nested the section is. The default value for the `uri` field is `None` because the field is defined as an `Option<Url>`.
+
+## Loading domain objects from the database.
+
+## Serializing domain objects to the database.
+
 ## Supporting user prompts for a new value
 
