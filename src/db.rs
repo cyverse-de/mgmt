@@ -248,6 +248,15 @@ pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Ve
     Ok(sections.into_iter().filter_map(|s| s.name).collect())
 }
 
+/// Returns a default configuration value from the database based on the
+/// section and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_default_config_value(&mut tx, "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn get_default_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -276,6 +285,14 @@ pub async fn get_default_config_value(
     Ok(default)
 }
 
+/// Updates or adds a default configuration value to the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::set_default_config_value(&mut tx, "DashboardAggregator", "Website.URL", "https://example.com", "string").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn set_default_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -302,6 +319,15 @@ pub async fn set_default_config_value(
     .last_insert_id())
 }
 
+/// Returns whether a default configuration value exists in the database
+/// associated with the given section and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::has_default_config_value(&mut tx, "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn has_default_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -322,6 +348,15 @@ pub async fn has_default_config_value(
     Ok(default.is_some())
 }
 
+/// Delete a default configuration value from the database based on the
+/// section and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::delete_default_config_value(&mut tx, "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn delete_default_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -341,6 +376,24 @@ pub async fn delete_default_config_value(
     .last_insert_id())
 }
 
+/// Returns a listing of the default configuration values stored in the
+/// database based on the section and key. If no section or key is provided,
+/// all default configuration values are returned. If a section is provided
+/// but no key, all default configuration values for that section are returned.
+/// If a section and key are provided, only the default configuration value
+/// for that section and key is returned. If no section but a key is provided,
+/// all default configuration values for that key are returned.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_default_config_values(&mut tx, None, None).await?;
+/// tx.commit().await?;
+///
+/// for cfg in result {
+///    println!("{:?}", cfg);
+/// }
+/// ```
 pub async fn list_default_config_values(
     tx: &mut Transaction<'_, MySql>,
     section: Option<&str>,
@@ -395,6 +448,14 @@ INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_ty
     Ok(results)
 }
 
+/// Sets a configuration value in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::set_config_value(&mut tx, "DashboardAggregator", "Website.URL", "https://example.com", "string").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn set_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -439,6 +500,14 @@ pub async fn set_config_value(
     .last_insert_id())
 }
 
+/// Updates or inserts a configuration value in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::update_config_value(&mut tx, "DashboardAggregator", "Website.URL", "https://example.com", "string").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn update_config_value(
     tx: &mut Transaction<'_, MySql>,
     section: &str,
@@ -472,6 +541,15 @@ pub async fn update_config_value(
     .last_insert_id())
 }
 
+/// Returns whether a configuration value exists in the database associated
+/// with the given environment, section, and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::has_config_value(&mut tx, "dev", "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn has_config_value(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -497,6 +575,15 @@ pub async fn has_config_value(
     Ok(default.is_some())
 }
 
+/// Returns a configuration value from the database based on the
+/// environment, section, and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_config_value(&mut tx, "dev", "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn get_config_value(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -528,6 +615,15 @@ pub async fn get_config_value(
     Ok(cfg)
 }
 
+/// Deletes a configuration value from the database based on the
+/// environment, section, and key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::delete_config_value(&mut tx, "dev", "DashboardAggregator", "Website.URL").await?;
+/// tx.commit().await?;
+/// ```
 pub async fn delete_config_value(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
@@ -551,6 +647,25 @@ pub async fn delete_config_value(
         .last_insert_id())
 }
 
+/// Returns a listing of the configuration values stored in the
+/// database based on the environment, section, and key. If no environment,
+/// section, or key is provided, all configuration values are returned. If an
+/// environment is provided but no section or key, all configuration values for
+/// that environment are returned. If an environment and section are provided
+/// but no key, all configuration values for that environment and section are
+/// returned. If an environment, section, and key are provided, only the
+/// configuration value for that environment, section, and key is returned.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_config_values(&mut tx, None, None, None).await?;
+/// tx.commit().await?;
+///
+/// for cfg in result {
+///   println!("{:?}", cfg);
+/// }
+/// ```
 pub async fn list_config_values(
     tx: &mut Transaction<'_, MySql>,
     environment: Option<&str>,
@@ -615,6 +730,14 @@ INNER JOIN config_value_types ON config_values.value_type_id = config_value_type
     Ok(results)
 }
 
+/// Adds a configuration value to an environment in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_env_cfg_value(&mut tx, 1, 1).await?;
+/// tx.commit().await?;
+/// ```
 pub async fn add_env_cfg_value(
     tx: &mut Transaction<'_, MySql>,
     env_id: u64,
@@ -632,11 +755,25 @@ pub async fn add_env_cfg_value(
         .last_insert_id())
 }
 
+/// Represents a single service as stored in the database.
 #[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Service {
     pub name: Option<String>,
 }
 
+/// Returns a listing of the services stored in the database that are affected
+/// by changes to the given configuration value in an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_affected_services(&mut tx, "dev", 1).await?;
+/// tx.commit().await?;
+///
+/// for service in result {
+///    println!("{}", service);
+/// }
+/// ```
 pub async fn list_affected_services(
     tx: &mut Transaction<'_, MySql>,
     environment: &str,
