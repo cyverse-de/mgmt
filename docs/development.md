@@ -298,3 +298,79 @@ impl From<GrouperLoader> for Vec<db::ConfigurationValue> {
 As you can see, it's very similar to `Grouper`'s implementation, even with the same sort of logic around the section name.
 
 ## Supporting user prompts for a new value
+
+In order to support populating domain objects from user inputs, each domain type needs to have a public, asynchronous method called `ask_for_info`. `ask_for_info` is responsible for:
+
+- Prompting the user for values.
+- Setting the config value in the database.
+- Adding the config value to the environment.
+- Populating the domain object with the values provided by the user.
+
+Here's what the `ask_for_user` implementation looks like for the `Grouper` domain type:
+
+```rust
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
+use dialoguer::{theme::ColorfulTheme, Input, Password};
+
+impl Grouper {
+    pub async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+        env: &str,
+    ) -> anyhow::Result<()> {
+        let morph_string = Input::<String>::with_theme(theme)
+            .with_prompt("Grouper Morph String")
+            .interact()?;
+
+        let password = Password::with_theme(theme)
+            .with_prompt("Grouper Password")
+            .interact()?;
+
+        let folder_name_prefix = Input::<String>::with_theme(theme)
+            .with_prompt("Grouper Folder Name Prefix")
+            .default(format!("cyverse:de:{}", env).into())
+            .interact()?;
+
+        let morph_string_id =
+            set_config_value(tx, "Grouper", "MorphString", &morph_string, "string").await?;
+        add_env_cfg_value(tx, env_id, morph_string_id).await?;
+        self.morph_string = morph_string;
+
+        let password_id = set_config_value(tx, "Grouper", "Password", &password, "string").await?;
+        add_env_cfg_value(tx, env_id, password_id).await?;
+        self.password = password;
+
+        let folder_name_prefix_id = set_config_value(
+            tx,
+            "Grouper",
+            "FolderNamePrefix",
+            &folder_name_prefix,
+            "string",
+        )
+        .await?;
+        add_env_cfg_value(tx, env_id, folder_name_prefix_id).await?;
+        self.folder_name_prefix = folder_name_prefix;
+
+        self.loader.ask_for_info(tx, theme, env_id).await?;
+        Ok(())
+    }
+}
+```
+
+The `dialoguer` crate is used to ask the user for values for the keys in the section. Here's what a prompt looks like:
+
+```rust
+        let morph_string = Input::<String>::with_theme(theme)
+            .with_prompt("Grouper Morph String")
+            .interact()?;
+```
+
+The `Input` type is provided by `dialoguer` and the `<String>` causes the value input by the user to be returned as a `String`.
+
+The key passed into `set_config_value` function must match the key used in the `cfg_set_key`, which in turn corresponds to the serialized name of the field (which will be in PascalCase unless otherwise renamed via the `serde` attribute macro).
+
+Make sure that you use the `add_env_cfg_value` function with the return value of the `set_config_value` function to make sure that the new config value is associated with the environment being configured.
+
+Another thing to be mindful of is to set the field of the domain object to the value entered by the user. If this isn't done, things will break in weird ways.
