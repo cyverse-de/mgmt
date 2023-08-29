@@ -31,7 +31,7 @@ The `#[serde(skip)]` field macro over `section: String` tells the `serde` packag
 
 `morph_string`, `password`, and `folder_name_prefix` are configuration values contained within the `Grouper` section of the config. We'll cover more on adding configuration values in a later section, so we'll leave it at that for now. Note that the `#[serde(skip)]` macro is missing from these fields, which means that they are serialized and deserialized to/from the emitted representation. Also worth noting is that the `#[serde(rename_all = "PascalCase")]` macro does apply to each of the fields in the struct, so `folder_name_prefix` will turn into `FolderNamePrefix` in any representations of the struct created by `serde`.
 
-The `loader` field is an example of a nested subject with a type of `GrouperLoader`. Subjects nested inside another subject do not need to have their own entry in the `de_releases` database, but they do need to be represented in the codebase so the `serde` crate knows what to do with the values contained within them. The struct for the `GrouperLoader` type looks like this:
+The `loader` field is an example of a nested section with a type of `GrouperLoader`. Sections nested inside another section do not need to have their own entry in the `de_releases` database, but they do need to be represented in the codebase so the `serde` crate knows what to do with the values contained within them. The struct for the `GrouperLoader` type looks like this:
 
 ```rust
 #[derive(Serialize, Deserialize, Clone)]
