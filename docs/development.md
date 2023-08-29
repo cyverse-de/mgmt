@@ -6,7 +6,7 @@ New code changes should not be needed for adding a new environment. It's recomme
 
 ## Adding a configuration section as a domain type
 
-Code changes will need to be added to fully support adding a new configuration section. 
+Code changes will need to be added to fully support adding a new configuration section.
 
 If the section is a top-level section containing other values, you'll need to either add a new `.rs` file to the `src/config_values` directory containing the code for the section, or add the section to an existing file in the same location.
 
@@ -118,6 +118,7 @@ impl Default for GrouperLoader {
 ```
 
 There's a couple of things to note here:
+
 1. The section is still set to `Grouper` as opposed to `GrouperLoader`.
 2. The default value for the `uri` field is `None`.
 
@@ -125,11 +126,79 @@ Since `GrouperLoader` is the struct for a nested section, its corresponding `sec
 
 ## Loading domain objects from the database.
 
-Loading domain objects (i.e. configuration sections) from the database allows us to write out the configuration values files as YAML files. This works by querying the database for the configuration values (or the defaults if the values are unset), creating new domain objects from the types in the `config_values` directory, loading the domain objects up with the results of the queries, and then relying on the `serde` crate to write out the domain objects into a YAML file. Most of this process is fairly generic or implemented at a more abstract level, so you'll just need to implement a trait for each domain type that turns a `Vec<db::ConfigurationValue>` into a domain object.
+Loading domain objects (i.e. configuration sections) from the database allows us to write out the configuration values as YAML files. This works by:
+
+- Querying the database for the configuration values (or the defaults if the values are unset).
+- Creating new domain objects from the types in the `config_values` directory.
+- Loading the domain objects up with the results of the queries.
+- Using the `serde` crate to write out the domain objects into a YAML file.
+
+Most of this process is fairly generic or implemented at a more abstract level, so you'll just need to implement the `LoadFromDatabase` trait for each domain type that turns a `Vec<db::ConfigurationValue>` into a domain object.
+
+Here's how the `LoadFromDatabase` trait looks for the `Grouper` domain type (which corresponds to the `Grouper` section):
+
+```rust
+use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
+
+impl LoadFromDatabase for Grouper {
+    fn get_section(&self) -> String {
+        self.section.to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "MorphString" => self.morph_string = value,
+                "Password" => self.password = value,
+                "FolderNamePrefix" => self.folder_name_prefix = value,
+                _ => (),
+            }
+
+            if key.starts_with("Loader.") {
+                self.loader.cfg_set_key(cfg)?;
+            }
+        }
+        Ok(())
+    }
+}
+```
+
+The `get_section` method allows callers to make decisions based on what section the domain object applies to. This kind of logic is implemented sparingly, but it does exist, so the function is needed.
+
+The `cfg_set_key` method is required to be implemented for each domain type. It's responsible for mapping a key to a field in the type. Note the logic for checking if the key starts with `Loader.`: that code snippet is repeated a lot when a field on a domain type has a type that corresponds to another domain type. In other words, that's how you handle a configuration section having a nested configuration section.
+
+That code snippet delegates to `GrouperLoader`'s implementation of the `LoadFromDatabase` trait, which looks like this:
+
+```rust
+impl LoadFromDatabase for GrouperLoader {
+    fn get_section(&self) -> String {
+        self.section.to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Loader.URI" => self.uri = Url::parse(&value).ok(),
+                "Loader.User" => self.user = value,
+                "Loader.Password" => self.password = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+```
+
+The logic here is largely the same, though it's worth noting that the keys the `match` statement is checked against are all prefixed with the name of the subsection. If the subsection itself contained a subsection, that doubly-nested subsection's keys would look like `Loader.DoubleNested.FieldName`.
 
 ## Serializing domain objects to the database.
 
-Writing out domain objects to the database allows us to import existing config values files into the database. This works by reading in the files and deserializing them to a `ConfigValues` domain object, as defined in `src/config_values/config.rs`. This will cause all of the other domain objects to get created an populated. Next, each of the domain objects is turned into a vector of ConfigurationValues. Finally, the code iterates through all of the ConfigurationValues and writes them out to the database. As with loading domain objects from the database, most of this logic is fairly generic or implemented at an abstract level, so you'll just need to implement a trait for each new domain type (i.e. configuration section) that can turn an instance of it into a `Vec<db::ConfigurationValue>`.
+Writing out domain objects to the database allows us to import existing config values files into the database. This works by:
+
+- Reading in the files and deserializing them to a `ConfigValues` domain object, as defined in `src/config_values/config.rs`. This will cause all of the other domain objects to get created an populated.
+- Turning each of the domain objects into a vector of ConfigurationValues.
+- Iterating through all of the ConfigurationValues and writing them out to the database.
+
+As with loading domain objects from the database, most of this logic is fairly generic or implemented at an abstract level, so you'll just need to implement a trait for each new domain type (i.e. configuration section) that can turn an instance of it into a `Vec<db::ConfigurationValue>`.
 
 ## Supporting user prompts for a new value
-
