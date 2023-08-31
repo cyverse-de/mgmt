@@ -67,6 +67,9 @@ fn cli() -> Command {
                     arg!(-d --dir [DIR] "Directory to deploy from")
                         .default_value(".")
                         .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-n --"db-name" [DB_NAME] "The name of the DB")
+                        .default_value("de_releases")
+                        .value_parser(clap::value_parser!(String)),
                     arg!(-e --env [ENV] "The environment to deploy")
                         .required(true)
                         .value_parser(clap::value_parser!(String)),
@@ -249,11 +252,53 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
 
 async fn deploy(
     env: &str,
+    db_name: &str,
     services: Vec<String>,
     dir: &PathBuf,
     defaults: &PathBuf,
     values: &PathBuf,
 ) -> anyhow::Result<()> {
+    println!("Deploying {} from {:?}...", env, dir);
+    println!("Using database {}...", db_name);
+    println!("Using defaults file {:?}...", defaults);
+    println!("Using values file {:?}...\n", values);
+
+    print!("Starting the database...");
+    let db_dir = Path::new(dir).join(db_name);
+    let db_dir_str = db_dir
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("failed to get database directory as string"))?;
+    let dolt_handle = dolt::start(db_dir_str)?;
+    println!("DONE\n");
+
+    print!("Connecting to the database...");
+    // Connect to the database.
+    let pool = MySqlPoolOptions::new()
+        .max_connections(5)
+        .connect(&format!("mysql://root@127.0.0.1:3306/{}", &db_name))
+        .await?;
+    let mut tx = pool.begin().await?;
+    println!("DONE\n");
+
+    let services_to_deploy: Vec<String>;
+
+    if services.is_empty() {
+        services_to_deploy = db::list_services(&mut tx, env)
+            .await?
+            .into_iter()
+            .filter_map(|svc| svc.name)
+            .collect();
+    } else {
+        services_to_deploy = services;
+    }
+
+    for service in services_to_deploy {
+        println!("Deploying service {}...", service);
+    }
+
+    tx.commit().await?;
+    dolt_handle.kill()?;
+
     Ok(())
 }
 
@@ -317,13 +362,15 @@ async fn main() -> anyhow::Result<()> {
                 )
             })?;
 
+            let db_name = matches.get_one::<String>("db-name").ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No Dolt DB name specified. Use -n or --db-name to specify a Dolt DB name."
+                )
+            })?;
+
             let services = matches
                 .get_many::<String>("service")
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "No services specified. Use -s or --service to specify a service."
-                    )
-                })?
+                .unwrap_or_default()
                 .map(|v| v.to_string())
                 .collect::<Vec<_>>();
 
@@ -335,7 +382,15 @@ async fn main() -> anyhow::Result<()> {
                 anyhow::anyhow!("No values filename specified. Use --values-filename to specify a values filename.")
             })?;
 
-            deploy(&env, services, dir, defaults_filename, values_filename).await?;
+            deploy(
+                &env,
+                &db_name,
+                services,
+                dir,
+                defaults_filename,
+                values_filename,
+            )
+            .await?;
         }
         _ => unreachable!(),
     }
