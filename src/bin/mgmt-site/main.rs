@@ -53,13 +53,34 @@ fn cli() -> Command {
                 arg!(-V --"no-values" "Do not write out the config values for the environment to a file in the site directory")
                     .action(ArgAction::SetTrue)
                     .value_parser(clap::value_parser!(bool)),
-                arg!(--"defaults-filename" [DEFAULTS_FILENAME] "The name of the file to write the default values to iin the site directory")
+                arg!(--"defaults-filename" [DEFAULTS_FILENAME] "The name of the file to write the default values to in the site directory")
                     .default_value("defaults.yaml")
                     .value_parser(clap::value_parser!(String)),
                 arg!(--"values-filename" [VALUES_FILENAME] "The name of the file to write the config values to in the site directory")
                     .default_value("deployment.yaml")
                     .value_parser(clap::value_parser!(String)),
             ]),
+        )
+        .subcommand(
+            Command::new("deploy")
+                .args([
+                    arg!(-d --dir [DIR] "Directory to deploy from")
+                        .default_value(".")
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-e --env [ENV] "The environment to deploy")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-s --service [SERVICE] "The service to deploy")
+                        .required(false)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(--"defaults-filename" [DEFAULTS_FILENAME] "The file containing the default configuration values")
+                        .default_value("defaults.yaml")
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(--"values-filename" [VALUES_FILENAME] "The file containing the configuration values for the environment")
+                        .default_value("deployment.yaml")
+                        .value_parser(clap::value_parser!(PathBuf)),
+                ])
         )
 }
 
@@ -226,6 +247,16 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn deploy(
+    env: &str,
+    services: Vec<String>,
+    dir: &PathBuf,
+    defaults: &PathBuf,
+    values: &PathBuf,
+) -> anyhow::Result<()> {
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let matches = cli().get_matches();
@@ -274,6 +305,37 @@ async fn main() -> anyhow::Result<()> {
             };
             init(&opts).await?;
             println!("Site initialized in {}", dir);
+        }
+        Some(("deploy", matches)) => {
+            let dir = matches.get_one::<PathBuf>("dir").ok_or_else(|| {
+                anyhow::anyhow!("No directory specified. Use -d or --dir to specify a directory.")
+            })?;
+
+            let env = matches.get_one::<String>("env").ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No environment specified. Use -e or --env to specify an environment."
+                )
+            })?;
+
+            let services = matches
+                .get_many::<String>("service")
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "No services specified. Use -s or --service to specify a service."
+                    )
+                })?
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>();
+
+            let defaults_filename = matches.get_one::<PathBuf>("defaults-filename").ok_or_else(|| {
+                anyhow::anyhow!("No defaults filename specified. Use --defaults-filename to specify a defaults filename.")
+            })?;
+
+            let values_filename = matches.get_one::<PathBuf>("values-filename").ok_or_else(|| {
+                anyhow::anyhow!("No values filename specified. Use --values-filename to specify a values filename.")
+            })?;
+
+            deploy(&env, services, dir, defaults_filename, values_filename).await?;
         }
         _ => unreachable!(),
     }
