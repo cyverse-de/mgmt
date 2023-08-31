@@ -250,21 +250,24 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn deploy(
-    env: &str,
-    db_name: &str,
+struct DeployOpts {
+    site_dirpath: PathBuf,
+    env: String,
+    db_name: String,
     services: Vec<String>,
-    dir: &PathBuf,
-    defaults: &PathBuf,
-    values: &PathBuf,
-) -> anyhow::Result<()> {
-    println!("Deploying {} from {:?}...", env, dir);
-    println!("Using database {}...", db_name);
-    println!("Using defaults file {:?}...", defaults);
-    println!("Using values file {:?}...\n", values);
+    defaults_filepath: PathBuf,
+    values_filepath: PathBuf,
+    builds_dirpath: PathBuf,
+}
+
+async fn deploy(opts: &DeployOpts) -> anyhow::Result<()> {
+    println!("Deploying {} from {:?}...", opts.env, opts.site_dirpath);
+    println!("Using database {}...", opts.db_name);
+    println!("Using defaults file {:?}...", opts.defaults_filepath);
+    println!("Using values file {:?}...\n", opts.values_filepath);
 
     print!("Starting the database...");
-    let db_dir = Path::new(dir).join(db_name);
+    let db_dir = Path::new(&opts.site_dirpath).join(&opts.db_name);
     let db_dir_str = db_dir
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("failed to get database directory as string"))?;
@@ -275,25 +278,42 @@ async fn deploy(
     // Connect to the database.
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
-        .connect(&format!("mysql://root@127.0.0.1:3306/{}", &db_name))
+        .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
         .await?;
     let mut tx = pool.begin().await?;
     println!("DONE\n");
 
     let services_to_deploy: Vec<String>;
 
-    if services.is_empty() {
-        services_to_deploy = db::list_services(&mut tx, env)
+    if opts.services.is_empty() {
+        services_to_deploy = db::list_services(&mut tx, &opts.env)
             .await?
             .into_iter()
             .filter_map(|svc| svc.name)
             .collect();
     } else {
-        services_to_deploy = services;
+        services_to_deploy = opts.services.clone();
     }
+
+    // Create the configs directory for the environment in the site directory if it doesn't already exist.
+    // If it already exists, use it. opts.site_dirpath / configs / opts.env is the format for the config dir.
+
+    // Generate the configs for the service in the configs directory. See configs::generate for the command.
+
+    // Load the configs into the cluster.
+
+    // Load secrets into the cluster for the service.
 
     for service in services_to_deploy {
         println!("Deploying service {}...", service);
+
+        // Find builds file for the service. Need to make sure the de-releases repo is pulled.
+        let builds_pb = Path::new(&opts.builds_dirpath).join(&service);
+        let mut builds_path = builds_pb.to_str().unwrap_or_default().to_string();
+        builds_path.push_str(".json");
+        println!("Build metadata file: {}", builds_path);
+
+        // Deploy the service. See deploy_project in app.rs for a reference.
     }
 
     tx.commit().await?;
@@ -382,15 +402,18 @@ async fn main() -> anyhow::Result<()> {
                 anyhow::anyhow!("No values filename specified. Use --values-filename to specify a values filename.")
             })?;
 
-            deploy(
-                &env,
-                &db_name,
+            let dir_canon = dir.canonicalize()?;
+            let opts = DeployOpts {
+                site_dirpath: dir_canon.clone(),
+                env: env.clone(),
+                db_name: db_name.clone(),
                 services,
-                dir,
-                defaults_filename,
-                values_filename,
-            )
-            .await?;
+                defaults_filepath: Path::new(&dir_canon).join(defaults_filename),
+                values_filepath: Path::new(&dir_canon).join(values_filename),
+                builds_dirpath: Path::new(&dir_canon).join("builds"),
+            };
+
+            deploy(&opts).await?;
         }
         _ => unreachable!(),
     }
