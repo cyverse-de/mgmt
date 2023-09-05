@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use clap::{arg, ArgAction, Command};
+use clap::{arg, builder::ArgPredicate, ArgAction, Command};
 //use mgmt::{db, dolt, git, ops};
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::path::{Path, PathBuf};
@@ -22,6 +22,13 @@ fn cli() -> Command {
                     .required(false)
                     .default_value("release")
                     .value_parser(clap::value_parser!(PathBuf)),
+                arg!(
+                    -b --"builds" [BUILDS]
+                    "Directory containing build.json files for each service. Defaults to the 'builds' subdirectory under the local directory."
+                )
+                    .required(false)
+                    .value_parser(clap::value_parser!(PathBuf))
+                ,
                 arg!(-s --"skip" [SKIP] "A service to skip for the release")
                     .required(false)
                     .action(ArgAction::Append)
@@ -46,26 +53,29 @@ fn cli() -> Command {
                         .required(true)
                         .value_parser(clap::value_parser!(String)),
                     arg!(-r --"repo" [REPO] "The repository to release to"),
+                    arg!(-b --"builds" [BUILDS]
+                        "Directory containing build.json files for each service. Defaults to the 'builds' subdirectory under the local directory."
+                    )
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf))
                 ]),
         )
 }
 
-async fn create_release(
-    pool: &Pool<MySql>,
-    env: &str,
-    repo: &str,
-    local: &Path,
+#[derive(Debug, Clone, PartialEq)]
+struct ReleaseOpts {
+    env: String,
+    repo: String,
+    local: PathBuf,
     skips: Vec<String>,
-) -> Result<()> {
+    builds: PathBuf,
+}
+
+async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     Ok(())
 }
 
-async fn preview_release(
-    pool: &Pool<MySql>,
-    env: &str,
-    repo: &str,
-    skips: Vec<String>,
-) -> Result<()> {
+async fn preview_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     Ok(())
 }
 
@@ -109,7 +119,26 @@ async fn main() -> Result<()> {
                 local.display()
             ))?;
 
-            create_release(&pool, &env, &repo, &local_canon, skips).await?;
+            let default_builds = local_canon.join("builds");
+
+            let builds = matches
+                .get_one::<PathBuf>("builds")
+                .unwrap_or_else(|| &default_builds);
+
+            let builds_canon = builds.canonicalize().context(format!(
+                "Failed to canonicalize the builds directory: {}",
+                builds.display()
+            ))?;
+
+            let opts = ReleaseOpts {
+                env: env.to_string(),
+                repo: repo.to_string(),
+                local: local_canon,
+                skips,
+                builds: builds_canon,
+            };
+
+            create_release(&pool, &opts).await?;
         }
 
         Some(("preview", matches)) => {
@@ -127,7 +156,24 @@ async fn main() -> Result<()> {
                 .map(|s| s.to_string())
                 .collect::<Vec<_>>();
 
-            preview_release(&pool, &env, &repo, skips).await?;
+            let builds = matches
+                .get_one::<PathBuf>("builds")
+                .ok_or_else(|| anyhow!("No builds directory provided. Use --builds <builds> to specify a builds directory."))?;
+
+            let builds_canon = builds.canonicalize().context(format!(
+                "Failed to canonicalize the builds directory: {}",
+                builds.display()
+            ))?;
+
+            let opts = ReleaseOpts {
+                env: env.to_string(),
+                repo: repo.to_string(),
+                local: PathBuf::new(),
+                skips,
+                builds: builds_canon,
+            };
+
+            preview_release(&pool, &opts).await?;
         }
 
         _ => {
