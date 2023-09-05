@@ -3,6 +3,7 @@
 //! Contains the functions needed for loading configs and secrets in mgmt.
 
 use anyhow::{Context, Result};
+use duct::cmd;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -83,6 +84,31 @@ fn values_path(env: &str) -> Result<String> {
     ))
 }
 
+pub fn generate_cmd(
+    input_dir: &str,
+    output_dir: &str,
+    defaults_path: &str,
+    values_path: &str,
+) -> Result<()> {
+    cmd!(
+        "gomplate",
+        "-d",
+        "config=merge:env|defaults",
+        "-d",
+        &format!("env={}", values_path),
+        "-d",
+        &format!("defaults={}", defaults_path),
+        "--input-dir",
+        input_dir,
+        "--output-dir",
+        output_dir
+    )
+    .run()
+    .context("failed to generate configs")?;
+
+    Ok(())
+}
+
 fn generate(env: &str, defaults_path: &str) -> Result<bool> {
     let dir_buf = fs::canonicalize(dir(env)?)?;
     let cfg_dir = dir_buf
@@ -95,7 +121,7 @@ fn generate(env: &str, defaults_path: &str) -> Result<bool> {
         .context("failed to get the absolute path to the config_values directory")?;
 
     Ok(Command::new("gomplate")
-        .args(["-d", "config=merge:dev|defaults"])
+        .args(["-d", "config=merge:env|defaults"])
         .args(["-d", &format!("env={}", config_values_file)])
         .args(["-d", &format!("defaults={}", defaults_path)])
         .args(["--input-dir", "templates/configs"])

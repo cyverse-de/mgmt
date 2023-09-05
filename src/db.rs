@@ -799,3 +799,35 @@ pub async fn list_affected_services(
 
     Ok(services)
 }
+
+/// Lists services in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_services(&mut tx).await?;
+/// tx.commit().await?;
+///
+/// for service in result {
+///    println!("{}", service);
+/// }
+/// ```
+pub async fn list_services(
+    tx: &mut Transaction<'_, MySql>,
+    environment: &str,
+) -> anyhow::Result<Vec<Service>> {
+    let services = sqlx::query_as!(
+        Service,
+        r#"
+                SELECT services.name AS `name: String` FROM environments
+                INNER JOIN environments_services ON environments.id = environments_services.environment_id
+                INNER JOIN services ON environments_services.service_id = services.id
+                WHERE environments.name = ?
+        "#,
+        environment
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(services)
+}
