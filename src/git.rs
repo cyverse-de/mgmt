@@ -3,6 +3,7 @@
 //! This module provides functions for interacting with git.
 use anyhow::{Context, Result};
 use std::io;
+use std::path::PathBuf;
 use std::process::Command;
 
 fn add(path: &str) -> Result<bool> {
@@ -18,6 +19,15 @@ fn commit(msg: &str) -> Result<bool> {
         .args(["commit", "-m", msg])
         .status()
         .context("git commit failed")?
+        .success())
+}
+
+pub fn checkout(repodir: &PathBuf, branch: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["checkout", branch])
+        .current_dir(repodir)
+        .status()
+        .context("git checkout failed")?
         .success())
 }
 

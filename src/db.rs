@@ -759,6 +759,8 @@ pub async fn add_env_cfg_value(
 #[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Service {
     pub name: Option<String>,
+    pub id: Option<i64>,
+    pub repo_id: Option<i64>,
 }
 
 /// Returns a listing of the services stored in the database that are affected
@@ -782,7 +784,11 @@ pub async fn list_affected_services(
     let services = sqlx::query_as!(
         Service,
         r#"
-                SELECT services.name AS `name: String` FROM environments
+                SELECT 
+                    services.name AS `name: String`,
+                    services.id AS `id: i64`,
+                    services.repo_id AS `repo_id: i64`
+                FROM environments
                 INNER JOIN environments_services ON environments.id = environments_services.environment_id
                 INNER JOIN services ON environments_services.service_id = services.id
                 INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
@@ -819,7 +825,11 @@ pub async fn list_services(
     let services = sqlx::query_as!(
         Service,
         r#"
-                SELECT services.name AS `name: String` FROM environments
+                SELECT 
+                    services.name AS `name: String`,
+                    services.id AS `id: i64`,
+                    services.repo_id AS `repo_id: i64`
+                FROM environments
                 INNER JOIN environments_services ON environments.id = environments_services.environment_id
                 INNER JOIN services ON environments_services.service_id = services.id
                 WHERE environments.name = ?
@@ -830,4 +840,84 @@ pub async fn list_services(
     .await?;
 
     Ok(services)
+}
+
+/// Returns the services for an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_services(&mut tx, "dev").await?;
+/// tx.commit().await?;
+///
+/// for service in result {
+///   println!("{}", service.name);
+/// }
+/// ```
+pub async fn get_services(
+    tx: &mut Transaction<'_, MySql>,
+    environment: &str,
+) -> anyhow::Result<Vec<Service>> {
+    let services = sqlx::query_as!(
+        Service,
+        r#"
+            SELECT 
+                services.id AS `id: i64`, 
+                services.name AS `name: String`, 
+                services.repo_id AS `repo_id: i64`
+            FROM environments
+            INNER JOIN environments_services ON environments.id = environments_services.environment_id
+            INNER JOIN services ON environments_services.service_id = services.id
+            WHERE environments.name = ?
+        "#,
+        environment
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(services)
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Repository {
+    pub id: Option<i64>,
+    pub name: Option<String>,
+    pub url: Option<String>,
+    pub revision: Option<String>,
+}
+
+/// Returns the repository by its primary key.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_repo_by_id(&mut tx, 1).await?;
+/// tx.commit().await?;
+///
+/// println!("{}", result.id);
+/// println!("{}", result.name);
+/// println!("{}", result.url);
+/// println!("{}", result.revision);
+/// ```
+pub async fn get_repo_by_id(
+    tx: &mut Transaction<'_, MySql>,
+    id: i64,
+) -> anyhow::Result<Repository> {
+    let repo = sqlx::query_as!(
+        Repository,
+        r#"
+            SELECT 
+                repos.id AS `id: i64`, 
+                repos.name AS `name: String`, 
+                repos.url AS `url: String`, 
+                repos.revision AS `revision: String`
+            FROM repos
+            WHERE repos.id = ?
+        "#,
+        id
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(repo)
 }

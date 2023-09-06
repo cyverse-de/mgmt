@@ -152,48 +152,24 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .name
             .clone()
             .context(format!("No name found for service {:?}", service))?;
+        let service_dir = services_dir.join(service_name);
 
-        let build_dl_url = Url::parse(&repo_url)?.join("releases/latest/download/build.json")?;
-        let build_dl_resp = reqwest::get(build_dl_url).await?;
-        let build_dl_status = build_dl_resp.status();
-        if !build_dl_status.is_success() {
+        let tarball_url =
+            Url::parse(&repo_url)?.join("releases/latest/download/deploy-info.tar.gz")?;
+        let tarball_resp = reqwest::get(tarball_url).await?;
+        let tarball_status = tarball_resp.status();
+        if !tarball_status.is_success() {
             anyhow::bail!(
-                "Failed to download build.json for service {}: {}",
+                "Failed to download deploy-info.tar.gz for service {}: {}",
                 service_name,
-                build_dl_status
+                tarball_status
             );
         }
-        let build_json = build_dl_resp.text().await?;
-
-        //////// store it in the <repo-dir>/builds/ directory
-        fs::write(
-            builds_dir.join(format!("{}.json", service_name)),
-            build_json.as_bytes(),
-        )?;
-
-        ////// Get the skaffold file for the service from the same github release.
-        let skaffold_dl_url =
-            Url::parse(&repo_url)?.join("releases/latest/download/skaffold.yaml")?;
-        let skaffold_dl_resp = reqwest::get(skaffold_dl_url).await?;
-        let skaffold_dl_status = skaffold_dl_resp.status();
-        if !skaffold_dl_status.is_success() {
-            anyhow::bail!(
-                "Failed to download skaffold.yaml for service {}: {}",
-                service_name,
-                skaffold_dl_status
-            );
-        }
-        let skaffold_yaml = skaffold_dl_resp.text().await?;
-
-        //////// store it in <repo-dir>/services/<service>/
-        fs::write(
-            services_dir.join(service_name).join("skaffold.yaml"),
-            skaffold_yaml.as_bytes(),
-        )?;
+        let tarball = tarball_resp.bytes().await?;
+        let tar = GzDecoder::new(tarball.as_ref());
+        let mut archive = Archive::new(tar);
+        archive.unpack(service_dir)?;
     }
-
-    ////// Get the referenced files from the skaffold file.
-    //////// store them in <repo-dir>/services/<service>/, alongside the skaffold.yaml file.
     // if no-clone is false, commit the changes to the repo and push them.
     // if no clone is false, create a new release based on the last commit (only if not terribly difficult, otherwise use github actions for that)
     Ok(())
