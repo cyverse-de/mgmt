@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Context, Result};
-use clap::{arg, builder::ArgPredicate, ArgAction, Command};
-use mgmt::{db, dolt, git, ops};
+use clap::{arg, ArgAction, Command};
+use flate2::read::GzDecoder;
+use mgmt::{db, git};
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use tar::Archive;
 use url::Url;
 
 fn cli() -> Command {
@@ -152,7 +154,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .name
             .clone()
             .context(format!("No name found for service {:?}", service))?;
-        let service_dir = services_dir.join(service_name);
+        let service_dir = services_dir.join(&service_name);
 
         let tarball_url =
             Url::parse(&repo_url)?.join("releases/latest/download/deploy-info.tar.gz")?;
@@ -170,7 +172,25 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         let mut archive = Archive::new(tar);
         archive.unpack(service_dir)?;
     }
+
     // if no-clone is false, commit the changes to the repo and push them.
+    if !opts.no_clone {
+        git::add(
+            &repo_dir,
+            builds_dir
+                .to_str()
+                .context("unable to create build dir string")?,
+        )?;
+        git::add(
+            &repo_dir,
+            services_dir
+                .to_str()
+                .context("unable to create repo dir string")?,
+        )?;
+        git::commit(&repo_dir, "update builds")?;
+        git::push(&repo_dir, "origin", "main")?;
+    }
+
     // if no clone is false, create a new release based on the last commit (only if not terribly difficult, otherwise use github actions for that)
     Ok(())
 }

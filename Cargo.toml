@@ -25,7 +25,7 @@ anyhow = "1.0.69"
 clap = { version = "4.1.6", features = ["derive"] }
 dialoguer = { version = "0.10.4", features = ["history"] }
 duct = "0.13.6"
-flate2 = { version = "1.0.27", features = ["zlib", "zlib-ng", "zlib-default", "zlib-ng-compat"] }
+flate2 = { version = "1.0.27" }
 indicatif = { version = "0.17.6", features = ["futures", "tokio"] }
 reqwest = { version = "0.11.20", features = ["json", "blocking", "rustls", "tokio-rustls", "rustls-tls"] }
 serde = { version = "1.0.163", features = ["derive"] }

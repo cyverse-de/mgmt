@@ -6,17 +6,19 @@ use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn add(path: &str) -> Result<bool> {
+pub fn add(repodir: &PathBuf, path: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args(["add", "--all", path])
+        .current_dir(repodir)
         .status()
         .context("git add failed")?
         .success())
 }
 
-fn commit(msg: &str) -> Result<bool> {
+pub fn commit(repodir: &PathBuf, msg: &str) -> Result<bool> {
     Ok(Command::new("git")
         .args(["commit", "-m", msg])
+        .current_dir(repodir)
         .status()
         .context("git commit failed")?
         .success())
@@ -28,6 +30,15 @@ pub fn checkout(repodir: &PathBuf, branch: &str) -> Result<bool> {
         .current_dir(repodir)
         .status()
         .context("git checkout failed")?
+        .success())
+}
+
+pub fn push(repodir: &PathBuf, remote: &str, gref: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["push", remote, gref])
+        .current_dir(repodir)
+        .status()
+        .context("git push failed")?
         .success())
 }
 
@@ -89,8 +100,11 @@ pub fn update_submodule(submodule_path: &str) -> Result<bool> {
 ///     let result = mgmt::git::staged_changes().unwrap();
 ///     assert_eq!(result, true);
 /// ```
-fn staged_changes() -> Result<bool> {
-    let output = Command::new("git").arg("status").output()?;
+fn staged_changes(repodir: &PathBuf) -> Result<bool> {
+    let output = Command::new("git")
+        .arg("status")
+        .current_dir(repodir)
+        .output()?;
 
     let found = String::from_utf8(output.stdout)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
@@ -107,11 +121,12 @@ fn staged_changes() -> Result<bool> {
 ///     assert_eq!(result, true);
 /// ```
 pub fn check_in_changes(project_path: &str) -> Result<bool> {
-    add(&project_path)?;
-    add("builds")?;
-    if staged_changes()? {
+    let curr_dir = std::env::current_dir()?;
+    add(&curr_dir, &project_path)?;
+    add(&curr_dir, "builds")?;
+    if staged_changes(&curr_dir)? {
         let msg = format!("update builds for the {} project", &project_path);
-        commit(&msg)?;
+        commit(&curr_dir, &msg)?;
     };
 
     Ok(true)
