@@ -44,9 +44,10 @@ fn cli() -> Command {
                     .required(false)
                     .action(ArgAction::SetTrue)
                     .value_parser(clap::value_parser!(bool)),
-                arg!(-v --"version" [VERSION] "The version to release")
-                    .required(true)
-                    .value_parser(clap::value_parser!(String)),
+                arg!(-i --"increment-field" [INCREMENT_FIELD] "The field to increment for the release")
+                    .required(false)
+                    .default_value("patch")
+                    .value_parser(clap::builder::PossibleValuesParser::new(["major", "minor", "patch"])),
             ]),
         )
         .subcommand(
@@ -79,6 +80,27 @@ struct ReleaseOpts {
     skips: Vec<String>,
     release_version: String,
     no_clone: bool,
+    increment_field: String,
+}
+
+fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
+    let tags = tags
+        .iter()
+        .filter(|tag| tag.starts_with("release-v"))
+        .collect::<Vec<_>>();
+
+    let mut versions: Vec<semver::Version> = Vec::new();
+
+    for tag in tags {
+        let version = semver::Version::parse(&tag[8..])?;
+        versions.push(version);
+    }
+
+    versions.sort();
+    versions
+        .last()
+        .cloned()
+        .ok_or_else(|| anyhow!("No tags found"))
 }
 
 async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
@@ -175,23 +197,50 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
 
     // if no-clone is false, commit the changes to the repo and push them.
     if !opts.no_clone {
+        let current_tags = git::list_tags(&repo_dir, "origin")?;
+        let mut latest_version = latest_release_version(&current_tags)?;
+        match opts.increment_field.as_str() {
+            "major" => {
+                latest_version.major += 1;
+            }
+
+            "minor" => {
+                latest_version.minor += 1;
+            }
+
+            "patch" => {
+                latest_version.patch += 1;
+            }
+
+            _ => {
+                anyhow::bail!("Invalid increment field: {}", opts.increment_field);
+            }
+        }
+
         git::add(
             &repo_dir,
             builds_dir
                 .to_str()
                 .context("unable to create build dir string")?,
         )?;
+
         git::add(
             &repo_dir,
             services_dir
                 .to_str()
                 .context("unable to create repo dir string")?,
         )?;
+
+        git::tag(&repo_dir, &format!("release-v{}", latest_version))?;
+
         git::commit(&repo_dir, "update builds")?;
         git::push(&repo_dir, "origin", "main")?;
+        git::push_tags(&repo_dir, "origin")?;
     }
 
-    // if no clone is false, create a new release based on the last commit (only if not terribly difficult, otherwise use github actions for that)
+    // if no clone is false, create a new release based on the last commit
+    // (only if not terribly difficult, otherwise use github actions for that)
+
     Ok(())
 }
 
@@ -244,6 +293,10 @@ async fn main() -> Result<()> {
 
             let no_clone = matches.get_flag("no-clone");
 
+            let increment_field = matches.get_one::<String>("increment-field").ok_or_else(|| {
+                anyhow!("No increment field provided. Use --increment-field <field> to specify an increment field.")
+            })?;
+
             let skips = matches
                 .get_many::<String>("skip")
                 .unwrap_or_default()
@@ -258,6 +311,7 @@ async fn main() -> Result<()> {
                 release_version: release_version.to_string(),
                 no_clone,
                 skips,
+                increment_field: increment_field.to_string(),
             };
 
             create_release(&pool, &opts).await?;
@@ -294,6 +348,7 @@ async fn main() -> Result<()> {
                 release_version: String::new(),
                 no_clone: false,
                 skips,
+                increment_field: String::new(),
             };
 
             preview_release(&pool, &opts).await?;

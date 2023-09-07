@@ -28,6 +28,7 @@ duct = "0.13.6"
 flate2 = { version = "1.0.27" }
 indicatif = { version = "0.17.6", features = ["futures", "tokio"] }
 reqwest = { version = "0.11.20", features = ["json", "blocking", "rustls", "tokio-rustls", "rustls-tls"] }
+semver = { version = "1.0.18", features = ["serde"] }
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 serde_merge = "0.1.3"

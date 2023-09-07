@@ -42,6 +42,45 @@ pub fn push(repodir: &PathBuf, remote: &str, gref: &str) -> Result<bool> {
         .success())
 }
 
+pub fn list_tags(repodir: &PathBuf, remote: &str) -> Result<Vec<String>> {
+    let output = Command::new("git")
+        .args(["ls-remote", "--tags", remote])
+        .current_dir(repodir)
+        .output()
+        .context("git ls-remote failed")?;
+
+    let tags = String::from_utf8(output.stdout)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?
+        .lines()
+        .map(|line| {
+            line.split('\t')
+                .nth(1)
+                .map(|tag| tag.replace("refs/tags/", "").to_string())
+        })
+        .filter_map(|tag| tag)
+        .collect::<Vec<String>>();
+
+    Ok(tags)
+}
+
+pub fn tag(repodir: &PathBuf, tag: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["tag", tag])
+        .current_dir(repodir)
+        .status()
+        .context("git tag failed")?
+        .success())
+}
+
+pub fn push_tags(repodir: &PathBuf, remote: &str) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["push", remote, "--tags"])
+        .current_dir(repodir)
+        .status()
+        .context("git push --tags failed")?
+        .success())
+}
+
 /// Uses git to fetch a submodule from the remote repository.
 ///
 /// # Examples

@@ -1054,6 +1054,7 @@ dependencies = [
  "flate2",
  "indicatif",
  "reqwest",
+ "semver",
  "serde",
  "serde_json",
  "serde_merge",
@@ -1635,6 +1636,15 @@ checksum = "e932934257d3b408ed8f30db49d85ea163bfe74961f017f405b025af298f0c7a"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "semver"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0293b4b29daaf487284529cc2f5675b8e57c61f70167ba415a463651fd6a918"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
