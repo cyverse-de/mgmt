@@ -16,16 +16,16 @@ fn cli() -> Command {
         .arg(
             arg!(-d --"database-url" <DATABASE>)
                 .help("The URL of the MySQL database to connect to.")
-                .default_value("mysql:://root@127.0.0.1:3306/de_releases")
+                .default_value("mysql://root@127.0.0.1:3306/de_releases")
                 .value_parser(clap::value_parser!(String)),
         )
         .subcommand(
             Command::new("create").args([
-                arg!(-s --"skip" [SKIP] "A service to skip for the release")
+                arg!(-s --"skip" <SKIP> "A service to skip for the release")
                     .required(false)
                     .action(ArgAction::Append)
                     .value_parser(clap::value_parser!(String)),
-                arg!(-e --env [ENV] "The environment to release")
+                arg!(-e --env <ENV> "The environment to release")
                     .required(true)
                     .value_parser(clap::value_parser!(String)),
                 arg!(-r --"repo-name" [REPO_NAME] "The repository to release to")
@@ -36,7 +36,7 @@ fn cli() -> Command {
                     .required(false)
                     .default_value("github.com/cyverse-de/de-releases")
                     .value_parser(clap::value_parser!(String)),
-                arg!(-b --branch [REPO_BRANCH] "The branch of the releases repo to use")
+                arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
                     .required(false)
                     .default_value("main")
                     .value_parser(clap::value_parser!(String)),
@@ -78,7 +78,6 @@ struct ReleaseOpts {
     repo_url: String,
     repo_branch: String,
     skips: Vec<String>,
-    release_version: String,
     no_clone: bool,
     increment_field: String,
 }
@@ -165,12 +164,16 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
 
     ////// For each repository, grab the build JSON file from the github release.
     for (service, repo) in tuples {
-        let repo_url = repo.url.clone().ok_or_else(|| {
+        let mut repo_url = repo.url.clone().ok_or_else(|| {
             anyhow!(
                 "No URL found for repository {}",
                 repo.name.as_ref().unwrap_or(&String::new())
             )
         })?;
+
+        if !repo_url.ends_with("/") {
+            repo_url.push_str("/");
+        }
 
         let service_name = service
             .name
@@ -180,19 +183,26 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
 
         let tarball_url =
             Url::parse(&repo_url)?.join("releases/latest/download/deploy-info.tar.gz")?;
-        let tarball_resp = reqwest::get(tarball_url).await?;
+        let tarball_url_str = tarball_url.as_str();
+        let tarball_resp = reqwest::get(tarball_url.clone()).await?;
         let tarball_status = tarball_resp.status();
         if !tarball_status.is_success() {
             anyhow::bail!(
-                "Failed to download deploy-info.tar.gz for service {}: {}",
-                service_name,
+                "Failed to download deploy-info.tar.gz from {}: {}",
+                tarball_url_str,
                 tarball_status
             );
         }
         let tarball = tarball_resp.bytes().await?;
         let tar = GzDecoder::new(tarball.as_ref());
         let mut archive = Archive::new(tar);
-        archive.unpack(service_dir)?;
+        archive.unpack(&service_dir)?;
+
+        // move the build.json file from the service_dir into the build directory.
+        // with a name like <service_name>.json.
+        let build_json_path = service_dir.join("build.json");
+        let to = builds_dir.join(format!("{}.json", service_name));
+        fs::rename(build_json_path, to)?;
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
@@ -232,14 +242,10 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         )?;
 
         git::tag(&repo_dir, &format!("release-v{}", latest_version))?;
-
         git::commit(&repo_dir, "update builds")?;
         git::push(&repo_dir, "origin", "main")?;
         git::push_tags(&repo_dir, "origin")?;
     }
-
-    // if no clone is false, create a new release based on the last commit
-    // (only if not terribly difficult, otherwise use github actions for that)
 
     Ok(())
 }
@@ -269,26 +275,22 @@ async fn main() -> Result<()> {
                 anyhow!("No environment provided. Use --env <env> to specify an environment.")
             })?;
 
-            let repo_name = matches.get_one::<String>("repo_name").ok_or_else(|| {
+            let repo_name = matches.get_one::<String>("repo-name").ok_or_else(|| {
                 anyhow!(
                     "No repository provided. Use --repo-name <repo_name> to specify a repository."
                 )
             })?;
 
-            let repo_url = matches.get_one::<String>("repo_url").ok_or_else(|| {
+            let repo_url = matches.get_one::<String>("repo-url").ok_or_else(|| {
                 anyhow!(
                     "No repository URL provided. Use --repo-url <repo_url> to specify a repository URL."
                 )
             })?;
 
-            let repo_branch = matches.get_one::<String>("repo_branch").ok_or_else(|| {
+            let repo_branch = matches.get_one::<String>("branch").ok_or_else(|| {
                 anyhow!(
                     "No repository branch provided. Use --repo-branch <branch> to specify a repository branch."
                 )
-            })?;
-
-            let release_version = matches.get_one::<String>("version").ok_or_else(|| {
-                anyhow!("No release version provided. Use --version <version> to specify a release version.")
             })?;
 
             let no_clone = matches.get_flag("no-clone");
@@ -308,7 +310,6 @@ async fn main() -> Result<()> {
                 repo_name: repo_name.to_string(),
                 repo_url: repo_url.to_string(),
                 repo_branch: repo_branch.to_string(),
-                release_version: release_version.to_string(),
                 no_clone,
                 skips,
                 increment_field: increment_field.to_string(),
@@ -322,15 +323,15 @@ async fn main() -> Result<()> {
                 anyhow!("No environment provided. Use --env <env> to specify an environment.")
             })?;
 
-            let repo_name = matches.get_one::<String>("repo_name").ok_or_else(|| {
+            let repo_name = matches.get_one::<String>("repo-name").ok_or_else(|| {
                 anyhow!("No repository provided. Use --repo <repo> to specify a repository.")
             })?;
 
-            let repo_url = matches.get_one::<String>("repo_url").ok_or_else(|| {
+            let repo_url = matches.get_one::<String>("repo-url").ok_or_else(|| {
                 anyhow!("No repository URL provided. Use --repo-url <repo_url> to specify a repository URL.")
             })?;
 
-            let repo_branch = matches.get_one::<String>("repo_branch").ok_or_else(|| {
+            let repo_branch = matches.get_one::<String>("rbranch").ok_or_else(|| {
                 anyhow!("No repository branch provided. Use --repo-branch <branch> to specify a repository branch.")
             })?;
 
@@ -345,7 +346,6 @@ async fn main() -> Result<()> {
                 repo_name: repo_name.to_string(),
                 repo_url: repo_url.to_string(),
                 repo_branch: repo_branch.to_string(),
-                release_version: String::new(),
                 no_clone: false,
                 skips,
                 increment_field: String::new(),
