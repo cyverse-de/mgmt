@@ -103,6 +103,15 @@ pub fn fetch_submodule(submodule_path: &str) -> Result<bool> {
         .success())
 }
 
+pub fn pull(repodir: &PathBuf) -> Result<bool> {
+    Ok(Command::new("git")
+        .args(["pull"])
+        .current_dir(repodir)
+        .status()
+        .context("git pull failed")?
+        .success())
+}
+
 /// Uses git to clone a repository from the remote repository.
 ///
 /// # Examples

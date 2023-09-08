@@ -4,7 +4,7 @@ use flate2::read::GzDecoder;
 use mgmt::{db, git};
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tar::Archive;
 use url::Url;
 
@@ -141,23 +141,39 @@ fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> 
     let services_dir = repo_dir.join("services");
 
     if !opts.no_clone {
-        git::clone(
-            &opts.repo_url,
-            repo_dir
-                .as_path()
-                .to_str()
-                .context("cannot convert repo directory to string")?,
-        )?;
+        // If the repository doesn't exist already, clone it.
+        if !Path::exists(&repo_dir) {
+            git::clone(
+                &opts.repo_url,
+                repo_dir
+                    .as_path()
+                    .to_str()
+                    .context("cannot convert repo directory to string")?,
+            )?;
+        } else {
+            let git_dir = repo_dir.join(".git");
+            if !Path::exists(&git_dir) {
+                anyhow::bail!("{} exists but is not a git repository", repo_dir.display());
+            }
+
+            // Otherwise, pull the latest changes.
+            git::pull(&repo_dir)?;
+        }
+
+        // Make sure the correct branch is checked out (default is 'main') if no clone is false.
+        git::checkout(&repo_dir, &opts.repo_branch)?;
     } else {
+        if Path::exists(&repo_dir) {
+            anyhow::bail!(
+                "The releases repository directory {} already exists",
+                repo_dir.display()
+            );
+        }
+
         // Otherwise make a directory with the name of the repo, but don't initialize it.
         fs::create_dir_all(&repo_dir)?;
         fs::create_dir_all(&builds_dir)?;
         fs::create_dir_all(&services_dir)?;
-    }
-
-    // Make sure the correct branch is checked out (default is 'main') if no clone is false.
-    if !opts.no_clone {
-        git::checkout(&repo_dir, &opts.repo_branch)?;
     }
 
     Ok((repo_dir, builds_dir, services_dir))
