@@ -102,17 +102,15 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
         .ok_or_else(|| anyhow!("No tags found"))
 }
 
-async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
-    let mut tx = pool.begin().await?;
-
+fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> {
     let repo_name = opts.repo_name.clone();
 
-    // Clone the releases repo (default is 'de-releases') if no-clone is false.
-    let repo_dir = PathBuf::from(repo_name).canonicalize().context(format!(
-        "Failed to canonicalize the releases repo directory: {}",
-        opts.repo_name
-    ))?;
-
+    let repo_dir = PathBuf::from(opts.repo_name.clone())
+        .canonicalize()
+        .context(format!(
+            "Failed to canonicalize the releases repo directory: {}",
+            opts.repo_name
+        ))?;
     let builds_dir = repo_dir.join("builds");
     let services_dir = repo_dir.join("services");
 
@@ -136,8 +134,14 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         git::checkout(&repo_dir, &opts.repo_branch)?;
     }
 
-    // Get a list of the services included in the environment, filter out the skipped services:
-    let services = db::get_services(&mut tx, &opts.env)
+    Ok((repo_dir, builds_dir, services_dir))
+}
+
+async fn get_service_repos(
+    tx: &mut sqlx::Transaction<'_, MySql>,
+    opts: &ReleaseOpts,
+) -> Result<Vec<(db::Service, db::Repository)>> {
+    let services = db::get_services(tx, &opts.env)
         .await?
         .into_iter()
         .filter(|s| {
@@ -157,75 +161,118 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .repo_id
             .clone()
             .ok_or_else(|| anyhow!("No repository ID found for service"))?;
-        let repo = db::get_repo_by_id(&mut tx, repo_id).await?;
+        let repo = db::get_repo_by_id(tx, repo_id).await?;
 
         tuples.push((service, repo));
     }
 
+    Ok(tuples)
+}
+
+fn get_repo_url(repo: &db::Repository) -> Result<String> {
+    let mut repo_url = repo.url.clone().ok_or_else(|| {
+        anyhow!(
+            "No URL found for repository {}",
+            repo.name.as_ref().unwrap_or(&String::new())
+        )
+    })?;
+
+    if !repo_url.ends_with("/") {
+        repo_url.push_str("/");
+    }
+
+    Ok(repo_url)
+}
+
+fn get_service_dir(services_dir: &PathBuf, service: &db::Service) -> Result<PathBuf> {
+    let service_name = service
+        .name
+        .clone()
+        .context(format!("No name found for service {:?}", service))?;
+    let service_dir = services_dir.join(&service_name);
+
+    Ok(service_dir)
+}
+
+async fn process_release_tarball(
+    repo_url: &str,
+    service_name: &str,
+    builds_dir: &PathBuf,
+    service_dir: &PathBuf,
+) -> Result<()> {
+    let tarball_url = Url::parse(&repo_url)?.join("releases/latest/download/deploy-info.tar.gz")?;
+    let tarball_url_str = tarball_url.as_str();
+    let tarball_resp = reqwest::get(tarball_url.clone()).await?;
+    let tarball_status = tarball_resp.status();
+    if !tarball_status.is_success() {
+        anyhow::bail!(
+            "Failed to download deploy-info.tar.gz from {}: {}",
+            tarball_url_str,
+            tarball_status
+        );
+    }
+    let tarball = tarball_resp.bytes().await?;
+    let tar = GzDecoder::new(tarball.as_ref());
+    let mut archive = Archive::new(tar);
+    archive.unpack(&service_dir)?;
+
+    // move the build.json file from the service_dir into the build directory.
+    // with a name like <service_name>.json.
+    let build_json_path = service_dir.join("build.json");
+    let to = builds_dir.join(format!("{}.json", service_name));
+    fs::rename(build_json_path, to)?;
+
+    Ok(())
+}
+
+fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semver::Version> {
+    let current_tags = git::list_tags(&repodir, "origin")?;
+    let latest_version = latest_release_version(&current_tags)?;
+    let mut new_version = latest_version.clone();
+    match opts.increment_field.as_str() {
+        "major" => {
+            new_version.major += 1;
+        }
+
+        "minor" => {
+            new_version.minor += 1;
+        }
+
+        "patch" => {
+            new_version.patch += 1;
+        }
+
+        _ => {
+            anyhow::bail!("Invalid increment field: {}", opts.increment_field);
+        }
+    }
+
+    Ok(new_version)
+}
+
+async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
+    let mut tx = pool.begin().await?;
+
+    // Clone the releases repo (default is 'de-releases') if no-clone is false.
+    let (repo_dir, builds_dir, services_dir) = setup_release_dir(opts)?;
+
+    // Get a list of the services included in the environment, filter out the skipped services:
+    let tuples = get_service_repos(&mut tx, &opts).await?;
+
     ////// For each repository, grab the build JSON file from the github release.
     for (service, repo) in tuples {
-        let mut repo_url = repo.url.clone().ok_or_else(|| {
-            anyhow!(
-                "No URL found for repository {}",
-                repo.name.as_ref().unwrap_or(&String::new())
-            )
-        })?;
-
-        if !repo_url.ends_with("/") {
-            repo_url.push_str("/");
-        }
-
+        let repo_url = get_repo_url(&repo)?;
+        let service_dir = get_service_dir(&services_dir, &service)?;
         let service_name = service
             .name
-            .clone()
-            .context(format!("No name found for service {:?}", service))?;
-        let service_dir = services_dir.join(&service_name);
-
-        let tarball_url =
-            Url::parse(&repo_url)?.join("releases/latest/download/deploy-info.tar.gz")?;
-        let tarball_url_str = tarball_url.as_str();
-        let tarball_resp = reqwest::get(tarball_url.clone()).await?;
-        let tarball_status = tarball_resp.status();
-        if !tarball_status.is_success() {
-            anyhow::bail!(
-                "Failed to download deploy-info.tar.gz from {}: {}",
-                tarball_url_str,
-                tarball_status
-            );
-        }
-        let tarball = tarball_resp.bytes().await?;
-        let tar = GzDecoder::new(tarball.as_ref());
-        let mut archive = Archive::new(tar);
-        archive.unpack(&service_dir)?;
-
-        // move the build.json file from the service_dir into the build directory.
-        // with a name like <service_name>.json.
-        let build_json_path = service_dir.join("build.json");
-        let to = builds_dir.join(format!("{}.json", service_name));
-        fs::rename(build_json_path, to)?;
+            .as_ref()
+            .ok_or_else(|| anyhow!("No name found for service {:?}", service))?;
+        process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await?;
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
     if !opts.no_clone {
-        let current_tags = git::list_tags(&repo_dir, "origin")?;
-        let mut latest_version = latest_release_version(&current_tags)?;
-        match opts.increment_field.as_str() {
-            "major" => {
-                latest_version.major += 1;
-            }
-
-            "minor" => {
-                latest_version.minor += 1;
-            }
-
-            "patch" => {
-                latest_version.patch += 1;
-            }
-
-            _ => {
-                anyhow::bail!("Invalid increment field: {}", opts.increment_field);
-            }
-        }
+        let latest_version = get_new_version_number(&repo_dir, &opts)?;
 
         git::add(
             &repo_dir,
