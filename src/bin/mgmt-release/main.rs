@@ -82,6 +82,19 @@ struct ReleaseOpts {
     increment_field: String,
 }
 
+/// Returns the latest release version from a list of tags.
+///
+/// # Examples
+/// ```
+/// let tags = vec![
+///   "release-v1.0.0".to_string(),
+///   "release-v1.0.1".to_string(),
+///   "release-v1.1.0".to_string(),
+///   "release-v1.1.1".to_string(),
+/// ];
+/// let latest_version = mgmt::latest_release_version(&tags).unwrap();
+/// assert_eq!(latest_version, semver::Version::parse("1.1.1").unwrap());
+/// ```
 fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
     let tags = tags
         .iter()
@@ -102,15 +115,28 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
         .ok_or_else(|| anyhow!("No tags found"))
 }
 
+/// Creates or clones the release directory and creates the builds and services subdirectories.
+/// If no-clone is false, the repository will be cloned from the remote repository.
+/// Otherwise, the directory will be created but not initialized.
+/// Returns the path to the repository directory, the builds directory, and the services directory.
+///
+/// # Examples
+/// ```ignore
+/// let opts = ReleaseOpts {
+///  env: "dev".to_string(),
+///  repo_name: "de-releases".to_string(),
+///  repo_url: "https://github.com/cyverse-de/de-releases".to_string(),
+/// }
+///
+/// let (repo_dir, builds_dir, services_dir) = mgmt::setup_release_dir(&opts).unwrap();
+/// ```
 fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> {
     let repo_name = opts.repo_name.clone();
 
-    let repo_dir = PathBuf::from(opts.repo_name.clone())
-        .canonicalize()
-        .context(format!(
-            "Failed to canonicalize the releases repo directory: {}",
-            opts.repo_name
-        ))?;
+    let repo_dir = PathBuf::from(repo_name).canonicalize().context(format!(
+        "Failed to canonicalize the releases repo directory: {}",
+        opts.repo_name
+    ))?;
     let builds_dir = repo_dir.join("builds");
     let services_dir = repo_dir.join("services");
 
@@ -137,6 +163,18 @@ fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> 
     Ok((repo_dir, builds_dir, services_dir))
 }
 
+/// Returns a list of tuples containing the service and repository for each service in the environment.
+///
+/// # Examples
+/// ```ignore
+/// let opts = ReleaseOpts {
+///   env: "dev".to_string(),
+///   repo_name: "de-releases".to_string(),
+///   repo_url: "https://github.com/cyverse-de/de-releases".to_string(),
+/// }
+///
+/// let (repo_dir, builds_dir, services_dir) = mgmt::setup_release_dir(&opts).unwrap();
+/// ```
 async fn get_service_repos(
     tx: &mut sqlx::Transaction<'_, MySql>,
     opts: &ReleaseOpts,
@@ -169,6 +207,12 @@ async fn get_service_repos(
     Ok(tuples)
 }
 
+/// Returns the URL for the repository.
+///
+/// # Examples
+/// ```ignore
+/// let repo_url = mgmt::get_repo_url(&repo).unwrap();
+/// ```
 fn get_repo_url(repo: &db::Repository) -> Result<String> {
     let mut repo_url = repo.url.clone().ok_or_else(|| {
         anyhow!(
@@ -184,6 +228,12 @@ fn get_repo_url(repo: &db::Repository) -> Result<String> {
     Ok(repo_url)
 }
 
+/// Returns the path to the service directory.
+///
+/// # Examples
+/// ```ignore
+/// let service_dir = mgmt::get_service_dir(&services_dir, &service).unwrap();
+/// ```
 fn get_service_dir(services_dir: &PathBuf, service: &db::Service) -> Result<PathBuf> {
     let service_name = service
         .name
@@ -194,6 +244,14 @@ fn get_service_dir(services_dir: &PathBuf, service: &db::Service) -> Result<Path
     Ok(service_dir)
 }
 
+/// Downloads the deploy-info.tar.gz file from the latest release of the repository and unpacks it
+/// into the service directory. Then moves the build.json file from the service directory into the
+/// builds directory.
+///
+/// # Examples
+/// ```ignore
+/// mgmt::process_release_tarball(&repo_url, &service_name, &builds_dir, &service_dir).await?;
+/// ```
 async fn process_release_tarball(
     repo_url: &str,
     service_name: &str,
@@ -225,6 +283,14 @@ async fn process_release_tarball(
     Ok(())
 }
 
+/// Returns the new version number for the release.
+/// The increment field can be "major", "minor", or "patch".
+/// The latest release version is determined by looking at the tags in the repository.
+///
+/// # Examples
+/// ```ignore
+/// let new_version = mgmt::get_new_version_number(&repo_dir, &opts)?;
+/// ```
 fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semver::Version> {
     let current_tags = git::list_tags(&repodir, "origin")?;
     let latest_version = latest_release_version(&current_tags)?;
@@ -250,6 +316,15 @@ fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semve
     Ok(new_version)
 }
 
+/// Creates a release in the releases repository.
+/// Clones the releases repository (default is 'de-releases') if no-clone is false.
+/// For each repository, grabs the build JSON file from the github release.
+/// If no-clone is false, commits the changes to the repo and pushes them.
+///
+/// # Examples
+/// ```ignore
+/// mgmt::create_release(&pool, &opts).await?;
+/// ```
 async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     let mut tx = pool.begin().await?;
 
