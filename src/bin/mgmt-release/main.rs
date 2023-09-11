@@ -133,10 +133,7 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
 fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> {
     let repo_name = opts.repo_name.clone();
 
-    let repo_dir = PathBuf::from(repo_name).canonicalize().context(format!(
-        "Failed to canonicalize the releases repo directory: {}",
-        opts.repo_name
-    ))?;
+    let repo_dir = PathBuf::from(repo_name);
     let builds_dir = repo_dir.join("builds");
     let services_dir = repo_dir.join("services");
 
@@ -358,7 +355,20 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .name
             .as_ref()
             .ok_or_else(|| anyhow!("No name found for service {:?}", service))?;
-        process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await?;
+
+        match process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await {
+            Ok(_) => {
+                println!("Processed release tarball for {}", service_name);
+            }
+
+            Err(e) => {
+                println!(
+                    "Failed to process release tarball for {}: {}",
+                    service_name, e
+                );
+                continue;
+            }
+        };
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
