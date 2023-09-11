@@ -4,6 +4,7 @@ use serde::Deserialize;
 use sqlx::mysql::{MySql, MySqlPoolOptions};
 use sqlx::{Pool, Transaction};
 use std::fs;
+use std::path::PathBuf;
 
 fn cli() -> Command {
     Command::new("mgmt-container-images")
@@ -42,6 +43,13 @@ fn cli() -> Command {
                 .arg(arg!(-i --"id" <ID>).value_parser(clap::value_parser!(i32))),
         )
         .subcommand(Command::new("list").args_conflicts_with_subcommands(true))
+        .subcommand(
+            Command::new("upsert-a-build")
+                .args_conflicts_with_subcommands(true)
+                .arg(arg!(-s --"service" <SERVICE>).value_parser(clap::value_parser!(String)))
+                .arg(arg!(-b --"builds-dir" <DIR>).value_parser(clap::value_parser!(String)))
+                .arg(arg!(-f - -"force-insert").value_parser(clap::value_parser!(bool))),
+        )
 }
 
 struct ContainerImageParts {
@@ -249,6 +257,47 @@ struct BuildsData {
     builds: Vec<BuildImage>,
 }
 
+#[derive(thiserror::Error, Debug)]
+enum BuildFileError {
+    #[error("Empty file")]
+    EmptyFile,
+}
+
+async fn upsert_build(
+    tx: &mut Transaction<'_, MySql>,
+    builds_file: &PathBuf,
+    service_name: &str,
+    force_insert: bool,
+) -> Result<()> {
+    let data: String = fs::read_to_string(builds_file)?;
+
+    let parsed: BuildsData = serde_json::from_str(&data)?;
+    if parsed.builds.is_empty() {
+        return Err(BuildFileError::EmptyFile.into());
+    }
+
+    let build_image = &parsed.builds[0];
+    let image = build_image.tag.clone();
+
+    println!("  image: {}", image);
+
+    let repo_id = get_service_repo_id(tx, service_name).await?;
+    let container_image = parse_container_image(&image)?;
+
+    if !image_exists(tx, &container_image).await? || force_insert {
+        let last_id = insert_image(tx, repo_id.clone(), "Dockerfile", &container_image).await?;
+        println!(
+            "  inserted image for service {} with id {}",
+            service_name, last_id
+        );
+    } else {
+        update_image(tx, repo_id.clone(), "Dockerfile", &container_image).await?;
+        println!("  updated image for service {}", service_name);
+    }
+
+    Ok(())
+}
+
 /**
  * Upserts the container images in the database based on the contents of the JSON files
  * in the given directory. Optionally can be forced to insert the images.
@@ -276,31 +325,20 @@ async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool)
             continue;
         }
 
+        let result = upsert_build(&mut tx, &entry.path(), service_name, force_insert).await;
+        match result {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Error upserting build: {}", e);
+                continue;
+            }
+        }
+
         let data: String = fs::read_to_string(entry.path())?;
 
         let parsed: BuildsData = serde_json::from_str(&data)?;
         if parsed.builds.is_empty() {
             continue;
-        }
-
-        let build_image = &parsed.builds[0];
-        let image = build_image.tag.clone();
-
-        println!("  image: {}", image);
-
-        let repo_id = get_service_repo_id(&mut tx, service_name).await?;
-        let container_image = parse_container_image(&image)?;
-
-        if !image_exists(&mut tx, &container_image).await? || force_insert {
-            let last_id =
-                insert_image(&mut tx, repo_id.clone(), "Dockerfile", &container_image).await?;
-            println!(
-                "  inserted image for service {} with id {}",
-                service_name, last_id
-            );
-        } else {
-            update_image(&mut tx, repo_id.clone(), "Dockerfile", &container_image).await?;
-            println!("  updated image for service {}", service_name);
         }
     }
 
@@ -415,6 +453,23 @@ async fn main() -> Result<()> {
             })?;
             let force_insert = sub_m.get_flag("force-insert");
             upsert_builds(&pool, &builds_dir, force_insert).await?;
+        }
+        Some(("upsert-a-build", sub_m)) => {
+            let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
+                anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
+            })?;
+
+            let service = sub_m.get_one::<String>("service").ok_or_else(|| {
+                anyhow!(
+                    "No service specified. Use --service <service> to specify a service to insert."
+                )
+            })?;
+
+            let force_insert = sub_m.get_flag("force-insert");
+
+            let mut tx = pool.begin().await?;
+            upsert_build(&mut tx, &PathBuf::from(builds_dir), &service, force_insert).await?;
+            tx.commit().await?;
         }
         Some(("delete", sub_m)) => {
             let id = sub_m.get_one::<i32>("id").ok_or_else(|| {
