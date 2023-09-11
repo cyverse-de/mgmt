@@ -44,30 +44,23 @@ fn cli() -> Command {
                     .required(false)
                     .action(ArgAction::SetTrue)
                     .value_parser(clap::value_parser!(bool)),
+                arg!(--"no-push" "Do not push the changes to the repository")
+                    .required(false)
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(--"no-commit" "Do not commit the changes to the repository")
+                    .required(false)
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
+                arg!(--"no-tag" "Do not tag the release")
+                    .required(false)
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
                 arg!(-i --"increment-field" [INCREMENT_FIELD] "The field to increment for the release")
                     .required(false)
                     .default_value("patch")
                     .value_parser(clap::builder::PossibleValuesParser::new(["major", "minor", "patch"])),
             ]),
-        )
-        .subcommand(
-            Command::new("preview")
-                .about("Generates a preview of the release")
-                .args([
-                    arg!(-s --"skip" [SKIP] "A service to skip for the release")
-                        .required(false)
-                        .action(ArgAction::Append)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-e --env [ENV] "The environment to release")
-                        .required(true)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-r --"repo" [REPO] "The repository to release to"),
-                    arg!(-b --"builds" [BUILDS]
-                        "Directory containing build.json files for each service. Defaults to the 'builds' subdirectory under the local directory."
-                    )
-                        .required(true)
-                        .value_parser(clap::value_parser!(PathBuf))
-                ]),
         )
 }
 
@@ -79,6 +72,9 @@ struct ReleaseOpts {
     repo_branch: String,
     skips: Vec<String>,
     no_clone: bool,
+    no_push: bool,
+    no_commit: bool,
+    no_tag: bool,
     increment_field: String,
 }
 
@@ -389,16 +385,20 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
                 .context("unable to create repo dir string")?,
         )?;
 
-        git::tag(&repo_dir, &format!("release-v{}", latest_version))?;
-        git::commit(&repo_dir, "update builds")?;
-        git::push(&repo_dir, "origin", "main")?;
-        git::push_tags(&repo_dir, "origin")?;
+        if !opts.no_tag {
+            git::tag(&repo_dir, &format!("release-v{}", latest_version))?;
+        }
+
+        if !opts.no_commit {
+            git::commit(&repo_dir, "update builds")?;
+        }
+
+        if !opts.no_push {
+            git::push(&repo_dir, "origin", "main")?;
+            git::push_tags(&repo_dir, "origin")?;
+        }
     }
 
-    Ok(())
-}
-
-async fn preview_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     Ok(())
 }
 
@@ -442,6 +442,9 @@ async fn main() -> Result<()> {
             })?;
 
             let no_clone = matches.get_flag("no-clone");
+            let no_push = matches.get_flag("no-push");
+            let no_commit = matches.get_flag("no-commit");
+            let no_tag = matches.get_flag("no-tag");
 
             let increment_field = matches.get_one::<String>("increment-field").ok_or_else(|| {
                 anyhow!("No increment field provided. Use --increment-field <field> to specify an increment field.")
@@ -459,47 +462,14 @@ async fn main() -> Result<()> {
                 repo_url: repo_url.to_string(),
                 repo_branch: repo_branch.to_string(),
                 no_clone,
+                no_push,
+                no_commit,
+                no_tag,
                 skips,
                 increment_field: increment_field.to_string(),
             };
 
             create_release(&pool, &opts).await?;
-        }
-
-        Some(("preview", matches)) => {
-            let env = matches.get_one::<String>("env").ok_or_else(|| {
-                anyhow!("No environment provided. Use --env <env> to specify an environment.")
-            })?;
-
-            let repo_name = matches.get_one::<String>("repo-name").ok_or_else(|| {
-                anyhow!("No repository provided. Use --repo <repo> to specify a repository.")
-            })?;
-
-            let repo_url = matches.get_one::<String>("repo-url").ok_or_else(|| {
-                anyhow!("No repository URL provided. Use --repo-url <repo_url> to specify a repository URL.")
-            })?;
-
-            let repo_branch = matches.get_one::<String>("rbranch").ok_or_else(|| {
-                anyhow!("No repository branch provided. Use --repo-branch <branch> to specify a repository branch.")
-            })?;
-
-            let skips = matches
-                .get_many::<String>("skip")
-                .unwrap_or_default()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>();
-
-            let opts = ReleaseOpts {
-                env: env.to_string(),
-                repo_name: repo_name.to_string(),
-                repo_url: repo_url.to_string(),
-                repo_branch: repo_branch.to_string(),
-                no_clone: false,
-                skips,
-                increment_field: String::new(),
-            };
-
-            preview_release(&pool, &opts).await?;
         }
 
         _ => {
