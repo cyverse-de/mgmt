@@ -41,6 +41,10 @@ fn cli() -> Command {
                     .required(false)
                     .default_value("main")
                     .value_parser(clap::value_parser!(String)),
+                arg!(-f --"no-fail" "Do not fail if a service tarball cannot be processed")
+                    .required(false)
+                    .action(ArgAction::SetTrue)
+                    .value_parser(clap::value_parser!(bool)),
                 arg!(-n --"no-clone" "Do not clone the repository")
                     .required(false)
                     .action(ArgAction::SetTrue)
@@ -72,6 +76,7 @@ struct ReleaseOpts {
     repo_url: String,
     repo_branch: String,
     skips: Vec<String>,
+    no_fail: bool,
     no_clone: bool,
     no_push: bool,
     no_commit: bool,
@@ -404,15 +409,26 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         };
     }
 
-    println!("\nThe following errors occurred while processing the release processes:");
-    for failure in process_failures {
+    println!("\n\nThe following errors occurred while processing the release tarballs:");
+    process_failures.iter().for_each(|failure| {
         println!("{}", failure);
+    });
+
+    if !opts.no_fail && !process_failures.is_empty() {
+        anyhow::bail!("Errors occurred while processing release tarballs.");
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
     if !opts.no_clone {
         let latest_version = get_new_version_number(&repo_dir, &opts)?;
 
+        println!(
+            "\n\nAdding and committing changes to the repository {} as version {}...",
+            repo_dir.display(),
+            latest_version
+        );
+
+        println!("Adding changes in the builds directory...");
         git::add(
             &repo_dir,
             builds_dir
@@ -421,7 +437,9 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
                 .to_str()
                 .context("unable to create build dir string")?,
         )?;
+        println!("Done adding changes in the builds directory.");
 
+        println!("Adding changes in the services directory...");
         git::add(
             &repo_dir,
             services_dir
@@ -430,20 +448,34 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
                 .to_str()
                 .context("unable to create repo dir string")?,
         )?;
+        println!("Done adding changes in the services directory.");
 
         if !opts.no_tag {
+            println!("Adding tag v{}...", latest_version);
             git::tag(&repo_dir, &format!("v{}", latest_version))?;
+            println!("Done adding tag v{}.", latest_version);
         }
 
         if !opts.no_commit {
+            println!("Committing changes...");
             git::commit(&repo_dir, "update builds")?;
+            println!("Done committing changes.");
         }
 
         if !opts.no_push {
+            println!("Pushing changes...");
             git::push(&repo_dir, "origin", "main")?;
+            println!("Done pushing changes.");
+
+            println!("Pushing tags...");
             git::push_tags(&repo_dir, "origin")?;
+            println!("Done pushing tags.");
         }
     }
+
+    tx.commit().await?;
+
+    println!("\n\nDone creating release.");
 
     Ok(())
 }
@@ -487,6 +519,7 @@ async fn main() -> Result<()> {
                 )
             })?;
 
+            let no_fail = matches.get_flag("no-fail");
             let no_clone = matches.get_flag("no-clone");
             let no_push = matches.get_flag("no-push");
             let no_commit = matches.get_flag("no-commit");
@@ -507,6 +540,7 @@ async fn main() -> Result<()> {
                 repo_name: repo_name.to_string(),
                 repo_url: repo_url.to_string(),
                 repo_branch: repo_branch.to_string(),
+                no_fail,
                 no_clone,
                 no_push,
                 no_commit,
