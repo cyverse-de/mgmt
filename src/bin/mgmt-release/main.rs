@@ -6,6 +6,7 @@ use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tar::Archive;
+use thiserror::Error;
 use url::Url;
 
 fn cli() -> Command {
@@ -34,7 +35,7 @@ fn cli() -> Command {
                     .value_parser(clap::value_parser!(String)),
                 arg!(-u --"repo-url" [REPO_URL] "The releases Git repository URL")
                     .required(false)
-                    .default_value("github.com/cyverse-de/de-releases")
+                    .default_value("https://github.com/cyverse-de/de-releases")
                     .value_parser(clap::value_parser!(String)),
                 arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
                     .required(false)
@@ -78,29 +79,39 @@ struct ReleaseOpts {
     increment_field: String,
 }
 
+#[derive(Debug, Error)]
+enum VersionTagError {
+    #[error("No tags found")]
+    NotFound,
+
+    #[error("Error parsing version tag: {0}")]
+    ParseError(String),
+}
+
 /// Returns the latest release version from a list of tags.
 ///
 /// # Examples
 /// ```
 /// let tags = vec![
-///   "release-v1.0.0".to_string(),
-///   "release-v1.0.1".to_string(),
-///   "release-v1.1.0".to_string(),
-///   "release-v1.1.1".to_string(),
+///   "v1.0.0".to_string(),
+///   "v1.0.1".to_string(),
+///   "v1.1.0".to_string(),
+///   "v1.1.1".to_string(),
 /// ];
 /// let latest_version = mgmt::latest_release_version(&tags).unwrap();
 /// assert_eq!(latest_version, semver::Version::parse("1.1.1").unwrap());
 /// ```
-fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
+fn latest_release_version(tags: &[String]) -> Result<semver::Version, VersionTagError> {
     let tags = tags
         .iter()
-        .filter(|tag| tag.starts_with("release-v"))
+        .filter(|tag| tag.starts_with("v"))
         .collect::<Vec<_>>();
 
     let mut versions: Vec<semver::Version> = Vec::new();
 
     for tag in tags {
-        let version = semver::Version::parse(&tag[8..])?;
+        let version = semver::Version::parse(&tag[8..])
+            .map_err(|e| VersionTagError::ParseError(e.to_string()))?;
         versions.push(version);
     }
 
@@ -108,7 +119,7 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version> {
     versions
         .last()
         .cloned()
-        .ok_or_else(|| anyhow!("No tags found"))
+        .ok_or_else(|| VersionTagError::NotFound.into())
 }
 
 /// Creates or clones the release directory and creates the builds and services subdirectories.
@@ -155,6 +166,11 @@ fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> 
 
         // Make sure the correct branch is checked out (default is 'main') if no clone is false.
         git::checkout(&repo_dir, &opts.repo_branch)?;
+
+        // Make sure the builds directory exists.
+        if !Path::exists(&builds_dir) {
+            fs::create_dir_all(&builds_dir)?;
+        }
     } else {
         if Path::exists(&repo_dir) {
             anyhow::bail!(
@@ -287,6 +303,7 @@ async fn process_release_tarball(
     // with a name like <service_name>.json.
     let build_json_path = service_dir.join("build.json");
     let to = builds_dir.join(format!("{}.json", service_name));
+    println!("Moving {} to {}", build_json_path.display(), to.display());
     fs::rename(build_json_path, to)?;
 
     Ok(())
@@ -302,7 +319,14 @@ async fn process_release_tarball(
 /// ```
 fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semver::Version> {
     let current_tags = git::list_tags(&repodir, "origin")?;
-    let latest_version = latest_release_version(&current_tags)?;
+    let latest_version = match latest_release_version(&current_tags) {
+        Ok(version) => version,
+        Err(e) => match e {
+            VersionTagError::NotFound => semver::Version::new(0, 0, 0),
+            _ => anyhow::bail!("Error parsing version tag: {}", e),
+        },
+    };
+
     let mut new_version = latest_version.clone();
     match opts.increment_field.as_str() {
         "major" => {
@@ -374,6 +398,8 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         git::add(
             &repo_dir,
             builds_dir
+                .file_name()
+                .context("unable to create build dir basename")?
                 .to_str()
                 .context("unable to create build dir string")?,
         )?;
@@ -381,12 +407,14 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         git::add(
             &repo_dir,
             services_dir
+                .file_name()
+                .context("unable to create repo dir basename")?
                 .to_str()
                 .context("unable to create repo dir string")?,
         )?;
 
         if !opts.no_tag {
-            git::tag(&repo_dir, &format!("release-v{}", latest_version))?;
+            git::tag(&repo_dir, &format!("v{}", latest_version))?;
         }
 
         if !opts.no_commit {
