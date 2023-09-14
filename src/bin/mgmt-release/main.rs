@@ -371,10 +371,14 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     let mut tx = pool.begin().await?;
 
     // Clone the releases repo (default is 'de-releases') if no-clone is false.
+    println!("Setting up release directory...");
     let (repo_dir, builds_dir, services_dir) = setup_release_dir(opts)?;
+    println!("Done setting up release directory.");
 
     // Get a list of the services included in the environment, filter out the skipped services:
+    println!("\n\nGetting service repositories...");
     let tuples = get_service_repos(&mut tx, &opts).await?;
+    println!("Done getting service repositories.");
 
     let mut process_failures: Vec<String> = Vec::new();
 
@@ -409,13 +413,15 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         };
     }
 
-    println!("\n\nThe following errors occurred while processing the release tarballs:");
-    process_failures.iter().for_each(|failure| {
-        println!("{}", failure);
-    });
+    if !process_failures.is_empty() {
+        println!("\n\nThe following errors occurred while processing the release tarballs:");
+        process_failures.iter().for_each(|failure| {
+            println!("{}", failure);
+        });
 
-    if !opts.no_fail && !process_failures.is_empty() {
-        anyhow::bail!("Errors occurred while processing release tarballs.");
+        if !opts.no_fail {
+            anyhow::bail!("Errors occurred while processing release tarballs.");
+        }
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
@@ -428,7 +434,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             latest_version
         );
 
-        println!("Adding changes in the builds directory...");
+        println!("\nAdding changes in the builds directory...");
         git::add(
             &repo_dir,
             builds_dir
@@ -439,7 +445,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         )?;
         println!("Done adding changes in the builds directory.");
 
-        println!("Adding changes in the services directory...");
+        println!("\nAdding changes in the services directory...");
         git::add(
             &repo_dir,
             services_dir
@@ -451,29 +457,31 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         println!("Done adding changes in the services directory.");
 
         if !opts.no_tag {
-            println!("Adding tag v{}...", latest_version);
+            println!("\nAdding tag v{}...", latest_version);
             git::tag(&repo_dir, &format!("v{}", latest_version))?;
             println!("Done adding tag v{}.", latest_version);
         }
 
         if !opts.no_commit {
-            println!("Committing changes...");
+            println!("\nCommitting changes...");
             git::commit(&repo_dir, "update builds")?;
             println!("Done committing changes.");
         }
 
         if !opts.no_push {
-            println!("Pushing changes...");
+            println!("\nPushing changes...");
             git::push(&repo_dir, "origin", "main")?;
             println!("Done pushing changes.");
 
-            println!("Pushing tags...");
+            println!("\nPushing tags...");
             git::push_tags(&repo_dir, "origin")?;
             println!("Done pushing tags.");
         }
     }
 
+    println!("\n\nUpdating database...");
     tx.commit().await?;
+    println!("Done updating database.");
 
     println!("\n\nDone creating release.");
 
