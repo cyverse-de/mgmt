@@ -110,7 +110,11 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version, VersionTag
     let mut versions: Vec<semver::Version> = Vec::new();
 
     for tag in tags {
-        let version = semver::Version::parse(&tag[8..])
+        let tag_str = tag
+            .strip_prefix("v")
+            .context("invalid tag")
+            .map_err(|e| VersionTagError::ParseError(format!("invalid tag: {}", e.to_string())))?;
+        let version = semver::Version::parse(tag_str)
             .map_err(|e| VersionTagError::ParseError(e.to_string()))?;
         versions.push(version);
     }
@@ -367,6 +371,9 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     // Get a list of the services included in the environment, filter out the skipped services:
     let tuples = get_service_repos(&mut tx, &opts).await?;
 
+    let mut process_failures: Vec<String> = Vec::new();
+
+    println!("\n\nProcessing release tarballs:");
     ////// For each repository, grab the build JSON file from the github release.
     for (service, repo) in tuples {
         let repo_url = get_repo_url(&repo)?;
@@ -376,19 +383,30 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .as_ref()
             .ok_or_else(|| anyhow!("No name found for service {:?}", service))?;
 
+        println!("\nProcessing release tarball for {}", service_name);
         match process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await {
             Ok(_) => {
                 println!("Processed release tarball for {}", service_name);
             }
 
             Err(e) => {
-                println!(
+                let msg = format!(
                     "Failed to process release tarball for {}: {}",
                     service_name, e
                 );
+
+                println!("{}", msg);
+
+                process_failures.push(msg);
+
                 continue;
             }
         };
+    }
+
+    println!("\nThe following errors occurred while processing the release processes:");
+    for failure in process_failures {
+        println!("{}", failure);
     }
 
     // if no-clone is false, commit the changes to the repo and push them.
