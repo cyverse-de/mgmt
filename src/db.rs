@@ -921,3 +921,28 @@ pub async fn get_repo_by_id(
 
     Ok(repo)
 }
+
+/// Returns the namespace for the provided environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_namespace(&mut tx, "dev").await?;
+/// tx.commit().await?;
+///
+/// println!("{}", result);
+/// ```
+pub async fn get_namespace(tx: &mut Transaction<'_, MySql>, env: &str) -> anyhow::Result<String> {
+    let namespace = sqlx::query!(
+        r#"
+            SELECT environments.namespace AS `namespace: String`
+            FROM environments
+            WHERE environments.name = ?
+        "#,
+        env
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(namespace.namespace.unwrap_or_default())
+}

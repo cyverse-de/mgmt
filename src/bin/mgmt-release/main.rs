@@ -67,6 +67,26 @@ fn cli() -> Command {
                     .value_parser(clap::builder::PossibleValuesParser::new(["major", "minor", "patch"])),
             ]),
         )
+        .subcommand(
+            Command::new("deploy")
+                .args([
+                    arg!(-s --skip <SKIP> "A service to skip for the deployment")
+                        .required(false)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-e --env <ENV> "The environment to deploy")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-r --"repo-name" [REPO_NAME] "The repository to deploy from")
+                        .required(false)
+                        .default_value("de-releases")
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
+                        .required(false)
+                        .default_value("main")
+                        .value_parser(clap::value_parser!(String)),
+                ])
+        )
 }
 
 #[derive(Debug, Clone, PartialEq)]
