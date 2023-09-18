@@ -376,13 +376,14 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     println!("Done setting up release directory.");
 
     // Get a list of the services included in the environment, filter out the skipped services:
-    println!("\n\nGetting service repositories...");
+    println!("\nGetting service repositories...");
     let tuples = get_service_repos(&mut tx, &opts).await?;
     println!("Done getting service repositories.");
 
     let mut process_failures: Vec<String> = Vec::new();
 
-    println!("\n\nProcessing release tarballs:");
+    println!("");
+
     ////// For each repository, grab the build JSON file from the github release.
     for (service, repo) in tuples {
         let repo_url = get_repo_url(&repo)?;
@@ -392,10 +393,10 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
             .as_ref()
             .ok_or_else(|| anyhow!("No name found for service {:?}", service))?;
 
-        println!("\nProcessing release tarball for {}", service_name);
+        println!("Downloading release tarball for {}", service_name);
         match process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await {
             Ok(_) => {
-                println!("Processed release tarball for {}", service_name);
+                println!("Processed release tarball for {}\n", service_name);
             }
 
             Err(e) => {
@@ -414,7 +415,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
     }
 
     if !process_failures.is_empty() {
-        println!("\n\nThe following errors occurred while processing the release tarballs:");
+        println!("\nThe following errors occurred while processing the release tarballs:");
         process_failures.iter().for_each(|failure| {
             println!("{}", failure);
         });
@@ -429,7 +430,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         let latest_version = get_new_version_number(&repo_dir, &opts)?;
 
         println!(
-            "\n\nAdding and committing changes to the repository {} as version {}...",
+            "\nAdding and committing changes to the repository {} as version {}...",
             repo_dir.display(),
             latest_version
         );
@@ -479,11 +480,11 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
         }
     }
 
-    println!("\n\nUpdating database...");
+    println!("\nUpdating database...");
     tx.commit().await?;
     println!("Done updating database.");
 
-    println!("\n\nDone creating release.");
+    println!("\nDone creating release.");
 
     Ok(())
 }
