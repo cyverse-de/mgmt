@@ -7,7 +7,10 @@ use sqlx::{MySql, Pool, Transaction};
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::config_values;
+use crate::configs;
 use crate::db;
+use crate::ops;
 
 pub struct Deployment {
     // The database connection pool.
@@ -24,6 +27,12 @@ pub struct Deployment {
 
     // The name of the services to NOT deploy.
     skips: Vec<String>,
+
+    // The base directory for the configurations
+    configdir: PathBuf,
+
+    // The options for which optional sections to include in the configurations
+    section_opts: config_values::config::SectionOptions,
 }
 
 impl Deployment {
@@ -33,6 +42,8 @@ impl Deployment {
         branch: String,
         env: String,
         skips: Vec<String>,
+        configdir: PathBuf,
+        section_opts: config_values::config::SectionOptions,
     ) -> Self {
         Self {
             pool,
@@ -40,6 +51,8 @@ impl Deployment {
             branch,
             env,
             skips,
+            configdir,
+            section_opts,
         }
     }
 
@@ -70,11 +83,65 @@ impl Deployment {
 
     pub async fn deploy(&self) -> Result<bool> {
         let mut tx = self.pool.begin().await?;
+
         self.checkout()?;
+
         let namespace = self.get_namespace(&mut tx).await?;
         println!("namespace: {}", namespace);
+
         let services = self.get_services(&mut tx).await?;
         println!("services: {:?}", services);
+
+        let templatesdir = self.repodir.join("templates");
+
+        // Create the configuration file directory for the environment.
+        if !self.configdir.exists() {
+            std::fs::create_dir(&self.configdir)?;
+        }
+
+        let env_configdir = self.configdir.join(&self.env);
+        if !env_configdir.exists() {
+            std::fs::create_dir(&env_configdir)?;
+        }
+
+        // Serialize the configuration defaults
+        let defaults_file = env_configdir.join("defaults.yaml");
+        ops::render_default_values(&self.pool, Some(defaults_file.clone())).await?;
+
+        // Serialize the configuration values files
+        let values_file = env_configdir.clone().join("values.yaml");
+        ops::render_values(
+            &self.pool,
+            &self.env,
+            &self.section_opts,
+            Some(values_file.clone()),
+        )
+        .await?;
+
+        // Generate the configuration files
+        let input_dir = templatesdir
+            .to_str()
+            .context("failed to get the templates dir")?;
+        let output_dir = env_configdir.join("configs");
+        let defaults_path = defaults_file
+            .to_str()
+            .context("failed to get the defaults path")?;
+        let values_path = values_file
+            .to_str()
+            .context("failed to get the values path")?;
+        configs::generate_cmd(
+            input_dir,
+            output_dir
+                .to_str()
+                .context("failed to get output directory path")?,
+            defaults_path,
+            values_path,
+        )?;
+
+        // Load the configs.
+        // Load the secrets.
+        // Deploy the services.
+        // Update the database.
 
         Ok(true)
     }
