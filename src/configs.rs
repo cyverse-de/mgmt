@@ -5,7 +5,7 @@
 use anyhow::{Context, Result};
 use duct::cmd;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Get the config directory for the given environment.
@@ -170,6 +170,33 @@ pub fn generate_all(defaults_path: &str) -> Result<bool> {
         }
     }
     Ok(success)
+}
+
+/// Load the configuration values at a given path for a provided namespace
+/// and environment.
+pub fn load_configs(ns: &str, configmap_name: &str, cfg_dir: &PathBuf) -> Result<bool> {
+    Ok(cmd!(
+        "kubectl",
+        "-n",
+        ns,
+        "create",
+        "secret",
+        "generic",
+        configmap_name,
+        format!(
+            "--from-file={}",
+            cfg_dir
+                .to_str()
+                .context("failed to get the absolute path to the configs dir")?
+        ),
+        "--dry-run",
+        "-o",
+        "yaml"
+    )
+    .pipe(cmd!("kubectl", "-n", ns, "apply", "-f", "-"))
+    .run()?
+    .status
+    .success())
 }
 
 #[cfg(test)]

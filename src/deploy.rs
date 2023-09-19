@@ -139,6 +139,8 @@ impl Deployment {
         )?;
 
         // Load the configs.
+        configs::load_configs(&namespace, "service-configs", &output_dir)?;
+
         // Load the secrets.
         // Deploy the services.
         // Update the database.
