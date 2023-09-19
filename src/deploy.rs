@@ -81,6 +81,26 @@ impl Deployment {
         Ok(db::get_namespace(tx, &self.env).await?)
     }
 
+    fn deploy_service(&self, ns: &str, svc: &db::Service) -> Result<bool> {
+        let svc_json = self.repodir.join("builds").join(format!(
+            "{}.json",
+            svc.name.as_ref().context("couldn't get service name")?
+        ));
+        Ok(Command::new("skaffold")
+            .args([
+                "deploy",
+                "--namespace",
+                ns,
+                "--build-artifacts",
+                svc_json
+                    .to_str()
+                    .context("couldn't get service json path")?,
+                "--force",
+            ])
+            .status()?
+            .success())
+    }
+
     pub async fn deploy(&self) -> Result<bool> {
         let mut tx = self.pool.begin().await?;
 
@@ -142,8 +162,12 @@ impl Deployment {
         configs::load_configs(&namespace, "service-configs", &output_dir)?;
 
         // Load the secrets.
+
         // Deploy the services.
-        // Update the database.
+        services.iter().for_each(|svc| {
+            self.deploy_service(&namespace, svc)
+                .expect("failed to deploy service");
+        });
 
         Ok(true)
     }
