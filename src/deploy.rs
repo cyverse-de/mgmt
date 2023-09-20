@@ -162,6 +162,14 @@ impl Deployment {
         configs::load_configs(&namespace, "service-configs", &output_dir)?;
 
         // Load the secrets.
+        let secrets_pbuf = templatesdir.join("secrets");
+        let secrets_dir = secrets_pbuf.to_str().context("failed to get secrets dir")?;
+        let secrets_output_pbuf = env_configdir.join("secrets");
+        let secrets_output_dir = secrets_output_pbuf
+            .to_str()
+            .context("failed to get secrets output dir")?;
+        configs::generate_cmd(secrets_dir, secrets_output_dir, defaults_path, values_path)?;
+        configs::load_secrets(&namespace, &secrets_pbuf)?;
 
         // Deploy the services.
         services.iter().for_each(|svc| {

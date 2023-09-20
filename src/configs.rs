@@ -199,6 +199,28 @@ pub fn load_configs(ns: &str, configmap_name: &str, cfg_dir: &PathBuf) -> Result
     .success())
 }
 
+pub fn load_secrets(ns: &str, secrets_dir: &PathBuf) -> Result<bool> {
+    let contents = fs::read_dir(secrets_dir)?;
+    for entry in contents.into_iter() {
+        let entry = entry?;
+        if entry.metadata()?.is_file() {
+            let path = entry.path();
+            cmd!(
+                "kubectl",
+                "-n",
+                ns,
+                "apply",
+                "-f",
+                path.to_str()
+                    .context("failed to get the absolute path to the secret file")?
+            )
+            .run()?;
+        }
+    }
+
+    Ok(true)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
