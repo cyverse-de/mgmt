@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use clap::{arg, ArgAction, Command};
 use flate2::read::GzDecoder;
-use mgmt::{db, git};
+use mgmt::{config_values, db, deploy, git};
 use sqlx::{mysql::MySqlPoolOptions, MySql, Pool};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -80,7 +80,11 @@ fn cli() -> Command {
                     arg!(-r --"repo-name" [REPO_NAME] "The repository to deploy from")
                         .required(false)
                         .default_value("de-releases")
-                        .value_parser(clap::value_parser!(String)),
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-c --"configs" [CONFIGS] "The directory the config files will be written to")
+                        .required(false)
+                        .default_value("configs")
+                        .value_parser(clap::value_parser!(PathBuf)),
                     arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
                         .required(false)
                         .default_value("main")
@@ -643,6 +647,56 @@ async fn main() -> Result<()> {
             };
 
             create_release(&pool, &opts).await?;
+        }
+
+        Some(("deploy", matches)) => {
+            let env = matches
+                .get_one::<String>("env")
+                .ok_or_else(|| {
+                    anyhow!("No environment provided. Use --env <env> to specify an environment.")
+                })?
+                .to_string();
+
+            let repo_name = matches
+                .get_one::<PathBuf>("repo-name")
+                .ok_or_else(|| {
+                    anyhow!(
+                    "No repository provided. Use --repo-name <repo_name> to specify a repository."
+                )
+                })?
+                .to_owned();
+
+            let repo_branch = matches.get_one::<String>("branch").ok_or_else(|| {
+                anyhow!(
+                    "No repository branch provided. Use --repo-branch <branch> to specify a repository branch."
+                )
+            })?.to_owned();
+
+            let configdir = matches.get_one::<PathBuf>("configs").ok_or_else(|| {
+                anyhow!(
+                    "No config directory provided. Use --configs <dir> to specify a config directory."
+                )
+            })?.to_owned();
+
+            let skips = matches
+                .get_many::<String>("skip")
+                .unwrap_or_default()
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>();
+
+            let section_opts = config_values::config::SectionOptions::new(&matches);
+
+            let deployment = deploy::Deployment::new(
+                pool,
+                repo_name,
+                repo_branch,
+                env,
+                skips,
+                configdir,
+                section_opts,
+            );
+
+            deployment.deploy().await?;
         }
 
         _ => {
