@@ -1,6 +1,6 @@
 use clap::Parser;
 use mgmt::app;
-use mgmt::cli::Cli;
+use mgmt::cli::deploy::Cli;
 use which::which;
 
 fn main() {

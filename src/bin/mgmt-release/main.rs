@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use tar::Archive;
 use thiserror::Error;
 use url::Url;
+use which::which;
 
 fn cli() -> Command {
     Command::new("mgmt-release")
@@ -580,6 +581,16 @@ async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let matches = cli().get_matches();
+
+    let git_path = which("git").context("git not found")?;
+    let skaffold_path = which("skaffold").context("skaffold not found")?;
+    let kubectl_path = which("kubectl").context("kubectl not found")?;
+    let gomplate_path = which("gomplate").context("gomplate not found")?;
+
+    println!("git path: {}", git_path.display());
+    println!("skaffold path: {}", skaffold_path.display());
+    println!("kubectl path: {}", kubectl_path.display());
+    println!("gomplate path: {}", gomplate_path.display());
 
     let database_url = matches
         .get_one::<String>("database-url")

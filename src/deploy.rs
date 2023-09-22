@@ -110,9 +110,19 @@ impl Deployment {
         println!("namespace: {}", namespace);
 
         let services = self.get_services(&mut tx).await?;
-        println!("services: {:?}", services);
+        println!(
+            "services:{}",
+            services.iter().fold(String::new(), |acc, svc| {
+                format!(
+                    "{}\n\t{}",
+                    acc,
+                    svc.name.as_ref().unwrap_or(&"".to_string())
+                )
+            })
+        );
 
         let templatesdir = self.repodir.join("templates");
+        println!("templates dir: {}", templatesdir.display());
 
         // Create the configuration file directory for the environment.
         if !self.configdir.exists() {

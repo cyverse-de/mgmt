@@ -1,4 +1,4 @@
-use crate::cli::Cli;
+use crate::cli::deploy::Cli;
 use crate::configs;
 use crate::git;
 use anyhow::{anyhow, Context, Result};
