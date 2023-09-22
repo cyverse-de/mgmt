@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use mgmt::cli::configs;
 use mgmt::config_values::config;
-use mgmt::db;
+use mgmt::handlers;
 use mgmt::ops;
-
-use anyhow::anyhow;
 
 use sqlx::mysql::MySqlPoolOptions;
 
@@ -25,58 +24,7 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     match command.subcommand() {
-        Some(("env", sub_m)) => {
-            let create_cmd = sub_m
-                .subcommand()
-                .ok_or_else(|| anyhow::anyhow!("bad command"))?;
-
-            match create_cmd {
-                ("populate", _) => {
-                    ops::populate_env(&pool).await?;
-                }
-
-                ("create", sub_m) => {
-                    let name = sub_m.get_one::<String>("name").ok_or_else(|| {
-                        anyhow!("No name specified. Use --name <name> to specify a name.")
-                    })?;
-
-                    let namespace = sub_m.get_one::<String>("namespace").ok_or_else(|| {
-                        anyhow!("No namespace specified. Use --namespace <namespace> to specify a namespace.")
-                    })?;
-
-                    let mut tx = pool.begin().await?;
-                    db::upsert_environment(&mut tx, &name, &namespace).await?;
-                    tx.commit().await?;
-
-                    println!("Created environment: {}", name);
-                }
-
-                ("list", _) => {
-                    let mut tx = pool.begin().await?;
-                    let envs = db::list_envs(&mut tx).await?;
-                    tx.commit().await?;
-                    for env in envs {
-                        println!("{}", env);
-                    }
-                }
-
-                ("delete", sub_m) => {
-                    let name = sub_m.get_one::<String>("name").ok_or_else(|| {
-                        anyhow!("No name specified. Use --name <name> to specify a name.")
-                    })?;
-
-                    let mut tx = pool.begin().await?;
-                    db::delete_env(&mut tx, &name).await?;
-                    tx.commit().await?;
-
-                    println!("Deleted environment: {}", name);
-                }
-
-                (name, _) => {
-                    unreachable!("Bad subcommand: {name}")
-                }
-            }
-        }
+        Some(("env", sub_m)) => handlers::configs::env(&pool, &sub_m).await?,
 
         Some(("sections", sub_m)) => {
             let section_cmd = sub_m

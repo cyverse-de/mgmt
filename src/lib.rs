@@ -6,4 +6,5 @@ pub mod db;
 pub mod deploy;
 pub mod dolt;
 pub mod git;
+pub mod handlers;
 pub mod ops;
