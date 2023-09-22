@@ -11,3 +11,4 @@ db/de_releases
 .lsp
 *.pdb
 .sqlhistory
+de-releases/
