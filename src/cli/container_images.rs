@@ -1,7 +1,7 @@
 use clap::{arg, Command};
 
 pub fn cli() -> Command {
-    Command::new("mgmt-container-images")
+    Command::new("container-images")
         .about("Manages container images in the de_releases database")
         .args_conflicts_with_subcommands(true)
         .subcommand_required(true)

@@ -2,7 +2,7 @@ use clap::{arg, ArgAction, Command};
 use std::path::PathBuf;
 
 pub fn cli() -> Command {
-    Command::new("mgmt-release")
+    Command::new("release")
         .about("Creates and posts a release to a git repository")
         .args_conflicts_with_subcommands(true)
         .subcommand_required(true)

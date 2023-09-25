@@ -1,10 +1,18 @@
-use clap::Parser;
+use clap::Command;
 use mgmt::app;
-use mgmt::cli::deploy::Cli;
+use mgmt::cli::{configs, container_images, release, site};
 use which::which;
 
 fn main() {
-    let cli = Cli::parse();
+    let commands = Command::new("mgmt")
+        .version("0.1.0")
+        .about("Discovery Environment deployment management tool")
+        .args_conflicts_with_subcommands(true)
+        .subcommand(configs::cli())
+        .subcommand(container_images::cli())
+        .subcommand(release::cli())
+        .subcommand(site::cli());
+    let cli = commands.get_matches();
 
     let skaffold_path = match which("skaffold") {
         Ok(path_buf) => path_buf,
@@ -34,7 +42,10 @@ fn main() {
     println!("git path: {}", git_path.display());
     println!("kubectl path: {}", kubectl_path.display());
 
-    let state = app::App::from(cli);
+    let state = app::App::from(&cli).unwrap_or_else(|e| {
+        println!("{}", e);
+        std::process::exit(1);
+    });
 
     match state.process() {
         Ok(status) => {

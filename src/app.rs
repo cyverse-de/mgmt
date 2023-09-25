@@ -1,7 +1,7 @@
-use crate::cli::deploy::Cli;
 use crate::configs;
 use crate::git;
 use anyhow::{anyhow, Context, Result};
+use clap::ArgMatches;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{fs, str};
@@ -21,27 +21,62 @@ pub struct App {
 }
 
 impl App {
-    pub fn from(cli: Cli) -> App {
+    pub fn from(matches: &ArgMatches) -> Result<App> {
         let projects: Vec<String>;
 
-        if cli.all_projects {
-            projects = get_projects_from_build_dir(&cli.builds_path).unwrap_or(vec![]);
+        let all_projects = matches.get_flag("all-projects");
+        let project_list = matches
+            .get_many::<String>("project")
+            .unwrap_or_default()
+            .map(|p| p.to_string())
+            .collect::<Vec<_>>();
+        let namespace = matches
+            .get_one::<String>("namespace")
+            .context("failed to get the namespace from the command line arguments")?;
+        let environment = matches
+            .get_one::<String>("environment")
+            .context("failed to get the environment from the command line arguments")?;
+        let repos_path = matches
+            .get_one::<String>("repos-path")
+            .context("failed to get the repos path from the command line arguments")?;
+        let builds_path = matches
+            .get_one::<String>("builds-path")
+            .context("failed to get the builds path from the command line arguments")?;
+        let build = matches.get_flag("build");
+        let no_build = matches.get_flag("no-build");
+        let deploy = matches.get_flag("deploy");
+        let no_deploy = matches.get_flag("no-deploy");
+        let check_in = matches.get_flag("check-in");
+        let no_check_in = matches.get_flag("no-check-in");
+        let clean = matches.get_flag("clean");
+        let defaults_path = matches
+            .get_one::<String>("defaults-path")
+            .context("failed to get the defaults path from the command line arguments")?;
+
+        let env = if environment.is_empty() {
+            namespace.clone()
         } else {
-            projects = cli.project.clone()
+            environment.clone()
+        };
+
+        if all_projects {
+            projects = get_projects_from_build_dir(&builds_path).unwrap_or(vec![]);
+        } else {
+            projects = project_list;
         }
 
-        App {
+        Ok(App {
             projects: projects,
-            namespace: cli.namespace.clone(),
-            environment: cli.environment.clone().unwrap_or(cli.namespace.clone()),
-            repos_path: cli.repos_path.clone(),
-            builds_path: cli.builds_path.clone(),
-            do_build: cli.build && !cli.no_build,
-            do_deploy: cli.deploy && !cli.no_deploy,
-            do_check_in: cli.check_in && !cli.no_check_in,
-            clean: cli.clean,
-            defaults_path: cli.defaults_path.clone(),
-        }
+            namespace: namespace.clone(),
+            environment: env,
+            repos_path: repos_path.clone(),
+            builds_path: builds_path.clone(),
+            do_build: build && !no_build,
+            do_deploy: deploy && !no_deploy,
+            do_check_in: check_in && !no_check_in,
+            clean: clean,
+            defaults_path: defaults_path.clone(),
+        })
     }
 
     pub fn new() -> App {

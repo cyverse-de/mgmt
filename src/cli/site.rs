@@ -2,7 +2,7 @@ use clap::{arg, ArgAction, Command};
 use std::path::PathBuf;
 
 pub fn cli() -> Command {
-    Command::new("mgmt-site")
+    Command::new("site")
         .about(
             "Sets up directory containing repos and configuration values for a DE deployment site.",
         )
