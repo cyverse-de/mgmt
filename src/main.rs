@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{arg, Command};
 use mgmt::app;
 use mgmt::cli::{configs, container_images, deploy, release, site};
@@ -7,7 +7,7 @@ use sqlx::mysql::MySqlPoolOptions;
 use which::which;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let commands = Command::new("mgmt")
         .version("0.1.0")
         .about("Discovery Environment deployment management tool")
@@ -25,60 +25,63 @@ async fn main() {
         .subcommand(deploy::cli())
         .get_matches();
 
-    let skaffold_path = match which("skaffold") {
-        Ok(path_buf) => path_buf,
-        Err(e) => {
-            println!("error finding skaffold: {}", e);
-            return;
-        }
-    };
-
-    let git_path = match which("git") {
-        Ok(path_buf) => path_buf,
-        Err(e) => {
-            println!("error finding git: {}", e);
-            return;
-        }
-    };
-
-    let kubectl_path = match which("kubectl") {
-        Ok(path_buf) => path_buf,
-        Err(e) => {
-            println!("error finding kubectl: {}", e);
-            return;
-        }
-    };
-
-    println!("skaffold path: {}", skaffold_path.display());
-    println!("git path: {}", git_path.display());
-    println!("kubectl path: {}", kubectl_path.display());
-
-    let database_url = commands
-        .get_one::<String>("database-url")
-        .unwrap_or_else(|| {
-            panic!("No database URL specified. Use --database-url <url> to specify a database URL.")
-        });
+    let database_url = commands.get_one::<String>("database-url").context(
+        "No database URL specified. Use --database-url <url> to specify a database URL.",
+    )?;
 
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
         .connect(database_url)
         .await
-        .unwrap_or_else(|e| {
-            println!("error connecting to database: {}", e);
-            std::process::exit(1);
-        });
-
-    // let state = app::App::from(&cli).unwrap_or_else(|e| {
-    //     println!("{}", e);
-    //     std::process::exit(1);
-    // });
+        .map_err(|e| anyhow::anyhow!("error connecting to database: {}", e))?;
 
     match commands.subcommand() {
-        Some(("configs", sub_m)) => {}
-        Some(("container-images", sub_m)) => {}
-        Some(("release", sub_m)) => {}
-        Some(("site", sub_m)) => {}
-        Some(("deploy", sub_m)) => {}
+        Some(("configs", sub_m)) => match sub_m.subcommand() {
+            Some(("env", sub_m)) => handlers::configs::env(&pool, &sub_m).await?,
+            Some(("sections", sub_m)) => handlers::configs::sections(&pool, &sub_m).await?,
+            Some(("defaults", sub_m)) => handlers::configs::defaults(&pool, &sub_m).await?,
+            Some(("values", sub_m)) => handlers::configs::values(&pool, &sub_m).await?,
+            _ => unreachable!("Bad configs subcommand"),
+        },
+        Some(("container-images", sub_m)) => match sub_m.subcommand() {
+            Some(("insert", sub_m)) => handlers::container_images::insert(&pool, &sub_m).await?,
+            Some(("upsert", sub_m)) => handlers::container_images::upsert(&pool, &sub_m).await?,
+            Some(("upsert-builds", sub_m)) => {
+                handlers::container_images::upsert_multi_builds(&pool, &sub_m).await?
+            }
+            Some(("upsert-a-build", sub_m)) => {
+                handlers::container_images::upsert_single_build(&pool, &sub_m).await?
+            }
+            Some(("delete", sub_m)) => handlers::container_images::delete(&pool, &sub_m).await?,
+            Some(("list", _)) => handlers::container_images::list_all_images(&pool).await?,
+            _ => unreachable!("Bad container-images subcommand"),
+        },
+        Some(("release", sub_m)) => match sub_m.subcommand() {
+            Some(("create", sub_m)) => handlers::releases::create(&pool, &sub_m).await?,
+            Some(("deploy", sub_m)) => handlers::releases::deploy(&pool, &sub_m).await?,
+            _ => unreachable!("Bad release subcommand"),
+        },
+        Some(("site", sub_m)) => match sub_m.subcommand() {
+            Some(("init", sub_m)) => handlers::sites::init_site(&sub_m).await?,
+            Some(("deploy", sub_m)) => handlers::sites::deploy_site(&sub_m).await?,
+            _ => unreachable!("Bad site subcommand"),
+        },
+        Some(("deploy", sub_m)) => {
+            let git_path = which("git").context("git not found")?;
+            let skaffold_path = which("skaffold").context("skaffold not found")?;
+            let kubectl_path = which("kubectl").context("kubectl not found")?;
+            let gomplate_path = which("gomplate").context("gomplate not found")?;
+
+            println!("git path: {}", git_path.display());
+            println!("skaffold path: {}", skaffold_path.display());
+            println!("kubectl path: {}", kubectl_path.display());
+            println!("gomplate path: {}", gomplate_path.display());
+
+            let a = app::App::from(&sub_m)?;
+            a.process()?;
+        }
         _ => unreachable!(),
     };
+
+    Ok(())
 }
