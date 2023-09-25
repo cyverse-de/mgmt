@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use clap::ArgMatches;
 use serde::Deserialize;
 use sqlx::mysql::MySql;
 use sqlx::{Pool, Transaction};
@@ -348,6 +349,84 @@ pub async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
     .await?;
 
     tx.commit().await?;
+
+    Ok(())
+}
+
+// The actual handlers.
+pub async fn insert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let image = sub_m.get_one::<String>("image").ok_or_else(|| {
+        anyhow!("No image specified. Use --image <image> to specify an image to insert.")
+    })?;
+    let dockerfile = sub_m.get_one::<String>("dockerfile").ok_or_else(|| {
+                anyhow!("No dockerfile specified. Use --dockerfile <dockerfile> to specify a dockerfile to insert.")
+            })?;
+    let service = sub_m.get_one::<String>("service").ok_or_else(|| {
+        anyhow!("No service specified. Use --service <service> to specify a service to insert.")
+    })?;
+    let mut tx = pool.begin().await?;
+    let repo_id = get_service_repo_id(&mut tx, &service).await?;
+    let container_image = parse_container_image(&image)?;
+    insert_image(&mut tx, repo_id, &dockerfile, &container_image).await?;
+    tx.commit().await?;
+
+    Ok(())
+}
+
+pub async fn upsert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let image = sub_m.get_one::<String>("image").ok_or_else(|| {
+        anyhow!("No image specified. Use --image <image> to specify an image to insert.")
+    })?;
+    let dockerfile = sub_m.get_one::<String>("dockerfile").ok_or_else(|| {
+                anyhow!("No dockerfile specified. Use --dockerfile <dockerfile> to specify a dockerfile to insert.")
+            })?;
+    let service = sub_m.get_one::<String>("service").ok_or_else(|| {
+        anyhow!("No service specified. Use --service <service> to specify a service to insert.")
+    })?;
+    upsert_image(&pool, &image, &service, &dockerfile).await?;
+
+    Ok(())
+}
+
+pub async fn upsert_multi_builds(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
+                anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
+            })?;
+    let force_insert = sub_m.get_flag("force-insert");
+    upsert_builds(&pool, &builds_dir, force_insert).await?;
+
+    Ok(())
+}
+
+pub async fn upsert_single_build(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
+                anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
+            })?;
+
+    let service = sub_m.get_one::<String>("service").ok_or_else(|| {
+        anyhow!("No service specified. Use --service <service> to specify a service to insert.")
+    })?;
+
+    let force_insert = sub_m.get_flag("force-insert");
+
+    let mut tx = pool.begin().await?;
+    upsert_build(&mut tx, &PathBuf::from(builds_dir), &service, force_insert).await?;
+    tx.commit().await?;
+
+    Ok(())
+}
+
+pub async fn delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let id = sub_m
+        .get_one::<i32>("id")
+        .ok_or_else(|| anyhow!("No id specified. Use --id <id> to specify an id to delete."))?;
+    delete_image(&pool, &id).await?;
+
+    Ok(())
+}
+
+pub async fn list_all_images(pool: &Pool<MySql>) -> Result<()> {
+    list_images(&pool).await?;
 
     Ok(())
 }
