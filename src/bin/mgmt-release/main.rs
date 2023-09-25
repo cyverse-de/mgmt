@@ -31,12 +31,8 @@ async fn main() -> Result<()> {
 
     match matches.subcommand() {
         Some(("create", matches)) => release_handlers::create(&pool, &matches).await?,
-
         Some(("deploy", matches)) => release_handlers::deploy(&pool, &matches).await?,
-
-        _ => {
-            println!("No subcommand was used");
-        }
+        _ => println!("No subcommand was used"),
     }
 
     Ok(())
