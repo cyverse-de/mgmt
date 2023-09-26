@@ -8,18 +8,6 @@ description = "Deploys microservices for the Discovery Environment."
 name = "mgmt"
 path = "src/main.rs"
 
-[[bin]]
-name = "mgmt-configs"
-path = "src/bin/mgmt-configs/main.rs"
-
-[[bin]]
-name = "mgmt-container-images"
-path = "src/bin/mgmt-container-images/main.rs"
-
-[[bin]]
-name = "mgmt-site"
-path = "src/bin/mgmt-site/main.rs"
-
 [dependencies]
 anyhow = "1.0.69"
 clap = { version = "4.1.6", features = ["derive"] }
