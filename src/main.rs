@@ -107,6 +107,31 @@ async fn main() -> Result<()> {
                     output_path,
                 )?;
             }
+
+            Some(("render-dir", sub_m)) => {
+                let templates_path = sub_m.get_one::<PathBuf>("templates").context(
+                    "No templates directory specified. Use --templates <path> to specify a templates directory.",
+                )?;
+
+                let defaults_path = sub_m.get_one::<PathBuf>("defaults").context(
+                    "No defaults file specified. Use --defaults <path> to specify a defaults file.",
+                )?;
+
+                let values_path = sub_m.get_one::<PathBuf>("values").context(
+                    "No values file specified. Use --values <path> to specify a values file.",
+                )?;
+
+                let output_path = sub_m.get_one::<PathBuf>("output").context(
+                    "No output directory specified. Use --output <path> to specify an output directory.",
+                )?;
+
+                handlers::templates::render_template_dir(
+                    templates_path,
+                    defaults_path,
+                    values_path,
+                    output_path,
+                )?;
+            }
             _ => unreachable!("Bad templates subcommand"),
         },
         _ => unreachable!(),
