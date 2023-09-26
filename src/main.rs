@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{Context, Result};
 use clap::{arg, Command};
 use mgmt::app;
@@ -80,6 +82,33 @@ async fn main() -> Result<()> {
             let a = app::App::from(&sub_m)?;
             a.process()?;
         }
+        Some(("templates", sub_m)) => match sub_m.subcommand() {
+            Some(("render-file", sub_m)) => {
+                let template_path = sub_m.get_one::<PathBuf>("template").context(
+                    "No template file specified. Use --template <path> to specify a template file.",
+                )?;
+
+                let defaults_path = sub_m.get_one::<PathBuf>("defaults").context(
+                    "No defaults file specified. Use --defaults <path> to specify a defaults file.",
+                )?;
+
+                let values_path = sub_m.get_one::<PathBuf>("values").context(
+                    "No values file specified. Use --values <path> to specify a values file.",
+                )?;
+
+                let output_path = sub_m.get_one::<PathBuf>("output").context(
+                    "No output file specified. Use --output <path> to specify an output file.",
+                )?;
+
+                handlers::templates::render_template(
+                    template_path,
+                    defaults_path,
+                    values_path,
+                    output_path,
+                )?;
+            }
+            _ => unreachable!("Bad templates subcommand"),
+        },
         _ => unreachable!(),
     };
 
