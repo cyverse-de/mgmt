@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.69"
+base64 = "0.21.4"
 clap = { version = "4.1.6", features = ["derive"] }
 dialoguer = { version = "0.10.4", features = ["history"] }
 duct = "0.13.6"

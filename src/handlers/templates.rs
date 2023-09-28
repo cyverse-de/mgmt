@@ -1,7 +1,32 @@
 use crate::config_values;
-use anyhow::{Context, Result};
-use std::{fs, path::PathBuf};
-use tera::Tera;
+use anyhow::Context;
+use base64::{engine::general_purpose, Engine as _};
+use std::{collections::HashMap, fs, path::PathBuf};
+use tera::{to_value, try_get_value, Result as TeraResult, Tera, Value};
+
+fn base64_encode(value: &Value, _: &HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("base64_encode", "value", String, value);
+    let encoded: String = general_purpose::STANDARD.encode(s.as_bytes());
+
+    Ok(to_value(encoded).unwrap())
+}
+
+fn new_tera() -> Tera {
+    let mut tera = Tera::default();
+    tera.register_filter("base64_encode", base64_encode);
+    tera
+}
+
+fn new_tera_dir(templates_path: &PathBuf) -> anyhow::Result<Tera> {
+    let mut tera = Tera::new(
+        templates_path
+            .to_str()
+            .context("failed to get the templates path")
+            .unwrap(),
+    )?;
+    tera.register_filter("base64_encode", base64_encode);
+    Ok(tera)
+}
 
 /// Renders a template out to a file. Uses the defaults and values files to
 /// populate the template.
@@ -10,7 +35,7 @@ pub fn render_template(
     defaults_path: &PathBuf,
     values_path: &PathBuf,
     out_path: &PathBuf,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let defaults_file = fs::File::open(defaults_path)?;
     let defaults_values: config_values::config::ConfigValues =
         serde_yaml::from_reader(defaults_file)?;
@@ -23,7 +48,7 @@ pub fn render_template(
     defaults_context.extend(values_context);
 
     let out_file = fs::File::create(out_path)?;
-    let mut tera = Tera::default();
+    let mut tera = new_tera();
     tera.add_raw_template("template", &fs::read_to_string(template_path)?)?;
 
     Ok(tera.render_to("template", &defaults_context, out_file)?)
@@ -34,7 +59,7 @@ pub fn render_template_dir(
     defaults_path: &PathBuf,
     values_path: &PathBuf,
     out_path: &PathBuf,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let defaults_file = fs::File::open(defaults_path)?;
     let defaults_values: config_values::config::ConfigValues =
         serde_yaml::from_reader(defaults_file)?;
@@ -46,11 +71,7 @@ pub fn render_template_dir(
 
     defaults_context.extend(values_context);
 
-    let tera = Tera::new(
-        templates_path
-            .to_str()
-            .context("failed to get the templates path")?,
-    )?;
+    let tera = new_tera_dir(templates_path)?;
 
     for name in tera.get_template_names() {
         let out_file = out_path.join(name);
