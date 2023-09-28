@@ -41,4 +41,13 @@ pub fn cli() -> Command {
                         .value_parser(clap::value_parser!(PathBuf)),
                 ]),
         )
+        .subcommand(
+            Command::new("render-db")
+                .about("Render configs with values and template paths from the database.")
+                .arg(
+                    arg!(-o --output [OUTPUT] "Path to the output directory")
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                ),
+        )
 }
