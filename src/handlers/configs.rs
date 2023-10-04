@@ -283,7 +283,7 @@ async fn values_render(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
         None => None,
     };
 
-    let opts = config::SectionOptions::new(sub_m);
+    let opts = config::SectionOptions::new_from_db(&pool, &environment).await?;
     ops::render_values(&pool, &environment, &opts, output_file).await?;
 
     Ok(())
