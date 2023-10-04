@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO environments_features (\n                environment_id, \n                administration, \n                analytics, \n                agave, \n                base_urls, \n                cas, docker, \n                infosquito, \n                intercom, \n                jaeger, \n                jobs, \n                jvmopts, \n                permanent_id, \n                qa, \n                qms, \n                unleash\n            ) VALUES (\n                (SELECT id FROM environments WHERE name = ?),\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?,\n                ?\n            ) ON DUPLICATE KEY UPDATE\n                administration = VALUES(administration),\n                analytics = VALUES(analytics),\n                agave = VALUES(agave),\n                base_urls = VALUES(base_urls),\n                cas = VALUES(cas),\n                docker = VALUES(docker),\n                infosquito = VALUES(infosquito),\n                intercom = VALUES(intercom),\n                jaeger = VALUES(jaeger),\n                jobs = VALUES(jobs),\n                jvmopts = VALUES(jvmopts),\n                permanent_id = VALUES(permanent_id),\n                qa = VALUES(qa),\n                qms = VALUES(qms),\n                unleash = VALUES(unleash)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 16
+    },
+    "nullable": []
+  },
+  "hash": "05922621f1b220636bd57adbafdbcaf1251d6857dc07d624ad42f79e1acde156"
+}

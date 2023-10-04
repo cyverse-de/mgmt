@@ -1011,3 +1011,91 @@ pub async fn get_feature_flags(
     .fetch_one(&mut **tx)
     .await?)
 }
+
+/// Upserts feature flags for an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::upsert_feature_flags(tx, "dev", &FeatureFlags).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn upsert_feature_flags(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    flags: &FeatureFlags,
+) -> anyhow::Result<bool> {
+    Ok(sqlx::query!(
+        r#"
+            INSERT INTO environments_features (
+                environment_id, 
+                administration, 
+                analytics, 
+                agave, 
+                base_urls, 
+                cas, docker, 
+                infosquito, 
+                intercom, 
+                jaeger, 
+                jobs, 
+                jvmopts, 
+                permanent_id, 
+                qa, 
+                qms, 
+                unleash
+            ) VALUES (
+                (SELECT id FROM environments WHERE name = ?),
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            ) ON DUPLICATE KEY UPDATE
+                administration = VALUES(administration),
+                analytics = VALUES(analytics),
+                agave = VALUES(agave),
+                base_urls = VALUES(base_urls),
+                cas = VALUES(cas),
+                docker = VALUES(docker),
+                infosquito = VALUES(infosquito),
+                intercom = VALUES(intercom),
+                jaeger = VALUES(jaeger),
+                jobs = VALUES(jobs),
+                jvmopts = VALUES(jvmopts),
+                permanent_id = VALUES(permanent_id),
+                qa = VALUES(qa),
+                qms = VALUES(qms),
+                unleash = VALUES(unleash)
+        "#,
+        env,
+        flags.administration,
+        flags.analytics,
+        flags.agave,
+        flags.base_urls,
+        flags.cas,
+        flags.docker,
+        flags.infosquito,
+        flags.intercom,
+        flags.jaeger,
+        flags.jobs,
+        flags.jvmopts,
+        flags.permanent_id,
+        flags.qa,
+        flags.qms,
+        flags.unleash
+    )
+    .execute(&mut **tx)
+    .await?
+    .rows_affected()
+        > 0)
+}

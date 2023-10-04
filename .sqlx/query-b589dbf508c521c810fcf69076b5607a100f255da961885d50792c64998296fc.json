@@ -1,0 +1,47 @@
+{
+  "db_name": "MySQL",
+  "query": "\n                SELECT \n                    services.name AS `name: String`,\n                    services.id AS `id: i64`,\n                    services.repo_id AS `repo_id: i64`\n                FROM environments\n                INNER JOIN environments_services ON environments.id = environments_services.environment_id\n                INNER JOIN services ON environments_services.service_id = services.id\n                WHERE environments.name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repo_id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b589dbf508c521c810fcf69076b5607a100f255da961885d50792c64998296fc"
+}

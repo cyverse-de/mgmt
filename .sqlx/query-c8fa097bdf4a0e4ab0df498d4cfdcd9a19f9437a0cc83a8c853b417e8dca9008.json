@@ -1,0 +1,179 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT \n                environments_features.administration AS `administration: bool`,\n                environments_features.analytics AS `analytics: bool`,\n                environments_features.agave AS `agave: bool`,\n                environments_features.base_urls AS `base_urls: bool`,\n                environments_features.cas AS `cas: bool`,\n                environments_features.docker AS `docker: bool`,\n                environments_features.infosquito AS `infosquito: bool`,\n                environments_features.intercom AS `intercom: bool`,\n                environments_features.jaeger AS `jaeger: bool`,\n                environments_features.jobs AS `jobs: bool`,\n                environments_features.jvmopts AS `jvmopts: bool`,\n                environments_features.permanent_id AS `permanent_id: bool`,\n                environments_features.qa AS `qa: bool`,\n                environments_features.qms AS `qms: bool`,\n                environments_features.unleash AS `unleash: bool`\n            FROM environments_features\n            INNER JOIN environments ON environments.id = environments_features.environment_id\n            WHERE environments.name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "administration: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "analytics: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "agave: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "base_urls: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "cas: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "docker: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "infosquito: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "intercom: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "jaeger: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "jobs: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "jvmopts: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "permanent_id: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "qa: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "qms: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "unleash: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 4
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c8fa097bdf4a0e4ab0df498d4cfdcd9a19f9437a0cc83a8c853b417e8dca9008"
+}
