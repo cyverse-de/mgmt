@@ -8,7 +8,7 @@ use crate::db::{self, add_env_cfg_value, set_config_value, upsert_environment, L
 use anyhow::Context;
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{MySql, Pool, Transaction};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SectionOptions {
@@ -29,7 +29,59 @@ pub struct SectionOptions {
     include_unleash: bool,
 }
 
+impl From<db::FeatureFlags> for SectionOptions {
+    fn from(ff: db::FeatureFlags) -> Self {
+        Self {
+            include_admin: ff.administration.unwrap_or_default(),
+            include_analytics: ff.analytics.unwrap_or_default(),
+            include_agave: ff.agave.unwrap_or_default(),
+            include_base_urls: ff.base_urls.unwrap_or_default(),
+            include_cas: ff.cas.unwrap_or_default(),
+            include_docker: ff.docker.unwrap_or_default(),
+            include_infosquito: ff.infosquito.unwrap_or_default(),
+            include_intercom: ff.intercom.unwrap_or_default(),
+            include_jaeger: ff.jaeger.unwrap_or_default(),
+            include_jobs: ff.jobs.unwrap_or_default(),
+            include_jvmpopts: ff.jvmopts.unwrap_or_default(),
+            include_permanent_id: ff.permanent_id.unwrap_or_default(),
+            include_qa: ff.qa.unwrap_or_default(),
+            include_qms: ff.qms.unwrap_or_default(),
+            include_unleash: ff.unleash.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<SectionOptions> for db::FeatureFlags {
+    fn from(so: SectionOptions) -> Self {
+        Self {
+            administration: Some(so.include_admin),
+            analytics: Some(so.include_analytics),
+            agave: Some(so.include_agave),
+            base_urls: Some(so.include_base_urls),
+            cas: Some(so.include_cas),
+            docker: Some(so.include_docker),
+            infosquito: Some(so.include_infosquito),
+            intercom: Some(so.include_intercom),
+            jaeger: Some(so.include_jaeger),
+            jobs: Some(so.include_jobs),
+            jvmopts: Some(so.include_jvmpopts),
+            permanent_id: Some(so.include_permanent_id),
+            qa: Some(so.include_qa),
+            qms: Some(so.include_qms),
+            unleash: Some(so.include_unleash),
+        }
+    }
+}
+
 impl SectionOptions {
+    pub async fn new_from_db(pool: &Pool<MySql>, env: &str) -> anyhow::Result<SectionOptions> {
+        let mut tx = pool.begin().await?;
+        let ff = db::get_feature_flags(&mut tx, env).await?;
+        tx.commit().await?;
+
+        Ok(ff.into())
+    }
+
     pub fn new(sub_m: &clap::ArgMatches) -> Self {
         let include_all = if sub_m.contains_id("include-all") {
             sub_m.get_flag("include-all")

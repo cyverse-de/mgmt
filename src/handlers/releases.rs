@@ -510,7 +510,7 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         .map(|s| s.to_string())
         .collect::<Vec<_>>();
 
-    let section_opts = config_values::config::SectionOptions::new(&matches);
+    let section_opts = config_values::config::SectionOptions::new_from_db(&pool, &env).await?;
 
     let opts = deploy::Deployment::new(
         pool.to_owned(),
