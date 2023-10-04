@@ -946,3 +946,68 @@ pub async fn get_namespace(tx: &mut Transaction<'_, MySql>, env: &str) -> anyhow
 
     Ok(namespace.namespace.unwrap_or_default())
 }
+
+/// Represents a set of feature flags for an environment as returned from
+/// the database.
+pub struct FeatureFlags {
+    pub administration: Option<bool>,
+    pub analytics: Option<bool>,
+    pub agave: Option<bool>,
+    pub base_urls: Option<bool>,
+    pub cas: Option<bool>,
+    pub docker: Option<bool>,
+    pub infosquito: Option<bool>,
+    pub intercom: Option<bool>,
+    pub jaeger: Option<bool>,
+    pub jobs: Option<bool>,
+    pub jvmopts: Option<bool>,
+    pub permanent_id: Option<bool>,
+    pub qa: Option<bool>,
+    pub qms: Option<bool>,
+    pub unleash: Option<bool>,
+}
+
+/// Returns the feature flag settings for the provided environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_feature_flags(&mut tx, "dev").await?;
+/// tx.commit().await?;
+///
+/// for flag in result {
+///    println!("{}", flag);
+/// }
+/// ```
+pub async fn get_feature_flags(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+) -> anyhow::Result<FeatureFlags> {
+    Ok(sqlx::query_as!(
+        FeatureFlags,
+        r#"
+            SELECT 
+                environments_features.administration AS `administration: bool`,
+                environments_features.analytics AS `analytics: bool`,
+                environments_features.agave AS `agave: bool`,
+                environments_features.base_urls AS `base_urls: bool`,
+                environments_features.cas AS `cas: bool`,
+                environments_features.docker AS `docker: bool`,
+                environments_features.infosquito AS `infosquito: bool`,
+                environments_features.intercom AS `intercom: bool`,
+                environments_features.jaeger AS `jaeger: bool`,
+                environments_features.jobs AS `jobs: bool`,
+                environments_features.jvmopts AS `jvmopts: bool`,
+                environments_features.permanent_id AS `permanent_id: bool`,
+                environments_features.qa AS `qa: bool`,
+                environments_features.qms AS `qms: bool`,
+                environments_features.unleash AS `unleash: bool`
+            FROM environments_features
+            INNER JOIN environments ON environments.id = environments_features.environment_id
+            WHERE environments.name = ?
+        "#,
+        env
+    )
+    .fetch_one(&mut **tx)
+    .await?)
+}
