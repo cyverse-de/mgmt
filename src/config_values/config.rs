@@ -884,6 +884,7 @@ impl ConfigValues {
     pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
         let mut theme = ColorfulTheme::default();
         theme.hint_style = Style::new().yellow();
+        let mut section_options = SectionOptions::default();
 
         let environment = Input::<String>::with_theme(&theme)
             .with_prompt("Environment")
@@ -923,6 +924,12 @@ impl ConfigValues {
         let timezone_id = set_config_value(tx, "TopLevel", "Timezone", &timezone, "string").await?;
         add_env_cfg_value(tx, env_id, timezone_id).await?;
 
+        // We don't prompt for this yet.
+        section_options.include_base_urls = true;
+
+        // We also don't prompt for this yet.
+        section_options.include_cas = false;
+
         // Fill in the DE and iRODS settings first, since they have some
         // values that can be used as defaults later.
         self.de.ask_for_info(tx, &theme, env_id).await?;
@@ -950,15 +957,25 @@ impl ConfigValues {
                 .ask_for_info(tx, &theme, env_id, &base_uri, &irods_external)
                 .await?;
             self.agave = Some(new_agave);
+            section_options.include_agave = true;
         }
 
         let mut new_da = DashboardAggregator::default();
         new_da.ask_for_info(tx, &theme, env_id).await?;
         self.dashboard_aggregator = Some(new_da);
 
-        let mut new_docker = Docker::default();
-        new_docker.ask_for_info(tx, &theme, env_id).await?;
-        self.docker = Some(new_docker);
+        let docker_enabled = Select::with_theme(&theme)
+            .with_prompt("Include Docker?")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if docker_enabled == 0 {
+            let mut new_docker = Docker::default();
+            new_docker.ask_for_info(tx, &theme, env_id).await?;
+            self.docker = Some(new_docker);
+            section_options.include_docker = true;
+        }
 
         self.elasticsearch.ask_for_info(tx, &theme, env_id).await?;
         self.email.ask_for_info(tx, &theme, env_id).await?;
@@ -967,9 +984,18 @@ impl ConfigValues {
             .await?;
         self.icat.ask_for_info(tx, &theme, env_id).await?;
 
-        let mut new_infosquito = Infosquito::default();
-        new_infosquito.ask_for_info(tx, &theme, env_id).await?;
-        self.infosquito = Some(new_infosquito);
+        let infosquito_enabled = Select::with_theme(&theme)
+            .with_prompt("Include Infosquito?")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if infosquito_enabled == 0 {
+            let mut new_infosquito = Infosquito::default();
+            new_infosquito.ask_for_info(tx, &theme, env_id).await?;
+            self.infosquito = Some(new_infosquito);
+            section_options.include_infosquito = true;
+        }
 
         let intercom_enabled = Select::with_theme(&theme)
             .with_prompt("Include Intercom?")
@@ -981,11 +1007,21 @@ impl ConfigValues {
             let mut new_intercom = config_values::intercom::Intercom::default();
             new_intercom.ask_for_info(tx, &theme, env_id).await?;
             self.intercom = Some(new_intercom);
+            section_options.include_intercom = true;
         }
 
-        let mut new_jobs = config_values::misc::Jobs::default();
-        new_jobs.ask_for_info(tx, &theme, env_id).await?;
-        self.jobs = Some(new_jobs);
+        let jobs_enabled = Select::with_theme(&theme)
+            .with_prompt("Include Jobs?")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if jobs_enabled == 0 {
+            let mut new_jobs = config_values::misc::Jobs::default();
+            new_jobs.ask_for_info(tx, &theme, env_id).await?;
+            self.jobs = Some(new_jobs);
+            section_options.include_jobs = true;
+        }
 
         self.keycloak.ask_for_info(tx, &theme, env_id).await?;
         self.pgp.ask_for_info(tx, &theme, env_id).await?;
@@ -1000,6 +1036,7 @@ impl ConfigValues {
             let mut new_permanent_id = config_values::misc::PermanentId::default();
             new_permanent_id.ask_for_info(tx, &theme, env_id).await?;
             self.permanent_id = Some(new_permanent_id);
+            section_options.include_permanent_id = true;
         }
 
         self.de_db
@@ -1083,6 +1120,7 @@ impl ConfigValues {
                 )
                 .await?;
             self.unleash_db = Some(new_unleash_db);
+            section_options.include_unleash = true;
         }
 
         let qms_enabled = Select::with_theme(&theme)
@@ -1106,14 +1144,23 @@ impl ConfigValues {
             let mut new_qms = config_values::misc::Qms::default();
             new_qms.ask_for_info(tx, &theme, env_id).await?;
             self.qms = Some(new_qms);
+            section_options.include_qms = true;
         }
 
         self.user_portal.ask_for_info(tx, &theme, env_id).await?;
         self.vice.ask_for_info(tx, &theme, env_id).await?;
 
-        let mut new_admin = config_values::misc::Admin::default();
-        new_admin.ask_for_info(tx, &theme, env_id).await?;
-        self.admin = Some(new_admin);
+        let admin_enabled = Select::with_theme(&theme)
+            .with_prompt("Include Admin?")
+            .default(0)
+            .items(&["Yes", "No"])
+            .interact()?;
+        if admin_enabled == 0 {
+            let mut new_admin = config_values::misc::Admin::default();
+            new_admin.ask_for_info(tx, &theme, env_id).await?;
+            self.admin = Some(new_admin);
+            section_options.include_admin = true;
+        }
 
         let analytics_enabled = Select::with_theme(&theme)
             .with_prompt("Include Analytics?")
@@ -1125,6 +1172,7 @@ impl ConfigValues {
             let mut new_analytics = config_values::misc::Analytics::default();
             new_analytics.ask_for_info(tx, &theme, env_id).await?;
             self.analytics = Some(new_analytics);
+            section_options.include_analytics = true;
         }
 
         let mut new_harbor = config_values::misc::Harbor::default();
@@ -1141,6 +1189,7 @@ impl ConfigValues {
             let mut new_jaeger = config_values::misc::Jaeger::default();
             new_jaeger.ask_for_info(tx, &theme, env_id).await?;
             self.jaeger = Some(new_jaeger);
+            section_options.include_jaeger = true;
         }
 
         let qa_enabled = Select::with_theme(&theme)
@@ -1153,7 +1202,11 @@ impl ConfigValues {
             let mut new_qa = config_values::qa::QA::default();
             new_qa.ask_for_info(tx, &theme, env_id).await?;
             self.qa = Some(new_qa);
+            section_options.include_qa = true;
         }
+
+        self.section_options = section_options;
+        db::upsert_feature_flags(tx, &self.environment, &section_options.into()).await?;
 
         Ok(())
     }
