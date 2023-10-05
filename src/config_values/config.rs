@@ -601,6 +601,14 @@ impl LoadFromDatabase for ConfigValues {
     }
 }
 
+impl From<Vec<db::ConfigurationValue>> for ConfigValues {
+    fn from(cfgs: Vec<db::ConfigurationValue>) -> Self {
+        let mut cv = ConfigValues::default();
+        cv.cfg_set_keys(cfgs).ok();
+        cv
+    }
+}
+
 impl From<ConfigValues> for Vec<db::ConfigurationValue> {
     fn from(cv: ConfigValues) -> Vec<db::ConfigurationValue> {
         let mut cfgs: Vec<db::ConfigurationValue> = Vec::new();
