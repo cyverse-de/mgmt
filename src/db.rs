@@ -1099,3 +1099,37 @@ pub async fn upsert_feature_flags(
     .rows_affected()
         > 0)
 }
+
+/// Returns a listing of the configuration templates in use by services
+/// in the provided environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_templates(&mut tx, "dev").await?;
+/// tx.commit().await?;
+///
+/// for template in result {
+///    println!("{}", template);
+/// }
+/// ```
+pub async fn list_templates(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+) -> anyhow::Result<Vec<String>> {
+    let templates = sqlx::query!(
+        r#"
+            SELECT ct.path AS `path: String`
+            FROM config_templates ct
+            JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
+            JOIN environments_services es ON es.id = ect.environment_service_id
+            JOIN environments e ON e.id = es.environment_id
+            WHERE e.name = ?
+        "#,
+        env
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(templates.into_iter().filter_map(|t| t.path).collect())
+}

@@ -166,3 +166,32 @@ pub async fn render_template_dir_from_db(
         out_path,
     )?)
 }
+
+/// Renders templates returned from the database with values returned
+/// from the database. It's database all the way down.
+pub async fn render_db(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    out_path: &PathBuf,
+) -> anyhow::Result<()> {
+    let template_paths = db::list_templates(tx, &env).await?;
+    let default_values: ConfigValues = db::list_default_config_values(tx, None, None).await?.into();
+    let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
+        .await?
+        .into();
+
+    let mut defaults_context = tera::Context::from_serialize(default_values)?;
+    let values_context: tera::Context = tera::Context::from_serialize(env_values)?;
+
+    defaults_context.extend(values_context);
+
+    let mut tera = new_tera();
+    for template_path in template_paths {
+        let out_file = out_path.join(&template_path);
+        let out_writer = fs::File::create(&out_file)?;
+        tera.add_raw_template(&template_path, &fs::read_to_string(&template_path)?)?;
+        tera.render_to(&template_path, &defaults_context, out_writer)?;
+    }
+
+    Ok(())
+}
