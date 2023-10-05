@@ -184,6 +184,21 @@ async fn main() -> Result<()> {
                 tx.commit().await?;
             }
 
+            Some(("render-db", sub_m)) => {
+                let env = sub_m.get_one::<String>("environment").context(
+                    "No environment specified. Use --environment <name> to specify an environment.",
+                )?;
+
+                let output_path = sub_m.get_one::<PathBuf>("output").context(
+                    "No output directory specified. Use --output <path> to specify an output directory.",
+                )?;
+
+                let mut tx = pool.begin().await?;
+                handlers::templates::render_db(&mut tx, &env, output_path).await?;
+
+                tx.commit().await?;
+            }
+
             _ => unreachable!("Bad templates subcommand"),
         },
         _ => unreachable!(),
