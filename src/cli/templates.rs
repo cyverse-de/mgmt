@@ -42,12 +42,45 @@ pub fn cli() -> Command {
                 ]),
         )
         .subcommand(
-            Command::new("render-db")
+            Command::new("render-file-db")
                 .about("Render configs with values and template paths from the database.")
-                .arg(
+                .args([
+                    arg!(-t --template [TEMPLATE] "Path to the template to render")
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-e --environment [ENVIRONMENT] "The name of environment to pull values from.")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
                     arg!(-o --output [OUTPUT] "Path to the output directory")
                         .required(true)
                         .value_parser(clap::value_parser!(PathBuf)),
-                ),
+                ]),
+        )
+        .subcommand(
+            Command::new("render-dir-db")
+                .about("Render a directory of templates with values from the database.")
+                .args([
+                    arg!(-t --"templates" [TEMPLATES] "Path to the templates directory")
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-e --environment [ENVIRONMENT] "The name of the environment to pull values from.")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-o --output [OUTPUT] "Path to the output directory")
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                ])
+        )
+        .subcommand(
+            Command::new("render-db")
+                .about("Render the templates associated with an environment, populating them with values from the database.")
+                .args([
+                    arg!(-e --environment [ENVIRONMENT] "The name of the environment to update. (default: namespace name)")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-o --output [OUTPUT] "Path to the output directory")
+                        .required(true)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                ])
         )
 }

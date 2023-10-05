@@ -134,6 +134,56 @@ async fn main() -> Result<()> {
                 )?;
             }
 
+            Some(("render-file-db", sub_m)) => {
+                let template_path = sub_m.get_one::<PathBuf>("template").context(
+                    "No template file specified. Use --template <path> to specify a template file.",
+                )?;
+
+                let env = sub_m.get_one::<String>("environment").context(
+                    "No environment specified. Use --environment <name> to specify an environment.",
+                )?;
+
+                let output_path = sub_m.get_one::<PathBuf>("output").context(
+                    "No output file specified. Use --output <path> to specify an output file.",
+                )?;
+
+                let mut tx = pool.begin().await?;
+                handlers::templates::render_template_from_db(
+                    &mut tx,
+                    template_path,
+                    &env,
+                    output_path,
+                )
+                .await?;
+
+                tx.commit().await?;
+            }
+
+            Some(("render-dir-db", sub_m)) => {
+                let templates_path = sub_m.get_one::<PathBuf>("templates").context(
+                    "No templates directory specified. Use --templates <path> to specify a templates directory.",
+                )?;
+
+                let env = sub_m.get_one::<String>("environment").context(
+                    "No environment specified. Use --environment <name> to specify an environment.",
+                )?;
+
+                let output_path = sub_m.get_one::<PathBuf>("output").context(
+                    "No output directory specified. Use --output <path> to specify an output directory.",
+                )?;
+
+                let mut tx = pool.begin().await?;
+                handlers::templates::render_template_dir_from_db(
+                    &mut tx,
+                    templates_path,
+                    &env,
+                    output_path,
+                )
+                .await?;
+
+                tx.commit().await?;
+            }
+
             _ => unreachable!("Bad templates subcommand"),
         },
         _ => unreachable!(),
