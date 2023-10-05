@@ -4,6 +4,7 @@ use base64::{engine::general_purpose, Engine as _};
 use std::{collections::HashMap, fs, path::PathBuf};
 use tera::{to_value, try_get_value, Result as TeraResult, Tera, Value};
 
+/// A custom filter for Tera that base64 encodes a Value.
 fn base64_encode(value: &Value, _: &HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("base64_encode", "value", String, value);
     let encoded: String = general_purpose::STANDARD.encode(s.as_bytes());
@@ -11,12 +12,15 @@ fn base64_encode(value: &Value, _: &HashMap<String, Value>) -> TeraResult<Value>
     Ok(to_value(encoded).unwrap())
 }
 
+/// Creates a new Tera instance with the base64_encode filter registered.
 fn new_tera() -> Tera {
     let mut tera = Tera::default();
     tera.register_filter("base64_encode", base64_encode);
     tera
 }
 
+/// Creates a new Tera instance with the base64_encode filter registered and
+/// templates loaded from a directory.
 fn new_tera_dir(templates_path: &PathBuf) -> anyhow::Result<Tera> {
     let mut tera = Tera::new(
         templates_path
@@ -54,6 +58,8 @@ pub fn render_template(
     Ok(tera.render_to("template", &defaults_context, out_file)?)
 }
 
+/// Renders a directory of templates out to a directory. Uses the defaults and
+/// values files to populate the templates.
 pub fn render_template_dir(
     templates_path: &PathBuf,
     defaults_path: &PathBuf,
