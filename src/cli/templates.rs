@@ -75,6 +75,10 @@ pub fn cli() -> Command {
             Command::new("render-db")
                 .about("Render the templates associated with an environment, populating them with values from the database.")
                 .args([
+                    arg!(-t --"templates" [TEMPLATES] "Path to the templates directory")
+                        .required(false)
+                        .default_value(".")
+                        .value_parser(clap::value_parser!(PathBuf)),
                     arg!(-e --environment [ENVIRONMENT] "The name of the environment to update. (default: namespace name)")
                         .required(true)
                         .value_parser(clap::value_parser!(String)),

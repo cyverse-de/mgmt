@@ -185,6 +185,10 @@ async fn main() -> Result<()> {
             }
 
             Some(("render-db", sub_m)) => {
+                let templates_path = sub_m.get_one::<PathBuf>("templates").context(
+                    "No templates directory specified. Use --templates <path> to specify a templates directory.",
+                )?;
+
                 let env = sub_m.get_one::<String>("environment").context(
                     "No environment specified. Use --environment <name> to specify an environment.",
                 )?;
@@ -194,7 +198,7 @@ async fn main() -> Result<()> {
                 )?;
 
                 let mut tx = pool.begin().await?;
-                handlers::templates::render_db(&mut tx, &env, output_path).await?;
+                handlers::templates::render_db(&mut tx, &env, templates_path, output_path).await?;
 
                 tx.commit().await?;
             }

@@ -172,14 +172,21 @@ pub async fn render_template_dir_from_db(
 pub async fn render_db(
     tx: &mut Transaction<'_, MySql>,
     env: &str,
+    templates_dir: &PathBuf,
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
+    println!("Rendering templates from values in the database.");
+
+    println!("Getting template paths from the database...");
     let template_paths = db::list_templates(tx, &env).await?;
+
+    println!("Getting values from the database...");
     let default_values: ConfigValues = db::list_default_config_values(tx, None, None).await?.into();
     let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
 
+    println!("Merging defaults and values...");
     let mut defaults_context = tera::Context::from_serialize(default_values)?;
     let values_context: tera::Context = tera::Context::from_serialize(env_values)?;
 
@@ -188,9 +195,27 @@ pub async fn render_db(
     let mut tera = new_tera();
     for template_path in template_paths {
         let out_file = out_path.join(&template_path);
+        let out_dir = out_file
+            .parent()
+            .context("failed to get the parent directory")?;
+
+        println!("Creating {}...", out_dir.display());
+        fs::create_dir_all(out_dir)?;
+
+        println!("Creating {}...", out_file.display());
         let out_writer = fs::File::create(&out_file)?;
-        tera.add_raw_template(&template_path, &fs::read_to_string(&template_path)?)?;
-        tera.render_to(&template_path, &defaults_context, out_writer)?;
+
+        let out_file_str = out_file
+            .to_str()
+            .context("failed to get the output file path")?;
+        let full_template_path = templates_dir.join(&template_path);
+        println!(
+            "Rendering {} from template {}...",
+            out_file.display(),
+            full_template_path.display()
+        );
+        tera.add_raw_template(&out_file_str, &fs::read_to_string(&full_template_path)?)?;
+        tera.render_to(&out_file_str, &defaults_context, out_writer)?;
     }
 
     Ok(())
