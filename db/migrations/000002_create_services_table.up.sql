@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS services (
     name            VARCHAR(255)    NOT NULL,
     skaffold_path   TEXT            NOT NULL,
 
-    FOREIGN KEY (repo_id) REFERENCES repos(id)
+    FOREIGN KEY (repo_id) REFERENCES repos(id) ON DELETE CASCADE
 );

@@ -6,5 +6,5 @@ CREATE TABLE IF NOT EXISTS config_templates (
     repo_id      INT            NOT NULL,
     path         TEXT           NOT NULL,
 
-    FOREIGN KEY (repo_id) REFERENCES repos(id)
+    FOREIGN KEY (repo_id) REFERENCES repos(id) ON DELETE CASCADE
 );

@@ -2,7 +2,7 @@ USE de_releases;
 
 WITH 
     js_template_id AS (
-        SELECT id FROM config_templates WHERE path = 'templates/configs/jobservices.yml'
+        SELECT id FROM config_templates WHERE path = 'templates/jobservices.yml'
     ),
     de_env_id AS (
         SELECT id FROM environments WHERE name = 'de'
@@ -24,7 +24,7 @@ VALUES
         (
             SELECT id 
             FROM config_templates 
-            WHERE path = 'templates/configs/analyses.properties'
+            WHERE path = 'templates/analyses.properties'
         ),
         '/etc/iplant/de/analyses.properties'
     ),
@@ -56,7 +56,7 @@ VALUES
         (
             SELECT id 
             FROM config_templates 
-            WHERE path = 'templates/configs/apps.properties'
+            WHERE path = 'templates/apps.properties'
         ),
         '/etc/iplant/de/apps.properties'
     ),
@@ -86,7 +86,7 @@ VALUES
                 WHERE name = 'bulk-typer'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/bulk-typer.properties'),
+        (SELECT id FROM config_templates where path = 'templates/bulk-typer.properties'),
         '/etc/iplant/de/bulk-typer.properties'
     ),
     (
@@ -100,7 +100,7 @@ VALUES
                 WHERE name = 'clockwork'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/clockwork.properties'),
+        (SELECT id FROM config_templates where path = 'templates/clockwork.properties'),
         '/etc/iplant/de/clockwork.properties'
     ),
     (
@@ -114,7 +114,7 @@ VALUES
                 WHERE name = 'dashboard-aggregator'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/dashboard-aggregator.yaml'),
+        (SELECT id FROM config_templates where path = 'templates/dashboard-aggregator.yaml'),
         '/etc/cyverse/de/configs/service.yml'
     ),
     (
@@ -128,7 +128,7 @@ VALUES
                 WHERE name = 'data-info'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/data-info.properties'),
+        (SELECT id FROM config_templates where path = 'templates/data-info.properties'),
         '/etc/iplant/de/data-info.properties'
     ),
     (
@@ -142,7 +142,7 @@ VALUES
                 WHERE name = 'data-usage-api'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/data-usage-api.yml'),
+        (SELECT id FROM config_templates where path = 'templates/data-usage-api.yml'),
         '/etc/iplant/de/data-usage-api.yml'
     ),
     (
@@ -156,7 +156,7 @@ VALUES
                 WHERE name =  'de-mailer'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/emailservice.yml'),
+        (SELECT id FROM config_templates where path = 'templates/emailservice.yml'),
         '/etc/iplant/de/emailservice.yml'
     ),
     (
@@ -170,7 +170,7 @@ VALUES
                 WHERE name = 'de-webhooks'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/webhooks.yml'),
+        (SELECT id FROM config_templates where path = 'templates/webhooks.yml'),
         '/etc/iplant/de/webhooks.yml'
     ),
     (
@@ -184,7 +184,7 @@ VALUES
                 WHERE name = 'dewey'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/dewey.properties'),
+        (SELECT id FROM config_templates where path = 'templates/dewey.properties'),
         '/etc/iplant/de/dewey.properties'
     ),
     (
@@ -254,7 +254,7 @@ VALUES
                 WHERE name = 'group-propagator'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/group-propagator.yml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/group-propagator.yml'),
         '/etc/iplant/de/group-propagator.yml'
     ),
     (
@@ -268,7 +268,7 @@ VALUES
                 WHERE name = 'infosquito2'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/infosquito2.yml'),
+        (SELECT id FROM config_templates where path = 'templates/infosquito2.yml'),
         '/etc/iplant/de/infosquito2.yml'
     ),
     (
@@ -282,7 +282,7 @@ VALUES
                 WHERE name = 'info-typer'
             )
         ),
-        (SELECT id FROM config_templates where path = 'templates/configs/info-typer.properties'),
+        (SELECT id FROM config_templates where path = 'templates/info-typer.properties'),
         '/etc/iplant/de/info-typer.properties'
     ),
     (
@@ -296,7 +296,7 @@ VALUES
                 WHERE name = 'iplant-groups'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/iplant-groups.properties'),
+        (SELECT id FROM config_templates WHERE path = 'templates/iplant-groups.properties'),
         '/etc/iplant/de/iplant-groups.properties'
     ),
     (
@@ -366,7 +366,7 @@ VALUES
                 WHERE name = 'kifshare'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/kifshare.properties'),
+        (SELECT id FROM config_templates WHERE path = 'templates/kifshare.properties'),
         '/etc/iplant/de/kifshare.properties'
     ),
     (
@@ -380,7 +380,7 @@ VALUES
                 WHERE name = 'metadata'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/metadata.properties'),
+        (SELECT id FROM config_templates WHERE path = 'templates/metadata.properties'),
         '/etc/iplant/de/metadata.properties'
     ),
     (
@@ -394,7 +394,7 @@ VALUES
                 WHERE name = 'monkey'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/monkey.properties'),
+        (SELECT id FROM config_templates WHERE path = 'templates/monkey.properties'),
         '/etc/iplant/de/monkey.properties'
     ),
     (
@@ -422,7 +422,7 @@ VALUES
                 WHERE name = 'permissions'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/permissions.yaml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/permissions.yaml'),
         '/etc/iplant/de/permissions.yaml'
     ),
     (
@@ -492,7 +492,7 @@ VALUES
                 WHERE name = 'search'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/search.yaml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/search.yaml'),
         '/etc/iplant/de/search.yaml'
     ),
     (
@@ -506,7 +506,7 @@ VALUES
                 WHERE name = 'sonora'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/sonora.yaml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/sonora.yaml'),
         '/etc/iplant/de/local.yaml'
     ),
     (
@@ -534,7 +534,7 @@ VALUES
                 WHERE name = 'templeton-incremental'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/templeton.yaml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/templeton.yaml'),
         '/etc/iplant/de/templeton-incremental.yaml'
     ),
     (
@@ -548,7 +548,7 @@ VALUES
                 WHERE name = 'templeton-periodic'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/templeton.yaml'),
+        (SELECT id FROM config_templates WHERE path = 'templates/templeton.yaml'),
         '/etc/iplant/de/templeton-periodic.yaml'
     ),
     (
@@ -562,7 +562,7 @@ VALUES
                 WHERE name = 'terrain'
             )
         ),
-        (SELECT id FROM config_templates WHERE path = 'templates/configs/terrain.properties'),
+        (SELECT id FROM config_templates WHERE path = 'templates/terrain.properties'),
         '/etc/iplant/de/terrain.properties'
     ),
     (

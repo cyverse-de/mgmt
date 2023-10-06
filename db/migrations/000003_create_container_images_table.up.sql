@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS container_images (
     tag          VARCHAR(256) NOT NULL,
     digest       TEXT NOT NULL,
 
-    FOREIGN KEY (repo_id) REFERENCES repos(id),
+    FOREIGN KEY (repo_id) REFERENCES repos(id) ON DELETE CASCADE,
     UNIQUE (name, tag)
 );

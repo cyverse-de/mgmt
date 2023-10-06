@@ -5,167 +5,167 @@ INSERT INTO config_templates
 VALUES
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/analyses.properties'
+        'templates/analyses.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/apps.properties'
+        'templates/apps.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/bulk-typer.properties'
+        'templates/bulk-typer.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/ceph-test-vars.txt'
+        'templates/ceph-test-vars.txt'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/clockwork.properties'
+        'templates/clockwork.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/dashboard-aggregator.yaml'
+        'templates/dashboard-aggregator.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/data-info.properties'
+        'templates/data-info.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/data-usage-api.yml'
+        'templates/data-usage-api.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/de-application.yaml'
+        'templates/de-application.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/de-test-vars.yaml'
+        'templates/de-test-vars.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/dewey.properties'
+        'templates/dewey.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/emailservice.yml'
+        'templates/emailservice.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/group-propagator.yml'
+        'templates/group-propagator.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-cache.properties'
+        'templates/grouper-cache.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-client.properties'
+        'templates/grouper-client.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-hibernate.properties'
+        'templates/grouper-hibernate.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-loader.properties'
+        'templates/grouper-loader.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-log4j.properties'
+        'templates/grouper-log4j.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-morph-string.properties'
+        'templates/grouper-morph-string.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-realm.properties'
+        'templates/grouper-realm.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-subject.properties'
+        'templates/grouper-subject.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper-ws.properties'
+        'templates/grouper-ws.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/grouper.properties'
+        'templates/grouper.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/info-typer.properties'
+        'templates/info-typer.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/infosquito.properties'
+        'templates/infosquito.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/infosquito2.yml'
+        'templates/infosquito2.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/iplant-groups.properties'
+        'templates/iplant-groups.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/jobservices.yml'
+        'templates/jobservices.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/kifshare.properties'
+        'templates/kifshare.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/legacy-de-test-vars.txt'
+        'templates/legacy-de-test-vars.txt'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/metadata.properties'
+        'templates/metadata.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/monkey.properties'
+        'templates/monkey.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/notificationagent.properties'
+        'templates/notificationagent.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/permissions.yaml'
+        'templates/permissions.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/search.yaml'
+        'templates/search.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/sonora.yaml'
+        'templates/sonora.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/templeton.yaml'
+        'templates/templeton.yaml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/terrain.properties'
+        'templates/terrain.properties'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/vice-default-backend.yml'
+        'templates/vice-default-backend.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/vice-image-cache.yml'
+        'templates/vice-image-cache.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
-        'templates/configs/webhooks.yml'
+        'templates/webhooks.yml'
     ),
     (
         (SELECT id FROM repos WHERE name = 'de-releases'),
