@@ -186,6 +186,16 @@ pub async fn render_db(
         .await?
         .into();
 
+    let printable: Vec<db::ConfigurationValue> = env_values.clone().into();
+    for df in printable {
+        println!(
+            "Default {}.{} = {}",
+            df.section.context("wut")?,
+            df.key.context("wut2")?,
+            df.value.context("wut3")?
+        )
+    }
+
     println!("Merging defaults and values...");
     let mut defaults_context = tera::Context::from_serialize(default_values)?;
     let values_context: tera::Context = tera::Context::from_serialize(env_values)?;

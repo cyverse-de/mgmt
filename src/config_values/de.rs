@@ -319,6 +319,104 @@ impl Default for DEToolsAdmin {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
+pub struct Info {
+    #[serde(skip)]
+    section: String,
+
+    #[serde(rename = "FAQ")]
+    faq: String,
+
+    description: String,
+}
+
+impl Default for Info {
+    fn default() -> Self {
+        Info {
+            section: "DE".to_string(),
+            faq: "https://wiki.cyverse.org/wiki/display/DEmanual/FAQ".to_string(),
+            description: "CyVerse Discovery Environment".to_string(),
+        }
+    }
+}
+
+impl LoadFromDatabase for Info {
+    fn get_section(&self) -> String {
+        self.section.to_string()
+    }
+
+    fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
+        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            match key.as_str() {
+                "Info.FAQ" => self.faq = value,
+                "Info.Description" => self.description = value,
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+}
+
+impl From<Info> for Vec<db::ConfigurationValue> {
+    fn from(info: Info) -> Self {
+        let mut cfgs = Vec::new();
+        let section: String;
+
+        if info.section.is_empty() {
+            section = "DE".to_string();
+        } else {
+            section = info.section.clone();
+        }
+
+        cfgs.push(db::ConfigurationValue {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Info.FAQ".to_string()),
+            value: Some(info.faq),
+            value_type: Some("string".to_string()),
+        });
+        cfgs.push(db::ConfigurationValue {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Info.Description".to_string()),
+            value: Some(info.description),
+            value_type: Some("string".to_string()),
+        });
+        cfgs
+    }
+}
+
+impl Info {
+    async fn ask_for_info(
+        &mut self,
+        tx: &mut Transaction<'_, MySql>,
+        theme: &ColorfulTheme,
+        env_id: u64,
+    ) -> anyhow::Result<()> {
+        let faq = Input::<String>::with_theme(theme)
+            .with_prompt("Info.FAQ")
+            .default("https://wiki.cyverse.org/wiki/display/DEmanual/FAQ".into())
+            .interact()?;
+
+        let faq_id = set_config_value(tx, "DE", "Info.FAQ", &faq, "string").await?;
+        add_env_cfg_value(tx, env_id, faq_id).await?;
+        self.faq = faq;
+
+        let description = Input::<String>::with_theme(theme)
+            .with_prompt("Info.Description")
+            .default("CyVerse Discovery Environment".into())
+            .interact()?;
+
+        let description_id =
+            set_config_value(tx, "DE", "Info.Description", &description, "string").await?;
+        add_env_cfg_value(tx, env_id, description_id).await?;
+        self.description = description;
+
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
 pub struct DE {
     #[serde(skip)]
     section: String,
@@ -333,6 +431,7 @@ pub struct DE {
     default_output_folder: Option<String>,
     coge: Option<DECoge>,
     tools: Option<DETools>,
+    info: Info,
 }
 
 impl LoadFromDatabase for DE {
@@ -369,6 +468,10 @@ impl LoadFromDatabase for DE {
                 self.amqp.set_section("DE")?;
                 self.amqp.cfg_set_key(cfg)?;
             }
+
+            if key.starts_with("Info") {
+                self.info.cfg_set_key(cfg)?;
+            }
         }
         Ok(())
     }
@@ -384,6 +487,7 @@ impl Default for DE {
             default_output_folder: Some(String::from("analyses")),
             coge: Some(DECoge::default()),
             tools: Some(DETools::default()),
+            info: Info::default(),
         }
     }
 }
@@ -431,6 +535,9 @@ impl From<DE> for Vec<db::ConfigurationValue> {
         });
 
         cfgs.extend::<Vec<db::ConfigurationValue>>(amqp_cfgs);
+
+        cfgs.extend::<Vec<db::ConfigurationValue>>(de.info.into());
+
         cfgs
     }
 }
@@ -479,6 +586,10 @@ impl DE {
         let mut new_tools = DETools::default();
         new_tools.ask_for_info(tx, theme, env_id).await?;
         self.tools = Some(new_tools);
+
+        let mut new_info = Info::default();
+        new_info.ask_for_info(tx, theme, env_id).await?;
+        self.info = new_info;
 
         Ok(())
     }
