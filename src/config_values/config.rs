@@ -391,6 +391,10 @@ pub struct ConfigValues {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "QA")]
     qa: Option<config_values::qa::QA>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "CAS")]
+    cas: Option<config_values::cas::CAS>,
 }
 
 impl Default for ConfigValues {
@@ -434,6 +438,7 @@ impl Default for ConfigValues {
             qms: Some(config_values::misc::Qms::default()),
             jaeger: Some(config_values::misc::Jaeger::default()),
             qa: Some(config_values::qa::QA::default()),
+            cas: Some(config_values::cas::CAS::default()),
         }
     }
 }
@@ -590,6 +595,12 @@ impl LoadFromDatabase for ConfigValues {
                     "QA" => {
                         if let Some(qa) = &mut self.qa {
                             qa.cfg_set_key(cfg).ok();
+                        }
+                    }
+
+                    "CAS" => {
+                        if let Some(cas) = &mut self.cas {
+                            cas.cfg_set_key(cfg).ok();
                         }
                     }
 
@@ -818,6 +829,10 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
             if let Some(qa) = cv.qa {
                 cfgs.extend::<Vec<db::ConfigurationValue>>(qa.into());
             }
+        }
+
+        if let Some(cas) = cv.cas {
+            cfgs.extend::<Vec<db::ConfigurationValue>>(cas.into());
         }
 
         cfgs
@@ -1211,6 +1226,19 @@ impl ConfigValues {
             new_qa.ask_for_info(tx, &theme, env_id).await?;
             self.qa = Some(new_qa);
             section_options.include_qa = true;
+        }
+
+        let cas_enabled = Select::with_theme(&theme)
+            .with_prompt("Include CAS?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if cas_enabled == 0 {
+            let mut new_cas = config_values::cas::CAS::default();
+            new_cas.ask_for_info(tx, &theme, env_id).await?;
+            self.cas = Some(new_cas);
+            //section_options.include_cas = true;
         }
 
         self.section_options = section_options;

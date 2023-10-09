@@ -1,6 +1,7 @@
 pub mod agave;
 pub mod amqp;
 pub mod base_urls;
+pub mod cas;
 pub mod config;
 pub mod dashboard_aggregator;
 pub mod db;
