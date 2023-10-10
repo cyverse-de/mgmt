@@ -174,8 +174,8 @@ impl Deployment {
             })
         );
 
-        let templatesdir = self.repodir.join("templates");
-        println!("templates dir: {}", templatesdir.display());
+        //let templatesdir = self.repodir.join("templates");
+        println!("templates dir: {}", self.repodir.display());
 
         // Create the configuration file directory for the environment.
         if !self.configdir.exists() {
@@ -189,7 +189,7 @@ impl Deployment {
 
         // Generate the configuration files
         if !self.no_render_configs {
-            templates::render_db(&mut tx, &self.env, &templatesdir, &env_configdir).await?;
+            templates::render_db(&mut tx, &self.env, &self.repodir, &env_configdir).await?;
         }
 
         // Load the configs.
@@ -199,7 +199,7 @@ impl Deployment {
 
         // Load the secrets.
         if !self.no_load_secrets {
-            let secrets_dir = templatesdir.join("secrets");
+            let secrets_dir = self.repodir.join("templates").join("secrets");
             configs::load_secrets(&namespace, &secrets_dir)?;
         }
 
