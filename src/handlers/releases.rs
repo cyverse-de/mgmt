@@ -1,4 +1,4 @@
-use crate::{config_values, db, deploy, git};
+use crate::{db, deploy, git};
 use anyhow::{anyhow, Context, Result};
 use clap::ArgMatches;
 use flate2::read::GzDecoder;
@@ -504,13 +504,22 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         anyhow!("No config directory provided. Use --configs <dir> to specify a config directory.")
     })?;
 
+    let no_deploy = matches.get_flag("no-deploy");
+    let no_load_configs = matches.get_flag("no-load-configs");
+    let no_load_secrets = matches.get_flag("no-load-secrets");
+    let no_render_configs = matches.get_flag("no-render-configs");
+
     let skips = matches
         .get_many::<String>("skip")
         .unwrap_or_default()
         .map(|s| s.to_string())
         .collect::<Vec<_>>();
 
-    let section_opts = config_values::config::SectionOptions::new_from_db(&pool, &env).await?;
+    let pre_deploy = matches
+        .get_many::<String>("pre-deploy")
+        .unwrap_or_default()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>();
 
     let opts = deploy::Deployment::new(
         pool.to_owned(),
@@ -519,7 +528,11 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         env.to_owned(),
         skips,
         configdir.to_owned(),
-        section_opts,
+        no_deploy,
+        no_load_configs,
+        no_load_secrets,
+        no_render_configs,
+        pre_deploy,
     );
 
     opts.deploy().await?;

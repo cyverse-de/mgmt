@@ -7,10 +7,9 @@ use sqlx::{MySql, Pool, Transaction};
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::config_values;
 use crate::configs;
 use crate::db;
-use crate::ops;
+use crate::handlers::templates;
 
 pub struct Deployment {
     // The database connection pool.
@@ -31,8 +30,20 @@ pub struct Deployment {
     // The base directory for the configurations
     configdir: PathBuf,
 
-    // The options for which optional sections to include in the configurations
-    section_opts: config_values::config::SectionOptions,
+    // Whether to deploy the services.
+    no_deploy: bool,
+
+    // Whether to load the configs.
+    no_load_configs: bool,
+
+    // Whether to load the secrets.
+    no_load_secrets: bool,
+
+    // Whether to render the configs.
+    no_render_configs: bool,
+
+    // List of services to deploy before the rest.
+    pre_deploy: Vec<String>,
 }
 
 impl Deployment {
@@ -43,7 +54,11 @@ impl Deployment {
         env: String,
         skips: Vec<String>,
         configdir: PathBuf,
-        section_opts: config_values::config::SectionOptions,
+        no_deploy: bool,
+        no_load_configs: bool,
+        no_load_secrets: bool,
+        no_render_configs: bool,
+        pre_deploy: Vec<String>,
     ) -> Self {
         Self {
             pool,
@@ -52,7 +67,11 @@ impl Deployment {
             env,
             skips,
             configdir,
-            section_opts,
+            no_deploy,
+            no_load_configs,
+            no_load_secrets,
+            no_render_configs,
+            pre_deploy,
         }
     }
 
@@ -109,7 +128,41 @@ impl Deployment {
         let namespace = self.get_namespace(&mut tx).await?;
         println!("namespace: {}", namespace);
 
-        let services = self.get_services(&mut tx).await?;
+        // Get all of the services in the environments.
+        let all_services = self.get_services(&mut tx).await?;
+
+        // From the list of all services, get those that should be deployed
+        // first.
+        let pre_deploy_services = all_services
+            .iter()
+            .filter(|svc| {
+                self.pre_deploy
+                    .contains(&svc.name.as_ref().unwrap_or(&"".to_string()))
+            })
+            .collect::<Vec<&db::Service>>();
+
+        println!(
+            "services to deploy first:{}",
+            pre_deploy_services.iter().fold(String::new(), |acc, svc| {
+                format!(
+                    "{}\n\t{}",
+                    acc,
+                    svc.name.as_ref().unwrap_or(&"".to_string())
+                )
+            })
+        );
+
+        // Get the rest of the services, excluding those that should be deployed
+        // first.
+        let services = all_services
+            .iter()
+            .filter(|svc| {
+                !self
+                    .pre_deploy
+                    .contains(&svc.name.as_ref().unwrap_or(&"".to_string()))
+            })
+            .collect::<Vec<&db::Service>>();
+
         println!(
             "services:{}",
             services.iter().fold(String::new(), |acc, svc| {
@@ -134,58 +187,34 @@ impl Deployment {
             std::fs::create_dir(&env_configdir)?;
         }
 
-        // Serialize the configuration defaults
-        let defaults_file = env_configdir.join("defaults.yaml");
-        ops::render_default_values(&self.pool, Some(defaults_file.clone())).await?;
-
-        // Serialize the configuration values files
-        let values_file = env_configdir.clone().join("values.yaml");
-        ops::render_values(
-            &self.pool,
-            &self.env,
-            &self.section_opts,
-            Some(values_file.clone()),
-        )
-        .await?;
-
         // Generate the configuration files
-        let input_dir = templatesdir
-            .to_str()
-            .context("failed to get the templates dir")?;
-        let output_dir = env_configdir.join("configs");
-        let defaults_path = defaults_file
-            .to_str()
-            .context("failed to get the defaults path")?;
-        let values_path = values_file
-            .to_str()
-            .context("failed to get the values path")?;
-        configs::generate_cmd(
-            input_dir,
-            output_dir
-                .to_str()
-                .context("failed to get output directory path")?,
-            defaults_path,
-            values_path,
-        )?;
+        if !self.no_render_configs {
+            templates::render_db(&mut tx, &self.env, &templatesdir, &env_configdir).await?;
+        }
 
         // Load the configs.
-        configs::load_configs(&namespace, "service-configs", &output_dir)?;
+        if !self.no_load_configs {
+            configs::load_configs(&namespace, "service-configs", &env_configdir)?;
+        }
 
         // Load the secrets.
-        let secrets_pbuf = templatesdir.join("secrets");
-        let secrets_dir = secrets_pbuf.to_str().context("failed to get secrets dir")?;
-        let secrets_output_pbuf = env_configdir.join("secrets");
-        let secrets_output_dir = secrets_output_pbuf
-            .to_str()
-            .context("failed to get secrets output dir")?;
-        configs::generate_cmd(secrets_dir, secrets_output_dir, defaults_path, values_path)?;
-        configs::load_secrets(&namespace, &secrets_pbuf)?;
+        if !self.no_load_secrets {
+            let secrets_dir = templatesdir.join("secrets");
+            configs::load_secrets(&namespace, &secrets_dir)?;
+        }
 
         // Deploy the services.
-        services.iter().for_each(|svc| {
-            self.deploy_service(&namespace, svc)
-                .expect("failed to deploy service");
-        });
+        if !self.no_deploy {
+            pre_deploy_services.iter().for_each(|svc| {
+                self.deploy_service(&namespace, svc)
+                    .expect("failed to deploy service");
+            });
+
+            services.iter().for_each(|svc| {
+                self.deploy_service(&namespace, svc)
+                    .expect("failed to deploy service");
+            });
+        }
 
         Ok(true)
     }

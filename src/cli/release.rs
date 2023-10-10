@@ -66,6 +66,10 @@ pub fn cli() -> Command {
                         .required(false)
                         .action(ArgAction::Append)
                         .value_parser(clap::value_parser!(String)),
+                    arg!(-p --"pre-deploy" <PRE_DEPLOY> "A service to deploy before the rest")
+                        .required(false)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::value_parser!(String)),
                     arg!(-e --env <ENV> "The environment to deploy")
                         .required(true)
                         .value_parser(clap::value_parser!(String)),
@@ -81,67 +85,19 @@ pub fn cli() -> Command {
                         .required(false)
                         .default_value("main")
                         .value_parser(clap::value_parser!(String)),
-                    arg!(--"include-all" "Include all settings in the rendered output")
+                    arg!(-D --"no-deploy" "Do not deploy the services")
                         .required(false)
                         .action(ArgAction::SetTrue)
                         .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-admin" "Include the Admin settings in the rendered output")
+                    arg!(-L --"no-load-configs" "Do not load the configs")
                         .required(false)
                         .action(ArgAction::SetTrue)
                         .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-analytics" "Include the Analytics settings in the rendered output")
+                    arg!(-S --"no-load-secrets" "Do not load the secrets")
                         .required(false)
                         .action(ArgAction::SetTrue)
                         .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-agave" "Include the Agave settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-base-urls" "Include the BaseURLs settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-cas" "Include the CAS settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-docker" "Include the Docker settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-infosquito" "Include the InfoSquito settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-intercom" "Include the Intercom settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-jaeger" "Include the Jaeger settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-jobs" "Include the Jobs settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-jvmpopts" "Include the JVMOpts settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-permanent-id" "Include the PermanentID settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-qa" "Include the QA settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-qms" "Include the QMS settings in the rendered output")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .value_parser(clap::value_parser!(bool)),
-                    arg!(--"include-unleash" "Include the Unleash settings in the rendered output")
+                    arg!(-R --"no-render-configs" "Do not render the configs")
                         .required(false)
                         .action(ArgAction::SetTrue)
                         .value_parser(clap::value_parser!(bool)),
