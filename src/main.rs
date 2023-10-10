@@ -46,6 +46,7 @@ async fn main() -> Result<()> {
             Some(("values", sub_m)) => handlers::configs::values(&pool, &sub_m).await?,
             _ => unreachable!("Bad configs subcommand"),
         },
+
         Some(("container-images", sub_m)) => match sub_m.subcommand() {
             Some(("insert", sub_m)) => handlers::container_images::insert(&pool, &sub_m).await?,
             Some(("upsert", sub_m)) => handlers::container_images::upsert(&pool, &sub_m).await?,
@@ -59,30 +60,37 @@ async fn main() -> Result<()> {
             Some(("list", _)) => handlers::container_images::list_all_images(&pool).await?,
             _ => unreachable!("Bad container-images subcommand"),
         },
+
         Some(("release", sub_m)) => match sub_m.subcommand() {
             Some(("create", sub_m)) => handlers::releases::create(&pool, &sub_m).await?,
             Some(("deploy", sub_m)) => handlers::releases::deploy(&pool, &sub_m).await?,
             _ => unreachable!("Bad release subcommand"),
         },
+
         Some(("site", sub_m)) => match sub_m.subcommand() {
             Some(("init", sub_m)) => handlers::sites::init_site(&sub_m).await?,
             Some(("deploy", sub_m)) => handlers::sites::deploy_site(&sub_m).await?,
             _ => unreachable!("Bad site subcommand"),
         },
-        Some(("deploy", sub_m)) => {
-            let git_path = which("git").context("git not found")?;
-            let skaffold_path = which("skaffold").context("skaffold not found")?;
-            let kubectl_path = which("kubectl").context("kubectl not found")?;
-            let gomplate_path = which("gomplate").context("gomplate not found")?;
 
-            println!("git path: {}", git_path.display());
-            println!("skaffold path: {}", skaffold_path.display());
-            println!("kubectl path: {}", kubectl_path.display());
-            println!("gomplate path: {}", gomplate_path.display());
+        Some(("deploy", sub_m)) => match sub_m.subcommand() {
+            Some(("backwards-compat", sub_m)) => {
+                let git_path = which("git").context("git not found")?;
+                let skaffold_path = which("skaffold").context("skaffold not found")?;
+                let kubectl_path = which("kubectl").context("kubectl not found")?;
+                let gomplate_path = which("gomplate").context("gomplate not found")?;
 
-            let a = app::App::from(&sub_m)?;
-            a.process()?;
-        }
+                println!("git path: {}", git_path.display());
+                println!("skaffold path: {}", skaffold_path.display());
+                println!("kubectl path: {}", kubectl_path.display());
+                println!("gomplate path: {}", gomplate_path.display());
+
+                let a = app::App::from(&sub_m)?;
+                a.process()?;
+            }
+            _ => unreachable!("Bad deploy subcommand"),
+        },
+
         Some(("templates", sub_m)) => match sub_m.subcommand() {
             Some(("render-file", sub_m)) => {
                 let template_path = sub_m.get_one::<PathBuf>("template").context(
@@ -205,6 +213,7 @@ async fn main() -> Result<()> {
 
             _ => unreachable!("Bad templates subcommand"),
         },
+
         _ => unreachable!(),
     };
 
