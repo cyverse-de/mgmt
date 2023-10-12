@@ -7,9 +7,11 @@
 //!
 use crate::config_values::config;
 use crate::db::{self, ConfigurationValue, LoadFromDatabase};
-use anyhow::anyhow;
+use crate::git;
+use anyhow::{anyhow, Context};
 use sqlx::{MySql, Pool};
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Adds a set of configuration values for an environment to the database.
 /// Interactively prompts the user for all of the values, including the
@@ -521,4 +523,85 @@ pub async fn import_yaml_file(
 
     tx.commit().await?;
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReleaseOpts {
+    pub env: String,
+    pub repo_name: String,
+    pub repo_url: String,
+    pub repo_branch: String,
+    pub skips: Vec<String>,
+    pub no_fail: bool,
+    pub no_clone: bool,
+    pub no_push: bool,
+    pub no_commit: bool,
+    pub no_tag: bool,
+    pub increment_field: String,
+}
+
+/// Creates or clones the release directory and creates the builds and services subdirectories.
+/// If no-clone is false, the repository will be cloned from the remote repository.
+/// Otherwise, the directory will be created but not initialized.
+/// Returns the path to the repository directory, the builds directory, and the services directory.
+///
+/// # Examples
+/// ```ignore
+/// let opts = ReleaseOpts {
+///  env: "dev".to_string(),
+///  repo_name: "de-releases".to_string(),
+///  repo_url: "https://github.com/cyverse-de/de-releases".to_string(),
+/// }
+///
+/// let (repo_dir, builds_dir, services_dir) = mgmt::setup_release_dir(&opts).unwrap();
+/// ```
+pub fn setup_release_dir(opts: &ReleaseOpts) -> anyhow::Result<(PathBuf, PathBuf, PathBuf)> {
+    let repo_name = opts.repo_name.clone();
+
+    let repo_dir = PathBuf::from(repo_name);
+    let builds_dir = repo_dir.join("builds");
+    let services_dir = repo_dir.join("services");
+
+    if !opts.no_clone {
+        // If the repository doesn't exist already, clone it.
+        if !Path::exists(&repo_dir) {
+            git::clone(
+                &opts.repo_url,
+                repo_dir
+                    .as_path()
+                    .to_str()
+                    .context("cannot convert repo directory to string")?,
+            )?;
+        } else {
+            let git_dir = repo_dir.join(".git");
+            if !Path::exists(&git_dir) {
+                anyhow::bail!("{} exists but is not a git repository", repo_dir.display());
+            }
+
+            // Otherwise, pull the latest changes.
+            git::pull(&repo_dir)?;
+        }
+
+        // Make sure the correct branch is checked out (default is 'main') if no clone is false.
+        git::checkout(&repo_dir, &opts.repo_branch)?;
+
+        // Make sure the builds directory exists.
+        if !Path::exists(&builds_dir) {
+            fs::create_dir_all(&builds_dir)?;
+        }
+    } else {
+        if Path::exists(&repo_dir) {
+            anyhow::bail!(
+                "The releases repository directory {} already exists",
+                repo_dir.display()
+            );
+        }
+
+        // Otherwise make a directory with the name of the repo, but don't initialize it.
+        fs::create_dir_all(&repo_dir)?;
+        fs::create_dir_all(&builds_dir)?;
+        fs::create_dir_all(&services_dir)?;
+    }
+
+    Ok((repo_dir, builds_dir, services_dir))
 }

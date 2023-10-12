@@ -10,6 +10,7 @@ use std::process::Command;
 use crate::configs;
 use crate::db;
 use crate::handlers::templates;
+use crate::ops;
 
 pub struct Deployment {
     // The database connection pool.
@@ -17,6 +18,9 @@ pub struct Deployment {
 
     // The path to the directory containing the de-releases repository.
     repodir: PathBuf,
+
+    // The URL to the repository to deploy from.
+    repo_url: String,
 
     // The branch of the de-releases repository to deploy from.
     branch: String,
@@ -59,6 +63,7 @@ impl Deployment {
         no_load_secrets: bool,
         no_render_configs: bool,
         pre_deploy: Vec<String>,
+        repo_url: String,
     ) -> Self {
         Self {
             pool,
@@ -72,16 +77,8 @@ impl Deployment {
             no_load_secrets,
             no_render_configs,
             pre_deploy,
+            repo_url,
         }
-    }
-
-    fn checkout(&self) -> Result<bool> {
-        Ok(Command::new("git")
-            .args(["checkout", &self.branch])
-            .current_dir(&self.repodir)
-            .status()
-            .context("git checkout failed")?
-            .success())
     }
 
     async fn get_services(&self, tx: &mut Transaction<'_, MySql>) -> Result<Vec<db::Service>> {
@@ -123,7 +120,26 @@ impl Deployment {
     pub async fn deploy(&self) -> Result<bool> {
         let mut tx = self.pool.begin().await?;
 
-        self.checkout()?;
+        let repo_name: String = self
+            .repodir
+            .to_str()
+            .context("couldn't get repo name")?
+            .into();
+        let repo_url = self.repo_url.clone();
+        let ro = ops::ReleaseOpts {
+            env: self.env.clone(),
+            repo_name,
+            repo_url,
+            repo_branch: self.branch.clone(),
+            no_tag: true,
+            increment_field: "patch".to_string(),
+            no_clone: false,
+            no_push: true,
+            no_commit: true,
+            no_fail: true,
+            skips: self.skips.clone(),
+        };
+        ops::setup_release_dir(&ro)?;
 
         let namespace = self.get_namespace(&mut tx).await?;
         println!("namespace: {}", namespace);

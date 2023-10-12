@@ -1,28 +1,13 @@
-use crate::{db, deploy, git};
+use crate::{db, deploy, git, ops};
 use anyhow::{anyhow, Context, Result};
 use clap::ArgMatches;
 use flate2::read::GzDecoder;
 use sqlx::{MySql, Pool};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tar::Archive;
 use thiserror::Error;
 use url::Url;
-
-#[derive(Debug, Clone, PartialEq)]
-struct ReleaseOpts {
-    env: String,
-    repo_name: String,
-    repo_url: String,
-    repo_branch: String,
-    skips: Vec<String>,
-    no_fail: bool,
-    no_clone: bool,
-    no_push: bool,
-    no_commit: bool,
-    no_tag: bool,
-    increment_field: String,
-}
 
 #[derive(Debug, Error)]
 enum VersionTagError {
@@ -71,87 +56,21 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version, VersionTag
         .ok_or_else(|| VersionTagError::NotFound.into())
 }
 
-/// Creates or clones the release directory and creates the builds and services subdirectories.
-/// If no-clone is false, the repository will be cloned from the remote repository.
-/// Otherwise, the directory will be created but not initialized.
-/// Returns the path to the repository directory, the builds directory, and the services directory.
-///
-/// # Examples
-/// ```ignore
-/// let opts = ReleaseOpts {
-///  env: "dev".to_string(),
-///  repo_name: "de-releases".to_string(),
-///  repo_url: "https://github.com/cyverse-de/de-releases".to_string(),
-/// }
-///
-/// let (repo_dir, builds_dir, services_dir) = mgmt::setup_release_dir(&opts).unwrap();
-/// ```
-fn setup_release_dir(opts: &ReleaseOpts) -> Result<(PathBuf, PathBuf, PathBuf)> {
-    let repo_name = opts.repo_name.clone();
-
-    let repo_dir = PathBuf::from(repo_name);
-    let builds_dir = repo_dir.join("builds");
-    let services_dir = repo_dir.join("services");
-
-    if !opts.no_clone {
-        // If the repository doesn't exist already, clone it.
-        if !Path::exists(&repo_dir) {
-            git::clone(
-                &opts.repo_url,
-                repo_dir
-                    .as_path()
-                    .to_str()
-                    .context("cannot convert repo directory to string")?,
-            )?;
-        } else {
-            let git_dir = repo_dir.join(".git");
-            if !Path::exists(&git_dir) {
-                anyhow::bail!("{} exists but is not a git repository", repo_dir.display());
-            }
-
-            // Otherwise, pull the latest changes.
-            git::pull(&repo_dir)?;
-        }
-
-        // Make sure the correct branch is checked out (default is 'main') if no clone is false.
-        git::checkout(&repo_dir, &opts.repo_branch)?;
-
-        // Make sure the builds directory exists.
-        if !Path::exists(&builds_dir) {
-            fs::create_dir_all(&builds_dir)?;
-        }
-    } else {
-        if Path::exists(&repo_dir) {
-            anyhow::bail!(
-                "The releases repository directory {} already exists",
-                repo_dir.display()
-            );
-        }
-
-        // Otherwise make a directory with the name of the repo, but don't initialize it.
-        fs::create_dir_all(&repo_dir)?;
-        fs::create_dir_all(&builds_dir)?;
-        fs::create_dir_all(&services_dir)?;
-    }
-
-    Ok((repo_dir, builds_dir, services_dir))
-}
-
 /// Returns a list of tuples containing the service and repository for each service in the environment.
 ///
 /// # Examples
 /// ```ignore
-/// let opts = ReleaseOpts {
+/// let opts = ops::ReleaseOpts {
 ///   env: "dev".to_string(),
 ///   repo_name: "de-releases".to_string(),
 ///   repo_url: "https://github.com/cyverse-de/de-releases".to_string(),
 /// }
 ///
-/// let (repo_dir, builds_dir, services_dir) = mgmt::setup_release_dir(&opts).unwrap();
+/// let (repo_dir, builds_dir, services_dir) = ops::setup_release_dir(&opts).unwrap();
 /// ```
 async fn get_service_repos(
     tx: &mut sqlx::Transaction<'_, MySql>,
-    opts: &ReleaseOpts,
+    opts: &ops::ReleaseOpts,
 ) -> Result<Vec<(db::Service, db::Repository)>> {
     let services = db::get_services(tx, &opts.env)
         .await?
@@ -266,7 +185,7 @@ async fn process_release_tarball(
 /// ```ignore
 /// let new_version = mgmt::get_new_version_number(&repo_dir, &opts)?;
 /// ```
-fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semver::Version> {
+fn get_new_version_number(repodir: &PathBuf, opts: &ops::ReleaseOpts) -> Result<semver::Version> {
     let current_tags = git::list_tags(&repodir, "origin")?;
     let latest_version = match latest_release_version(&current_tags) {
         Ok(version) => version,
@@ -307,12 +226,12 @@ fn get_new_version_number(repodir: &PathBuf, opts: &ReleaseOpts) -> Result<semve
 /// ```ignore
 /// mgmt::create_release(&pool, &opts).await?;
 /// ```
-async fn create_release(pool: &Pool<MySql>, opts: &ReleaseOpts) -> Result<()> {
+async fn create_release(pool: &Pool<MySql>, opts: &ops::ReleaseOpts) -> Result<()> {
     let mut tx = pool.begin().await?;
 
     // Clone the releases repo (default is 'de-releases') if no-clone is false.
     println!("Setting up release directory...");
-    let (repo_dir, builds_dir, services_dir) = setup_release_dir(opts)?;
+    let (repo_dir, builds_dir, services_dir) = ops::setup_release_dir(opts)?;
     println!("Done setting up release directory.");
 
     // Get a list of the services included in the environment, filter out the skipped services:
@@ -466,7 +385,7 @@ pub async fn create(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         .map(|s| s.to_string())
         .collect::<Vec<_>>();
 
-    let opts = ReleaseOpts {
+    let opts = ops::ReleaseOpts {
         env: env.to_string(),
         repo_name: repo_name.to_string(),
         repo_url: repo_url.to_string(),
@@ -492,6 +411,12 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
 
     let repo_name = matches.get_one::<PathBuf>("repo-name").ok_or_else(|| {
         anyhow!("No repository provided. Use --repo-name <repo_name> to specify a repository.")
+    })?;
+
+    let repo_url = matches.get_one::<String>("repo-url").ok_or_else(|| {
+        anyhow!(
+            "No repository URL provided. Use --repo-url <repo_url> to specify a repository URL."
+        )
     })?;
 
     let repo_branch = matches.get_one::<String>("branch").ok_or_else(|| {
@@ -533,6 +458,7 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         no_load_secrets,
         no_render_configs,
         pre_deploy,
+        repo_url.to_owned(),
     );
 
     opts.deploy().await?;

@@ -77,6 +77,10 @@ pub fn cli() -> Command {
                         .required(false)
                         .default_value("de-releases")
                         .value_parser(clap::value_parser!(PathBuf)),
+                    arg!(-u --"repo-url" [REPO_URL] "The releases Git repository URL")
+                        .required(false)
+                        .default_value("https://github.com/cyverse-de/de-releases")
+                        .value_parser(clap::value_parser!(String)),
                     arg!(-c --"configs" [CONFIGS] "The directory the config files will be written to")
                         .required(false)
                         .default_value("configs")
