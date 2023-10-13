@@ -7,7 +7,7 @@
 //!
 use crate::config_values::config;
 use crate::db::{self, ConfigurationValue, LoadFromDatabase};
-use crate::git;
+use crate::{dolt, git};
 use anyhow::{anyhow, Context};
 use sqlx::{MySql, Pool};
 use std::fs;
@@ -604,4 +604,30 @@ pub fn setup_release_dir(opts: &ReleaseOpts) -> anyhow::Result<(PathBuf, PathBuf
     }
 
     Ok((repo_dir, builds_dir, services_dir))
+}
+
+// Create the dolt database directory inside of the site directory.
+// If force is true, delete the directory and recreate it.
+pub fn create_db_dir(dir: &str, db_name: &str, force: bool) -> anyhow::Result<PathBuf> {
+    let db_dir = Path::new(dir).join(db_name);
+    if db_dir.exists() && force {
+        std::fs::remove_dir_all(&db_dir)?;
+    } else if db_dir.exists() {
+        return Err(anyhow::anyhow!(
+            "Directory {} already exists. Use -f or --force to overwrite.",
+            db_dir.to_str().unwrap()
+        ));
+    }
+    std::fs::create_dir_all(&db_dir)?;
+    Ok(db_dir)
+}
+
+// Use the dolt command to clone the initial database state from the remote.
+pub fn clone_db(dir: &str, db_repo: &str, db_name: &str, force: bool) -> anyhow::Result<PathBuf> {
+    let db_dir = create_db_dir(&dir, &db_name, force)?;
+    let db_dir_str = db_dir
+        .to_str()
+        .context("could not get name of the database directory")?;
+    dolt::clone(db_repo, db_dir_str)?;
+    Ok(db_dir)
 }

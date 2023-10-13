@@ -446,22 +446,22 @@ pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
         .map(|s| s.to_string())
         .collect::<Vec<_>>();
 
-    let opts = deploy::Deployment::new(
-        pool.to_owned(),
-        repo_name.to_owned(),
-        repo_branch.to_owned(),
-        env.to_owned(),
+    let opts = deploy::DeploymentOptions {
+        pool: pool.clone(),
+        repodir: repo_name.clone(),
+        repo_url: repo_url.to_string(),
+        branch: repo_branch.to_string(),
+        env: env.to_string(),
         skips,
-        configdir.to_owned(),
+        configdir: configdir.clone(),
         no_deploy,
         no_load_configs,
         no_load_secrets,
         no_render_configs,
         pre_deploy,
-        repo_url.to_owned(),
-    );
+    };
 
-    opts.deploy().await?;
+    deploy::deploy(pool, &env, repo_name, &repo_url, &repo_branch, &opts).await?;
 
     Ok(())
 }

@@ -62,14 +62,6 @@ pub fn cli() -> Command {
         .subcommand(
             Command::new("deploy")
                 .args([
-                    arg!(-s --skip <SKIP> "A service to skip for the deployment")
-                        .required(false)
-                        .action(ArgAction::Append)
-                        .value_parser(clap::value_parser!(String)),
-                    arg!(-p --"pre-deploy" <PRE_DEPLOY> "A service to deploy before the rest")
-                        .required(false)
-                        .action(ArgAction::Append)
-                        .value_parser(clap::value_parser!(String)),
                     arg!(-e --env <ENV> "The environment to deploy")
                         .required(true)
                         .value_parser(clap::value_parser!(String)),
@@ -81,13 +73,21 @@ pub fn cli() -> Command {
                         .required(false)
                         .default_value("https://github.com/cyverse-de/de-releases")
                         .value_parser(clap::value_parser!(String)),
+                    arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
+                        .required(false)
+                        .default_value("main")
+                        .value_parser(clap::value_parser!(String)),
                     arg!(-c --"configs" [CONFIGS] "The directory the config files will be written to")
                         .required(false)
                         .default_value("configs")
                         .value_parser(clap::value_parser!(PathBuf)),
-                    arg!(-b --branch [BRANCH] "The branch of the releases repo to use")
+                    arg!(-s --skip <SKIP> "A service to skip for the deployment")
                         .required(false)
-                        .default_value("main")
+                        .action(ArgAction::Append)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-p --"pre-deploy" <PRE_DEPLOY> "A service to deploy before the rest")
+                        .required(false)
+                        .action(ArgAction::Append)
                         .value_parser(clap::value_parser!(String)),
                     arg!(-D --"no-deploy" "Do not deploy the services")
                         .required(false)

@@ -1,5 +1,5 @@
 use crate::{config_values::config, db, dolt, git, ops};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::ArgMatches;
 use sqlx::mysql::MySqlPoolOptions;
 use std::path::{Path, PathBuf};
@@ -42,53 +42,22 @@ fn create_site_dir(opts: &InitOpts) -> anyhow::Result<()> {
     Ok(())
 }
 
-// Create the dolt database directory inside of the site directory.
-// If force is true, delete the directory and recreate it.
-fn create_db_dir(opts: &InitOpts) -> anyhow::Result<PathBuf> {
-    let dir = &opts.dir;
-    let db_name = &opts.db_name;
-    let force = opts.force;
-    let db_dir = Path::new(dir).join(db_name);
-    if db_dir.exists() && force {
-        std::fs::remove_dir_all(&db_dir)?;
-    } else if db_dir.exists() {
-        return Err(anyhow::anyhow!(
-            "Directory {} already exists. Use -f or --force to overwrite.",
-            db_dir.to_str().unwrap()
-        ));
-    }
-    std::fs::create_dir_all(&db_dir)?;
-    Ok(db_dir)
-}
-
-// Use the dolt command to clone the initial database state from the remote.
-fn clone_db(opts: &InitOpts) -> anyhow::Result<PathBuf> {
-    let db_repo = &opts.db_repo;
-    let db_dir = create_db_dir(&opts)?;
-    let db_dir_str = db_dir
-        .to_str()
-        .context("could not get name of the database directory")?;
-    dolt::clone(db_repo, db_dir_str)?;
-    Ok(db_dir)
-}
-
 async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     // Create the site directory.
     create_site_dir(&opts)?;
 
     let db_dir: PathBuf;
 
-    println!("Cloning the database from {}...", &opts.db_repo);
     // Clone the base database.
+    println!("Cloning the database from {}...", &opts.db_repo);
     if !opts.no_db_clone {
-        db_dir = clone_db(&opts)?;
+        db_dir = ops::clone_db(&opts.dir, &opts.db_repo, &opts.db_name, opts.force)?;
     } else {
         db_dir = PathBuf::from(&opts.dir).join(&opts.db_name);
     }
     println!("Done cloning the database.\n");
 
     println!("Starting the database...");
-    // Start the database
     let db_dir_str = db_dir
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("failed to get database directory as string"))?;
@@ -96,7 +65,6 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     println!("Done staring the database.\n");
 
     println!("Connecting to the database...");
-    // Connect to the database.
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
         .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
@@ -108,7 +76,6 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     let repos = db::get_repos(&mut tx).await?;
 
     println!("Cloning the repos...");
-    // Clone each of the repos.
     for repo in repos {
         let (repo_url, repo_name) = repo;
         let repo_dir = Path::new(&opts.dir).join("repos").join(&repo_name);

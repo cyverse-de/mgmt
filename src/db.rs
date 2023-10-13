@@ -756,7 +756,7 @@ pub async fn add_env_cfg_value(
 }
 
 /// Represents a single service as stored in the database.
-#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Service {
     pub name: Option<String>,
     pub id: Option<i64>,
