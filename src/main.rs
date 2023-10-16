@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{arg, Command};
 use mgmt::app;
-use mgmt::cli::{configs, container_images, deploy, release, site, templates};
+use mgmt::cli::{configs, container_images, deploy, envs, release, services, site, templates};
 use mgmt::handlers;
 use sqlx::mysql::MySqlPoolOptions;
 use which::which;
@@ -26,6 +26,8 @@ async fn main() -> Result<()> {
         .subcommand(site::cli())
         .subcommand(deploy::cli())
         .subcommand(templates::cli())
+        .subcommand(services::cli())
+        .subcommand(envs::cli())
         .get_matches();
 
     let database_url = commands.get_one::<String>("database-url").context(
