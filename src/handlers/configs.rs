@@ -1,65 +1,8 @@
-use crate::{config_values::config, db, ops};
+use crate::{config_values::config, ops};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use sqlx::{MySql, Pool};
 use std::path::PathBuf;
-
-async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
-    let name = sub_m
-        .get_one::<String>("name")
-        .ok_or_else(|| anyhow!("No name specified. Use --name <name> to specify a name."))?;
-
-    let namespace = sub_m.get_one::<String>("namespace").ok_or_else(|| {
-        anyhow!("No namespace specified. Use --namespace <namespace> to specify a namespace.")
-    })?;
-
-    let mut tx = pool.begin().await?;
-    db::upsert_environment(&mut tx, &name, &namespace).await?;
-    tx.commit().await?;
-
-    println!("Created environment: {}", name);
-
-    Ok(())
-}
-
-async fn env_list(pool: &Pool<MySql>) -> Result<()> {
-    let mut tx = pool.begin().await?;
-    let envs = db::list_envs(&mut tx).await?;
-    tx.commit().await?;
-    for env in envs {
-        println!("{}", env);
-    }
-
-    Ok(())
-}
-
-async fn env_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
-    let name = sub_m
-        .get_one::<String>("name")
-        .ok_or_else(|| anyhow!("No name specified. Use --name <name> to specify a name."))?;
-
-    let mut tx = pool.begin().await?;
-    db::delete_env(&mut tx, &name).await?;
-    tx.commit().await?;
-
-    println!("Deleted environment: {}", name);
-
-    Ok(())
-}
-
-pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
-    let create_cmd = sub_m
-        .subcommand()
-        .ok_or_else(|| anyhow::anyhow!("bad command"))?;
-
-    match create_cmd {
-        ("populate", _) => Ok(ops::populate_env(&pool).await?),
-        ("create", sub_m) => env_create(&pool, &sub_m).await,
-        ("list", _) => env_list(&pool).await,
-        ("delete", sub_m) => env_delete(&pool, &sub_m).await,
-        (name, _) => unreachable!("Bad subcommand: {name}"),
-    }
-}
 
 async fn section_add(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {

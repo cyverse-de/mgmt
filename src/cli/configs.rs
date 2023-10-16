@@ -12,31 +12,6 @@ pub fn cli() -> Command {
                 .value_parser(clap::value_parser!(String)),
         )
         .subcommand(
-            Command::new("env")
-                .args_conflicts_with_subcommands(true)
-                .subcommand(
-                    Command::new("populate")
-                        .args_conflicts_with_subcommands(true)
-                        .about("Populates the environments table with a new environment"),
-                )
-                .subcommand(
-                    Command::new("create").args([
-                        arg!(--"name" <NAME>)
-                            .required(true)
-                            .value_parser(clap::value_parser!(String)),
-                        arg!(--"namespace" <NAMESPACE>)
-                            .required(true)
-                            .value_parser(clap::value_parser!(String)),
-                    ]),
-                )
-                .subcommand(Command::new("list"))
-                .subcommand(
-                    Command::new("delete").args([arg!(--"name" <NAME>)
-                        .required(true)
-                        .value_parser(clap::value_parser!(String))]),
-                ),
-        )
-        .subcommand(
             Command::new("sections")
                 .args_conflicts_with_subcommands(true)
                 .subcommand(

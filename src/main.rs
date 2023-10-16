@@ -40,7 +40,6 @@ async fn main() -> Result<()> {
 
     match commands.subcommand() {
         Some(("configs", sub_m)) => match sub_m.subcommand() {
-            Some(("env", sub_m)) => handlers::configs::env(&pool, &sub_m).await?,
             Some(("sections", sub_m)) => handlers::configs::sections(&pool, &sub_m).await?,
             Some(("defaults", sub_m)) => handlers::configs::defaults(&pool, &sub_m).await?,
             Some(("values", sub_m)) => handlers::configs::values(&pool, &sub_m).await?,
@@ -213,6 +212,19 @@ async fn main() -> Result<()> {
 
             _ => unreachable!("Bad templates subcommand"),
         },
+
+        Some(("services", sub_m)) => match sub_m.subcommand() {
+            Some(("list", _)) => {
+                let services = handlers::services::list_all_services(&pool).await?;
+
+                for service in services {
+                    println!("{}", service);
+                }
+            }
+            _ => unreachable!("Bad services subcommand"),
+        },
+
+        Some(("envs", sub_m)) => handlers::envs::env(&pool, &sub_m).await?,
 
         _ => unreachable!(),
     };

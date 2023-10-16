@@ -878,6 +878,93 @@ pub async fn get_services(
     Ok(services)
 }
 
+/// Returns a listing of all of the services.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::get_all_services(&mut tx).await?;
+///
+/// for service in result {
+///    println!("{}", service.name);
+/// }
+pub async fn get_all_services(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<Service>> {
+    let services = sqlx::query_as!(
+        Service,
+        r#"
+            SELECT 
+                services.id AS `id: i64`, 
+                services.name AS `name: String`, 
+                services.repo_id AS `repo_id: i64`
+            FROM services
+        "#
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(services)
+}
+
+/// Adds a service to an environment.
+/// Returns the primary key of the environments_services record that is added.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_service_to_env(&mut tx, "dev", "dashboard-aggregator").await?;
+/// tx.commit().await?;
+/// ```
+pub async fn add_service_to_env(
+    pool: &mut Transaction<'_, MySql>,
+    env: &str,
+    service_name: &str,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+            INSERT INTO 
+                environments_services (environment_id, service_id) 
+            VALUES 
+                (
+                    (SELECT id FROM environments WHERE name = ?),
+                    (SELECT id FROM services WHERE name = ?)
+                )
+        "#,
+        env,
+        service_name
+    )
+    .execute(&mut **pool)
+    .await?
+    .last_insert_id())
+}
+
+/// Removes a service from an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::remove_service_from_env(&mut tx, "dev", "dashboard-aggregator").await?;
+/// tx.commit().await?;
+/// ```
+pub async fn remove_service_from_env(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    service_name: &str,
+) -> anyhow::Result<()> {
+    sqlx::query!(
+        r#"
+            DELETE FROM environments_services
+            WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
+            AND service_id = (SELECT id FROM services WHERE name = ?)
+        "#,
+        env,
+        service_name
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Repository {
     pub id: Option<i64>,
