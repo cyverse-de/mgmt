@@ -431,7 +431,7 @@ pub struct DE {
     default_output_folder: Option<String>,
     coge: Option<DECoge>,
     tools: Option<DETools>,
-    info: Info,
+    info: Option<Info>,
 }
 
 impl LoadFromDatabase for DE {
@@ -470,7 +470,9 @@ impl LoadFromDatabase for DE {
             }
 
             if key.starts_with("Info") {
-                self.info.cfg_set_key(cfg)?;
+                if let Some(info) = &mut self.info {
+                    info.cfg_set_key(cfg)?;
+                }
             }
         }
         Ok(())
@@ -487,7 +489,7 @@ impl Default for DE {
             default_output_folder: Some(String::from("analyses")),
             coge: Some(DECoge::default()),
             tools: Some(DETools::default()),
-            info: Info::default(),
+            info: Some(Info::default()),
         }
     }
 }
@@ -536,7 +538,9 @@ impl From<DE> for Vec<db::ConfigurationValue> {
 
         cfgs.extend::<Vec<db::ConfigurationValue>>(amqp_cfgs);
 
-        cfgs.extend::<Vec<db::ConfigurationValue>>(de.info.into());
+        if let Some(info) = de.info {
+            cfgs.extend::<Vec<db::ConfigurationValue>>(info.into());
+        }
 
         cfgs
     }
@@ -589,7 +593,7 @@ impl DE {
 
         let mut new_info = Info::default();
         new_info.ask_for_info(tx, theme, env_id).await?;
-        self.info = new_info;
+        self.info = Some(new_info);
 
         Ok(())
     }
