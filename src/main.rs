@@ -226,9 +226,9 @@ async fn main() -> Result<()> {
             _ => unreachable!("Bad services subcommand"),
         },
 
-        Some(("envs", sub_m)) => handlers::envs::env(&pool, &sub_m).await?,
+        Some(("env", sub_m)) => handlers::envs::env(&pool, &sub_m).await?,
 
-        _ => unreachable!(),
+        _ => unreachable!("Bad subcommand"),
     };
 
     Ok(())

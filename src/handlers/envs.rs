@@ -111,7 +111,7 @@ async fn env_services_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<
 
     match services_cmd {
         ("add", sub_m) => env_services_add(&pool, &sub_m).await,
-        ("remove", sub_m) => env_services_remove(&pool, &sub_m).await,
+        ("delete", sub_m) => env_services_remove(&pool, &sub_m).await,
         ("list", sub_m) => env_services_list(&pool, &sub_m).await,
         (name, _) => unreachable!("Bad subcommand: {name}"),
     }
@@ -127,7 +127,7 @@ pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
         ("create", sub_m) => env_create(&pool, &sub_m).await,
         ("list", _) => env_list(&pool).await,
         ("delete", sub_m) => env_delete(&pool, &sub_m).await,
-        ("services", sub_m) => env_services_handler(&pool, &sub_m).await,
+        ("service", sub_m) => env_services_handler(&pool, &sub_m).await,
         (name, _) => unreachable!("Bad subcommand: {name}"),
     }
 }
