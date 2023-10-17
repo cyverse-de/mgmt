@@ -19,6 +19,10 @@ pub fn cli() -> Command {
                 arg!(-n --namespace <NAMESPACE> "The Kubernetes namespace to create")
                     .required(true)
                     .value_parser(clap::value_parser!(String)),
+                arg!(-f --from <FROM> "The name of the environment to use as the basis for the new environment. Inherits services, config templates but not config values from the original environment.")
+                    .required(false)
+                    .default_value("de")
+                    .value_parser(clap::value_parser!(String))
             ]),
         )
         .subcommand(

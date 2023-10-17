@@ -915,7 +915,7 @@ pub async fn get_all_services(tx: &mut Transaction<'_, MySql>) -> anyhow::Result
 /// tx.commit().await?;
 /// ```
 pub async fn add_service_to_env(
-    pool: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, MySql>,
     env: &str,
     service_name: &str,
 ) -> anyhow::Result<u64> {
@@ -932,7 +932,7 @@ pub async fn add_service_to_env(
         env,
         service_name
     )
-    .execute(&mut **pool)
+    .execute(&mut **tx)
     .await?
     .last_insert_id())
 }
@@ -1219,4 +1219,115 @@ pub async fn list_templates(
     .await?;
 
     Ok(templates.into_iter().filter_map(|t| t.path).collect())
+}
+
+pub async fn list_template_ids(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+) -> anyhow::Result<Vec<u64>> {
+    Ok(sqlx::query!(
+        r#"
+            SELECT ct.id AS `id: u64`
+            FROM config_templates ct
+            JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
+            JOIN environments_services es ON es.id = ect.environment_service_id
+            JOIN environments e ON e.id = es.environment_id
+            WHERE e.name = ?
+        "#,
+        env
+    )
+    .fetch_all(&mut **tx)
+    .await?
+    .into_iter()
+    .filter_map(|t| t.id)
+    .collect())
+}
+
+pub async fn list_service_templates(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    service_name: &str,
+) -> anyhow::Result<Vec<u64>> {
+    Ok(sqlx::query!(
+        r#"
+            SELECT ct.id AS `id: u64`
+            FROM config_templates ct
+            JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
+            JOIN environments_services es ON es.id = ect.environment_service_id
+            JOIN environments e ON e.id = es.environment_id
+            JOIN services s ON s.id = es.service_id
+            WHERE e.name = ? AND s.name = ?
+        "#,
+        env,
+        service_name
+    )
+    .fetch_all(&mut **tx)
+    .await?
+    .into_iter()
+    .filter_map(|t| t.id)
+    .collect())
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct ESCT {
+    id: Option<i64>,
+    environment_service_id: Option<i64>,
+    config_template_id: Option<i64>,
+    path: Option<String>,
+}
+
+/// Adds a configuration template for a service to an environment.
+pub async fn copy_service_template_to_env(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    from: &str,
+    service_name: &str,
+    config_template_id: u64,
+) -> anyhow::Result<()> {
+    // Get the ESCTs for the from environment. Basically just need the path.
+    let from_esct: ESCT = sqlx::query_as!(
+        ESCT,
+        r#"
+            SELECT 
+                environments_services_config_templates.id AS `id: i64`,
+                environments_services_config_templates.environment_service_id AS `environment_service_id: i64`,
+                environments_services_config_templates.config_template_id AS `config_template_id: i64`,
+                config_templates.path AS `path: String`
+            FROM environments_services_config_templates
+            JOIN environments_services ON environments_services.id = environments_services_config_templates.environment_service_id
+            JOIN environments ON environments.id = environments_services.environment_id
+            JOIN config_templates ON config_templates.id = environments_services_config_templates.config_template_id
+            JOIN services ON services.id = environments_services.service_id
+            WHERE environments.name = ? AND services.name = ? AND config_templates.id = ?
+        "#,
+        from,
+        service_name,
+        config_template_id
+    ).fetch_one(&mut **tx).await?;
+
+    sqlx::query!(
+        r#"
+            INSERT INTO environments_services_config_templates
+                (environment_service_id, config_template_id, path)
+            VALUES
+                (
+                    (
+                        SELECT id 
+                        FROM environments_services
+                        WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
+                        AND service_id = (SELECT id FROM services WHERE name = ?)
+                    ),
+                    ?,
+                    ?
+                )
+        "#,
+        env,
+        service_name,
+        config_template_id,
+        from_esct.path
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
 }
