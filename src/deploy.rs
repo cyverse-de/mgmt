@@ -188,7 +188,17 @@ pub async fn deploy(
 
     // Load the secrets.
     if !opts.no_load_secrets {
-        let secrets_dir = release_repo_dir.join("templates").join("secrets");
+        let secrets_dir = env_configdir.join("secrets");
+        if !secrets_dir.exists() {
+            std::fs::create_dir(&secrets_dir)?;
+        }
+        templates::render_template_dir_from_db(
+            &mut tx,
+            &release_repo_dir.join("templates").join("secrets").join("*"),
+            &env,
+            &secrets_dir,
+        )
+        .await?;
         configs::load_secrets(&namespace, &secrets_dir)?;
     }
 

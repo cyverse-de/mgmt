@@ -207,7 +207,8 @@ pub async fn render_db(
         let tmpl_path = PathBuf::from(&template_path);
         let mut out_dir = out_path
             .parent()
-            .context("failed to get the parent directory")?;
+            .context("failed to get the parent directory")?
+            .to_path_buf();
 
         // Make sure the output directory doesn't contain a template directory
         // since that gets really confusing when inspecting the output.
@@ -215,7 +216,17 @@ pub async fn render_db(
             if output_dir == "templates" {
                 out_dir = out_dir
                     .parent()
-                    .context("failed to get the parent directory")?;
+                    .context("failed to get the parent directory")?
+                    .to_path_buf();
+            }
+        }
+
+        // Make sure the environment sub directory is appended to the output
+        // directory, so that configs for different environments don't
+        // overwrite each other.
+        if let Some(env_dir) = out_dir.file_name() {
+            if env_dir != env {
+                out_dir = out_dir.join(env);
             }
         }
 
