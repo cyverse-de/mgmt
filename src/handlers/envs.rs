@@ -4,9 +4,9 @@ use clap::ArgMatches;
 use sqlx::{MySql, Pool};
 
 async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
-    let name = sub_m
-        .get_one::<String>("name")
-        .ok_or_else(|| anyhow!("No name specified. Use --name <name> to specify a name."))?;
+    let env = sub_m.get_one::<String>("env").ok_or_else(|| {
+        anyhow!("No name specified. Use --env <env> to specify an environment name.")
+    })?;
 
     let namespace = sub_m.get_one::<String>("namespace").ok_or_else(|| {
         anyhow!("No namespace specified. Use --namespace <namespace> to specify a namespace.")
@@ -17,8 +17,8 @@ async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     })?;
 
     let mut tx = pool.begin().await?;
-    db::upsert_environment(&mut tx, &name, &namespace).await?;
-    println!("Created environment: {}", name);
+    db::upsert_environment(&mut tx, &env, &namespace).await?;
+    println!("Created environment: {}", env);
 
     println!("Setting up environment...");
 
@@ -26,18 +26,15 @@ async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     let from_services = db::list_services(&mut tx, &from).await?;
     for from_service in from_services {
         let from_service_name = from_service.name.context("no name set for service")?;
-        db::add_service_to_env(&mut tx, &name, &from_service_name).await?;
-        println!(
-            "Added {} service to {} environment",
-            from_service_name, name
-        );
+        db::add_service_to_env(&mut tx, &env, &from_service_name).await?;
+        println!("Added {} service to {} environment", from_service_name, env);
 
         let service_template_ids =
             db::list_service_templates(&mut tx, &from, &from_service_name).await?;
         for service_template_id in service_template_ids {
             db::copy_service_template_to_env(
                 &mut tx,
-                &name,
+                &env,
                 &from,
                 &from_service_name,
                 service_template_id,
@@ -46,7 +43,7 @@ async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
         }
         println!(
             "Copied config templates for {} service to {} environment",
-            from_service_name, name
+            from_service_name, env
         );
     }
 
@@ -69,15 +66,15 @@ async fn env_list(pool: &Pool<MySql>) -> Result<()> {
 }
 
 async fn env_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
-    let name = sub_m
-        .get_one::<String>("name")
-        .ok_or_else(|| anyhow!("No name specified. Use --name <name> to specify a name."))?;
+    let env = sub_m
+        .get_one::<String>("env")
+        .ok_or_else(|| anyhow!("No name specified. Use --env <env> to specify a name."))?;
 
     let mut tx = pool.begin().await?;
-    db::delete_env(&mut tx, &name).await?;
+    db::delete_env(&mut tx, &env).await?;
     tx.commit().await?;
 
-    println!("Deleted environment: {}", name);
+    println!("Deleted environment: {}", env);
 
     Ok(())
 }

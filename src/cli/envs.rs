@@ -13,7 +13,7 @@ pub fn cli() -> Command {
         )
         .subcommand(
             Command::new("create").args([
-                arg!(-n --env <NAME> "The environment to create")
+                arg!(-e --env <ENV> "The environment to create")
                     .required(true)
                     .value_parser(clap::value_parser!(String)),
                 arg!(-n --namespace <NAMESPACE> "The Kubernetes namespace to create")
@@ -26,9 +26,12 @@ pub fn cli() -> Command {
             ]),
         )
         .subcommand(
-            Command::new("delete").args([arg!(-n --name <ENV> "The environment to delete")
-                .required(true)
-                .value_parser(clap::value_parser!(String))]),
+            Command::new("delete")
+                .args([
+                    arg!(-e --env <ENV> "The environment to delete")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String))
+                ]),
         )
         .subcommand(Command::new("list").about("Lists the environments in the database."))
         .subcommand(
