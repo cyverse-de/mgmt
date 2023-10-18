@@ -204,10 +204,27 @@ pub async fn render_db(
 
     let mut tera = new_tera();
     for template_path in template_paths {
-        let out_file = out_path.join(&template_path);
-        let out_dir = out_file
+        let tmpl_path = PathBuf::from(&template_path);
+        let mut out_dir = out_path
             .parent()
             .context("failed to get the parent directory")?;
+
+        // Make sure the output directory doesn't contain a template directory
+        // since that gets really confusing when inspecting the output.
+        if let Some(output_dir) = out_dir.file_name() {
+            if output_dir == "templates" {
+                out_dir = out_dir
+                    .parent()
+                    .context("failed to get the parent directory")?;
+            }
+        }
+
+        let output_filename = tmpl_path
+            .file_name()
+            .context("failed to get the filename")?
+            .to_str()
+            .context("failed to convert the filename to a string")?;
+        let out_file = out_dir.join(&output_filename);
 
         println!("Creating {}...", out_dir.display());
         fs::create_dir_all(out_dir)?;
