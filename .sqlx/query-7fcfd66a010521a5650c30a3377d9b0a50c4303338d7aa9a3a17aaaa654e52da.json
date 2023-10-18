@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO \n                environments_services (environment_id, service_id) \n            VALUES \n                (\n                    (SELECT id FROM environments WHERE name = ?),\n                    (SELECT id FROM services WHERE name = ?)\n                )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7fcfd66a010521a5650c30a3377d9b0a50c4303338d7aa9a3a17aaaa654e52da"
+}

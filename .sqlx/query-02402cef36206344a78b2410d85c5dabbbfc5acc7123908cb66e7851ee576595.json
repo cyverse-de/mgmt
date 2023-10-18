@@ -1,0 +1,58 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT \n                environments_services_config_templates.id AS `id: i64`,\n                environments_services_config_templates.environment_service_id AS `environment_service_id: i64`,\n                environments_services_config_templates.config_template_id AS `config_template_id: i64`,\n                config_templates.path AS `path: String`\n            FROM environments_services_config_templates\n            JOIN environments_services ON environments_services.id = environments_services_config_templates.environment_service_id\n            JOIN environments ON environments.id = environments_services.environment_id\n            JOIN config_templates ON config_templates.id = environments_services_config_templates.config_template_id\n            JOIN services ON services.id = environments_services.service_id\n            WHERE environments.name = ? AND services.name = ? AND config_templates.id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "environment_service_id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "config_template_id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "path: String",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "02402cef36206344a78b2410d85c5dabbbfc5acc7123908cb66e7851ee576595"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO environments_services_config_templates\n                (environment_service_id, config_template_id, path)\n            VALUES\n                (\n                    (\n                        SELECT id \n                        FROM environments_services\n                        WHERE environment_id = (SELECT id FROM environments WHERE name = ?)\n                        AND service_id = (SELECT id FROM services WHERE name = ?)\n                    ),\n                    ?,\n                    ?\n                )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "05877e532e67052c2b9d36854cd8fae63bd35c9d0e0aeddfad478e9d7ca46474"
+}

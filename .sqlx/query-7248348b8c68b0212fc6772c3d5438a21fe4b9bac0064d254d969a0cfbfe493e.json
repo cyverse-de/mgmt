@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            DELETE FROM environments_services\n            WHERE environment_id = (SELECT id FROM environments WHERE name = ?)\n            AND service_id = (SELECT id FROM services WHERE name = ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7248348b8c68b0212fc6772c3d5438a21fe4b9bac0064d254d969a0cfbfe493e"
+}

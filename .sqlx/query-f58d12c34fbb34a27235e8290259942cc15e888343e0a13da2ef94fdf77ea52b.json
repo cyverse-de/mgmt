@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT ct.id AS `id: u64`\n            FROM config_templates ct\n            JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id\n            JOIN environments_services es ON es.id = ect.environment_service_id\n            JOIN environments e ON e.id = es.environment_id\n            JOIN services s ON s.id = es.service_id\n            WHERE e.name = ? AND s.name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: u64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f58d12c34fbb34a27235e8290259942cc15e888343e0a13da2ef94fdf77ea52b"
+}

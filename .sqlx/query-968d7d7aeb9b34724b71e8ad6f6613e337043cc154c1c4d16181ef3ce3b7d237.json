@@ -1,0 +1,47 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT \n                services.id AS `id: i64`, \n                services.name AS `name: String`, \n                services.repo_id AS `repo_id: i64`\n            FROM services\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repo_id: i64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "968d7d7aeb9b34724b71e8ad6f6613e337043cc154c1c4d16181ef3ce3b7d237"
+}
