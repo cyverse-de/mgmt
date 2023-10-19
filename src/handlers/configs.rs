@@ -1,4 +1,7 @@
-use crate::{config_values::config, ops};
+use crate::{
+    config_values::config::{self, ConfigValues},
+    db, ops,
+};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use sqlx::{MySql, Pool};
@@ -244,6 +247,24 @@ async fn values_import(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     })?;
 
     ops::import_yaml_file(&pool, path.to_path_buf(), environment).await?;
+
+    println!(
+        "Imported values from {} for the {} environment.",
+        path.display(),
+        environment
+    );
+
+    // Now get all of the newly import values from the database.
+    let mut tx = pool.begin().await?;
+    let imported_cfgs: ConfigValues =
+        db::list_config_values(&mut tx, Some(&environment), None, None)
+            .await?
+            .into();
+    let new_ops = imported_cfgs.generate_section_options();
+    db::upsert_feature_flags(&mut tx, &environment, &new_ops.into()).await?;
+    tx.commit().await?;
+
+    println!("Set up feature flags for the {} environment.", environment);
 
     Ok(())
 }

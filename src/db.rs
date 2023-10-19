@@ -4,7 +4,9 @@
 use sqlx::{MySql, Row, Transaction};
 
 /// Represents a single configuration value as stored in the database.
-#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(
+    sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash,
+)]
 pub struct ConfigurationValue {
     pub id: Option<i64>,
     pub section: Option<String>,

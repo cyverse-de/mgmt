@@ -43,10 +43,8 @@ fn render_t(
     env_values: &ConfigValues,
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
-    let mut defaults_context = tera::Context::from_serialize(defaults_values)?;
-    let values_context: tera::Context = tera::Context::from_serialize(env_values)?;
-
-    defaults_context.extend(values_context);
+    let merged_cv = defaults_values.merge_with(&env_values)?;
+    let defaults_context = tera::Context::from_serialize(merged_cv)?;
 
     let out_file = fs::File::create(out_path)?;
     let mut tera = new_tera();
@@ -62,10 +60,10 @@ fn render_d(
     env_values: &ConfigValues,
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
-    let mut defaults_context = tera::Context::from_serialize(defaults_values)?;
-    let values_context: tera::Context = tera::Context::from_serialize(env_values)?;
+    let merged_cv = defaults_values.merge_with(&env_values)?;
+    let defaults_context = tera::Context::from_serialize(merged_cv)?;
 
-    defaults_context.extend(values_context);
+    println!("{:#?}", defaults_context);
 
     let tera = new_tera_dir(templates_path)?;
 

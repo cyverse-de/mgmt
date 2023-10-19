@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::config_values::{
     self, agave::Agave, base_urls::BaseURLs, dashboard_aggregator::DashboardAggregator,
     db::DatabaseConfig, db::QMSDatabaseConfig, de::DE, docker::Docker,
@@ -64,7 +66,7 @@ impl From<SectionOptions> for db::FeatureFlags {
             intercom: Some(so.include_intercom),
             jaeger: Some(so.include_jaeger),
             jobs: Some(so.include_jobs),
-            jvmopts: Some(so.include_jvmpopts),
+            jvmopts: Some(true),
             permanent_id: Some(so.include_permanent_id),
             qa: Some(so.include_qa),
             qms: Some(so.include_qms),
@@ -574,6 +576,10 @@ impl LoadFromDatabase for ConfigValues {
                         }
                     }
                     "Harbor" => {
+                        if self.harbor.is_none() {
+                            self.harbor = Some(config_values::misc::Harbor::default());
+                        }
+
                         if let Some(harbor) = &mut self.harbor {
                             harbor.cfg_set_key(cfg).ok();
                         }
@@ -901,7 +907,120 @@ impl ConfigValues {
             self.qa = None;
         }
 
+        if !self.section_options.include_section("CAS") {
+            self.cas = None;
+        }
+
         Ok(())
+    }
+
+    /// Generate a SectionOptions instance from the current state of the
+    /// ConfigValues instance. This is useful when importing a YAML file
+    /// and you don't know which optional sections are included.
+    pub fn generate_section_options(&self) -> SectionOptions {
+        let mut opts = SectionOptions::default();
+        if let Some(_agave) = &self.agave {
+            opts.include_agave = true;
+        }
+
+        if let Some(_base_urls) = &self.base_urls {
+            opts.include_base_urls = true;
+        }
+
+        if let Some(_docker) = &self.docker {
+            opts.include_docker = true;
+        }
+
+        if let Some(_infosquito) = &self.infosquito {
+            opts.include_infosquito = true;
+        }
+
+        if let Some(_intercom) = &self.intercom {
+            opts.include_intercom = true;
+        }
+
+        if let Some(_jobs) = &self.jobs {
+            opts.include_jobs = true;
+        }
+
+        if let Some(_permanent_id) = &self.permanent_id {
+            opts.include_permanent_id = true;
+        }
+
+        if let Some(_unleash) = &self.unleash {
+            opts.include_unleash = true;
+        }
+
+        if let Some(_admin) = &self.admin {
+            opts.include_admin = true;
+        }
+
+        if let Some(_analytics) = &self.analytics {
+            opts.include_analytics = true;
+        }
+
+        if let Some(_qms) = &self.qms {
+            opts.include_qms = true;
+        }
+
+        if let Some(_jaeger) = &self.jaeger {
+            opts.include_jaeger = true;
+        }
+
+        if let Some(_qa) = &self.qa {
+            opts.include_qa = true;
+        }
+
+        if let Some(_cas) = &self.cas {
+            opts.include_cas = true;
+        }
+
+        opts
+    }
+
+    pub fn merge_with(&self, second: &ConfigValues) -> anyhow::Result<ConfigValues> {
+        let base_values: Vec<db::ConfigurationValue> = self.clone().into();
+        let merge_values: Vec<db::ConfigurationValue> = second.clone().into();
+        let mut merged: HashMap<String, db::ConfigurationValue> = HashMap::new();
+
+        for bv in base_values {
+            let key = format!(
+                "{}.{}",
+                bv.section.clone().context("section not set.")?,
+                bv.key.clone().context("key not set.")?
+            );
+
+            merged.insert(key, bv);
+        }
+
+        for mv in merge_values {
+            let key = format!(
+                "{}.{}",
+                mv.section.clone().context("section not set.")?,
+                mv.key.clone().context("key not set.")?
+            );
+
+            if merged.contains_key(&key) {
+                // Only override the default if the new value is not an empty string.
+                if mv.value.as_ref().is_some_and(|mv| !mv.is_empty()) {
+                    merged.insert(key, mv);
+                }
+            } else {
+                merged.insert(key, mv.clone());
+            }
+        }
+
+        let new_values: Vec<db::ConfigurationValue> = merged
+            .values()
+            .into_iter()
+            .map(|cv| cv.to_owned())
+            .collect();
+
+        let mut new_cv = ConfigValues::from(new_values);
+
+        let section_options = new_cv.generate_section_options();
+        new_cv.set_section_options(section_options);
+        Ok(new_cv)
     }
 
     pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
