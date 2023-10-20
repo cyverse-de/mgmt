@@ -24,7 +24,7 @@ pub struct SectionOptions {
     include_intercom: bool,
     include_jaeger: bool,
     include_jobs: bool,
-    include_jvmpopts: bool,
+    include_jvmopts: bool,
     include_permanent_id: bool,
     include_qa: bool,
     include_qms: bool,
@@ -44,7 +44,7 @@ impl From<db::FeatureFlags> for SectionOptions {
             include_intercom: ff.intercom.unwrap_or_default(),
             include_jaeger: ff.jaeger.unwrap_or_default(),
             include_jobs: ff.jobs.unwrap_or_default(),
-            include_jvmpopts: ff.jvmopts.unwrap_or_default(),
+            include_jvmopts: ff.jvmopts.unwrap_or_default(),
             include_permanent_id: ff.permanent_id.unwrap_or_default(),
             include_qa: ff.qa.unwrap_or_default(),
             include_qms: ff.qms.unwrap_or_default(),
@@ -66,7 +66,7 @@ impl From<SectionOptions> for db::FeatureFlags {
             intercom: Some(so.include_intercom),
             jaeger: Some(so.include_jaeger),
             jobs: Some(so.include_jobs),
-            jvmopts: Some(true),
+            jvmopts: Some(so.include_jvmopts),
             permanent_id: Some(so.include_permanent_id),
             qa: Some(so.include_qa),
             qms: Some(so.include_qms),
@@ -103,7 +103,7 @@ impl SectionOptions {
                 include_intercom: true,
                 include_jaeger: true,
                 include_jobs: true,
-                include_jvmpopts: true,
+                include_jvmopts: true,
                 include_permanent_id: true,
                 include_qa: true,
                 include_qms: true,
@@ -171,8 +171,8 @@ impl SectionOptions {
                     false
                 },
 
-                include_jvmpopts: if sub_m.contains_id("include-jvmpopts") {
-                    sub_m.get_flag("include-jvmpopts")
+                include_jvmopts: if sub_m.contains_id("include-jvmopts") {
+                    sub_m.get_flag("include-jvmopts")
                 } else {
                     false
                 },
@@ -215,7 +215,7 @@ impl SectionOptions {
         self.include_intercom = all;
         self.include_jaeger = all;
         self.include_jobs = all;
-        self.include_jvmpopts = all;
+        self.include_jvmopts = all;
         self.include_permanent_id = all;
         self.include_qa = all;
         self.include_qms = all;
@@ -236,7 +236,7 @@ impl SectionOptions {
             "Intercom" => self.include_intercom,
             "Jaeger" => self.include_jaeger,
             "Jobs" => self.include_jobs,
-            "JVMOpts" => self.include_jvmpopts,
+            "JVMOpts" => self.include_jvmopts,
             "PermanentID" => self.include_permanent_id,
             "QA" => self.include_qa,
             "QMS" => self.include_qms,
@@ -313,6 +313,9 @@ pub struct ConfigValues {
     // Defaults are provided for deployment.
     #[serde(skip_serializing_if = "Option::is_none")]
     jobs: Option<config_values::misc::Jobs>,
+
+    #[serde(skip_serializing_if = "Option::is_none", rename = "JVMOpts")]
+    jvmopts: Option<config_values::jvmopts::JVMOpts>,
 
     // Must be configured for deployment.
     keycloak: config_values::keycloak::Keycloak,
@@ -420,6 +423,7 @@ impl Default for ConfigValues {
             intercom: Some(config_values::intercom::Intercom::default()),
             irods: config_values::irods::Irods::default(),
             jobs: Some(config_values::misc::Jobs::default()),
+            jvmopts: Some(config_values::jvmopts::JVMOpts::default()),
             keycloak: config_values::keycloak::Keycloak::default(),
             pgp: config_values::misc::Pgp::default(),
             permanent_id: Some(config_values::misc::PermanentId::default()),
@@ -518,6 +522,11 @@ impl LoadFromDatabase for ConfigValues {
                     "Jobs" => {
                         if let Some(jobs) = &mut self.jobs {
                             jobs.cfg_set_key(cfg).ok();
+                        }
+                    }
+                    "JVMOpts" => {
+                        if let Some(jvmopts) = &mut self.jvmopts {
+                            jvmopts.cfg_set_key(cfg).ok();
                         }
                     }
                     "Keycloak" => {
@@ -719,6 +728,13 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
             }
         }
 
+        // JVMOpts is optional, so check before adding it.
+        if cv.section_options.include_section("JVMOpts") {
+            if let Some(jvmopts) = cv.jvmopts {
+                cfgs.extend::<Vec<db::ConfigurationValue>>(jvmopts.into());
+            }
+        }
+
         cfgs.extend::<Vec<db::ConfigurationValue>>(cv.keycloak.into());
 
         cfgs.extend::<Vec<db::ConfigurationValue>>(cv.pgp.into());
@@ -879,6 +895,10 @@ impl ConfigValues {
             self.jobs = None;
         }
 
+        if !self.section_options.include_section("JVMOpts") {
+            self.jvmopts = None;
+        }
+
         if !self.section_options.include_section("PermanentID") {
             self.permanent_id = None;
         }
@@ -941,6 +961,10 @@ impl ConfigValues {
 
         if let Some(_jobs) = &self.jobs {
             opts.include_jobs = true;
+        }
+
+        if let Some(_jvmopts) = &self.jvmopts {
+            opts.include_jvmopts = true;
         }
 
         if let Some(_permanent_id) = &self.permanent_id {
@@ -1163,6 +1187,19 @@ impl ConfigValues {
             new_jobs.ask_for_info(tx, &theme, env_id).await?;
             self.jobs = Some(new_jobs);
             section_options.include_jobs = true;
+        }
+
+        let jvmopts_enabled = Select::with_theme(&theme)
+            .with_prompt("Include JVMOpts?")
+            .default(1)
+            .items(&["Yes", "No"])
+            .interact()?;
+
+        if jvmopts_enabled == 0 {
+            let mut new_jvmopts = config_values::jvmopts::JVMOpts::default();
+            new_jvmopts.ask_for_info(tx, &theme, env_id).await?;
+            self.jvmopts = Some(new_jvmopts);
+            section_options.include_jvmopts = true;
         }
 
         self.keycloak.ask_for_info(tx, &theme, env_id).await?;

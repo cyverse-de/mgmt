@@ -14,6 +14,7 @@ pub mod icat;
 pub mod infosquito;
 pub mod intercom;
 pub mod irods;
+pub mod jvmopts;
 pub mod keycloak;
 pub mod misc;
 pub mod qa;
