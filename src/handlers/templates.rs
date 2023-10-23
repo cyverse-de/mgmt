@@ -61,9 +61,17 @@ fn render_d(
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
     let merged_cv = defaults_values.merge_with(&env_values)?;
-    let defaults_context = tera::Context::from_serialize(merged_cv)?;
+    let defaults_context = tera::Context::from_serialize(&merged_cv)?;
 
-    println!("{:#?}", defaults_context);
+    // println!("");
+    // println!("defaults: {:#?}", defaults_values);
+    // println!("");
+    // println!("env_values: {:#?}", env_values);
+    // println!("");
+
+    // println!("Merged: {:#?}", &merged_cv);
+    // println!("");
+    // println!("{:#?}", defaults_context);
 
     let tera = new_tera_dir(templates_path)?;
 
@@ -129,11 +137,12 @@ pub fn render_template_dir(
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
     let defaults_file = fs::File::open(defaults_path)?;
-    let defaults_values: config_values::config::ConfigValues =
-        serde_yaml::from_reader(defaults_file)?;
+    let mut defaults_values: ConfigValues = serde_yaml::from_reader(defaults_file)?;
+    defaults_values.set_section_options(defaults_values.generate_section_options());
 
     let values_file = fs::File::open(values_path)?;
-    let values: config_values::config::ConfigValues = serde_yaml::from_reader(values_file)?;
+    let mut values: ConfigValues = serde_yaml::from_reader(values_file)?;
+    values.set_section_options(values.generate_section_options());
 
     Ok(render_d(
         templates_path,
@@ -152,7 +161,11 @@ pub async fn render_template_dir_from_db(
     env: &str,
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
-    let default_values: ConfigValues = db::list_default_config_values(tx, None, None).await?.into();
+    let default_values_list: Vec<db::ConfigurationValue> =
+        db::list_default_config_values(tx, None, None).await?;
+    let mut default_values: ConfigValues = default_values_list.into();
+    default_values.set_section_options(default_values.generate_section_options());
+
     let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
@@ -179,20 +192,12 @@ pub async fn render_db(
     let template_paths = db::list_templates(tx, &env).await?;
 
     println!("Getting values from the database...");
-    let default_values: ConfigValues = db::list_default_config_values(tx, None, None).await?.into();
+    let mut default_values: ConfigValues =
+        db::list_default_config_values(tx, None, None).await?.into();
+    default_values.set_section_options(default_values.generate_section_options());
     let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
-
-    let printable: Vec<db::ConfigurationValue> = env_values.clone().into();
-    for df in printable {
-        println!(
-            "Default {}.{} = {}",
-            df.section.context("wut")?,
-            df.key.context("wut2")?,
-            df.value.context("wut3")?
-        )
-    }
 
     println!("Merging defaults and values...");
     let mut defaults_context = tera::Context::from_serialize(default_values)?;

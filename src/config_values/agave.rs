@@ -4,7 +4,7 @@ use sqlx::{MySql, Transaction};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Agave {
     #[serde(skip)]

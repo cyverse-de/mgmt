@@ -3,7 +3,7 @@ use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase", rename = "JVMOpts")]
 pub struct JVMOpts {
     #[serde(skip)]
@@ -11,6 +11,8 @@ pub struct JVMOpts {
 
     high: Option<String>,
     low: Option<String>,
+
+    #[serde(rename = "UI")]
     ui: Option<String>,
 }
 
@@ -32,6 +34,7 @@ impl LoadFromDatabase for JVMOpts {
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
+            //println!("debug {} => {}", key, value);
             match key.as_str() {
                 "High" => self.high = Some(value),
                 "Low" => self.low = Some(value),

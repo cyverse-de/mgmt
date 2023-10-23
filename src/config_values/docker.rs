@@ -3,7 +3,7 @@ use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Docker {
     #[serde(skip)]

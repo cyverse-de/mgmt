@@ -3,7 +3,7 @@ use url::Url;
 
 use crate::db::{self, LoadFromDatabase};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct BaseURLs {
     #[serde(skip)]

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceFileTransfers {
     #[serde(skip)]
@@ -104,7 +104,7 @@ impl ViceFileTransfers {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct ViceDefaultBackend {
     #[serde(skip)]
@@ -190,7 +190,7 @@ impl ViceDefaultBackend {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Vice {
     #[serde(skip)]

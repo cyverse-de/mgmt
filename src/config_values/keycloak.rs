@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct KeycloakVice {
     #[serde(skip)]
@@ -108,7 +108,7 @@ impl KeycloakVice {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Keycloak {
     #[serde(skip)]

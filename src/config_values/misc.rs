@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jobs {
     #[serde(skip)]
@@ -112,7 +112,7 @@ impl Jobs {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 #[serde(rename = "PGP")]
 pub struct Pgp {
@@ -188,7 +188,7 @@ impl From<Pgp> for Vec<db::ConfigurationValue> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentIdDataCite {
     #[serde(skip)]
@@ -337,7 +337,7 @@ impl From<PermanentIdDataCite> for Vec<db::ConfigurationValue> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct PermanentId {
     #[serde(skip)]
@@ -431,7 +431,7 @@ impl From<PermanentId> for Vec<db::ConfigurationValue> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Unleash {
     #[serde(skip)]
@@ -587,7 +587,7 @@ impl Unleash {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct UserPortal {
     #[serde(skip)]
@@ -667,7 +667,7 @@ impl From<UserPortal> for Vec<db::ConfigurationValue> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Admin {
     #[serde(skip)]
@@ -768,7 +768,7 @@ impl Admin {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Analytics {
     #[serde(skip)]
@@ -877,7 +877,7 @@ impl Analytics {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Harbor {
     #[serde(skip)]
@@ -915,7 +915,6 @@ impl LoadFromDatabase for Harbor {
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            println!("debug: {} = {}", key, value);
             match key.as_str() {
                 "URL" => self.url = Some(value),
                 "ProjectQAImagePullSecretName" => {
@@ -1036,7 +1035,7 @@ impl Harbor {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Qms {
     #[serde(skip)]
@@ -1116,7 +1115,7 @@ impl Qms {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Jaeger {
     #[serde(skip)]

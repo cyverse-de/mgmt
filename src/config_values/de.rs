@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DESubscriptions {
     #[serde(skip)]
@@ -92,7 +92,7 @@ impl DESubscriptions {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DECoge {
     #[serde(skip)]
@@ -171,7 +171,7 @@ impl Default for DECoge {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DETools {
     #[serde(skip)]
@@ -299,7 +299,7 @@ impl DETools {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DEToolsAdmin {
     max_cpu_limit: Option<u32>,
@@ -317,7 +317,7 @@ impl Default for DEToolsAdmin {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct Info {
     #[serde(skip)]
@@ -415,7 +415,7 @@ impl Info {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DE {
     #[serde(skip)]

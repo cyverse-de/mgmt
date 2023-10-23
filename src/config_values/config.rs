@@ -246,7 +246,7 @@ impl SectionOptions {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfigValues {
     #[serde(skip)]
@@ -525,7 +525,12 @@ impl LoadFromDatabase for ConfigValues {
                         }
                     }
                     "JVMOpts" => {
+                        if self.jvmopts.is_none() {
+                            self.jvmopts = Some(config_values::jvmopts::JVMOpts::default());
+                        }
+
                         if let Some(jvmopts) = &mut self.jvmopts {
+                            println!("IN JVMOPTS => {:#?}", cfg);
                             jvmopts.cfg_set_key(cfg).ok();
                         }
                     }
@@ -1003,6 +1008,7 @@ impl ConfigValues {
     }
 
     pub fn merge_with(&self, second: &ConfigValues) -> anyhow::Result<ConfigValues> {
+        println!("{:#?}", self);
         let base_values: Vec<db::ConfigurationValue> = self.clone().into();
         let merge_values: Vec<db::ConfigurationValue> = second.clone().into();
         let mut merged: HashMap<String, db::ConfigurationValue> = HashMap::new();
@@ -1014,8 +1020,21 @@ impl ConfigValues {
                 bv.key.clone().context("key not set.")?
             );
 
+            //println!("base key: {}", key);
+
+            // println!(
+            //     "base values: {} => {}: {}",
+            //     key,
+            //     bv.value.clone().context("debug value")?,
+            //     bv.value_type.clone().context("debug type")?
+            // );
+
             merged.insert(key, bv);
         }
+
+        // println!("");
+        // println!("{:#?}", merged);
+        // println!("");
 
         for mv in merge_values {
             let key = format!(
@@ -1024,15 +1043,32 @@ impl ConfigValues {
                 mv.key.clone().context("key not set.")?
             );
 
+            // println!("merge key: {}", key);
+
             if merged.contains_key(&key) {
                 // Only override the default if the new value is not an empty string.
-                if mv.value.as_ref().is_some_and(|mv| !mv.is_empty()) {
+                if mv.value.as_ref().is_some_and(|mval| !mval.is_empty()) {
+                    // println!(
+                    //     "override: {} => {}: {}",
+                    //     key,
+                    //     mv.value.clone().context("debug value")?,
+                    //     mv.value_type.clone().context("debug type")?
+                    // );
                     merged.insert(key, mv);
                 }
             } else {
-                merged.insert(key, mv.clone());
+                // println!(
+                //     "insert: {} => {}: {}",
+                //     key,
+                //     mv.value.clone().context("debug value")?,
+                //     mv.value_type.clone().context("debug type")?
+                // );
+                merged.insert(key, mv);
             }
         }
+
+        // println!("");
+        // println!("after: {:#?}", merged);
 
         let new_values: Vec<db::ConfigurationValue> = merged
             .values()

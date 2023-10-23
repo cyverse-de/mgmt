@@ -3,7 +3,7 @@ use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct DatabaseConfig {
     #[serde(skip)]
@@ -174,7 +174,7 @@ impl DatabaseConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct QMSDatabaseConfig {
     #[serde(skip)]

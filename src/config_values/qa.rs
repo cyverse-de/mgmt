@@ -4,7 +4,7 @@ use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct QACeph {
     #[serde(skip)]
@@ -151,7 +151,7 @@ impl QACeph {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct QADE {
     #[serde(skip)]
@@ -367,7 +367,7 @@ impl QADE {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct QALegacy {
     #[serde(skip)]
@@ -643,7 +643,7 @@ impl QALegacy {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct QA {
     #[serde(skip)]

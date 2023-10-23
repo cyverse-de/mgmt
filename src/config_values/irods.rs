@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IrodsWebDav {
     #[serde(skip)]
@@ -86,9 +86,8 @@ impl IrodsWebDav {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "PascalCase")]
-#[serde(rename = "IRODS")]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "PascalCase", rename = "IRODS")]
 pub struct Irods {
     #[serde(skip)]
     section: String,
