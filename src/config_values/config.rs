@@ -1020,21 +1020,8 @@ impl ConfigValues {
                 bv.key.clone().context("key not set.")?
             );
 
-            //println!("base key: {}", key);
-
-            // println!(
-            //     "base values: {} => {}: {}",
-            //     key,
-            //     bv.value.clone().context("debug value")?,
-            //     bv.value_type.clone().context("debug type")?
-            // );
-
             merged.insert(key, bv);
         }
-
-        // println!("");
-        // println!("{:#?}", merged);
-        // println!("");
 
         for mv in merge_values {
             let key = format!(
@@ -1043,32 +1030,15 @@ impl ConfigValues {
                 mv.key.clone().context("key not set.")?
             );
 
-            // println!("merge key: {}", key);
-
             if merged.contains_key(&key) {
                 // Only override the default if the new value is not an empty string.
                 if mv.value.as_ref().is_some_and(|mval| !mval.is_empty()) {
-                    // println!(
-                    //     "override: {} => {}: {}",
-                    //     key,
-                    //     mv.value.clone().context("debug value")?,
-                    //     mv.value_type.clone().context("debug type")?
-                    // );
                     merged.insert(key, mv);
                 }
             } else {
-                // println!(
-                //     "insert: {} => {}: {}",
-                //     key,
-                //     mv.value.clone().context("debug value")?,
-                //     mv.value_type.clone().context("debug type")?
-                // );
                 merged.insert(key, mv);
             }
         }
-
-        // println!("");
-        // println!("after: {:#?}", merged);
 
         let new_values: Vec<db::ConfigurationValue> = merged
             .values()

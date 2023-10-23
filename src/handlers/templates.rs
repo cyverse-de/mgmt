@@ -63,16 +63,6 @@ fn render_d(
     let merged_cv = defaults_values.merge_with(&env_values)?;
     let defaults_context = tera::Context::from_serialize(&merged_cv)?;
 
-    // println!("");
-    // println!("defaults: {:#?}", defaults_values);
-    // println!("");
-    // println!("env_values: {:#?}", env_values);
-    // println!("");
-
-    // println!("Merged: {:#?}", &merged_cv);
-    // println!("");
-    // println!("{:#?}", defaults_context);
-
     let tera = new_tera_dir(templates_path)?;
 
     for name in tera.get_template_names() {
