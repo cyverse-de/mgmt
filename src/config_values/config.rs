@@ -530,7 +530,6 @@ impl LoadFromDatabase for ConfigValues {
                         }
 
                         if let Some(jvmopts) = &mut self.jvmopts {
-                            println!("IN JVMOPTS => {:#?}", cfg);
                             jvmopts.cfg_set_key(cfg).ok();
                         }
                     }
@@ -546,6 +545,10 @@ impl LoadFromDatabase for ConfigValues {
                         }
                     }
                     "Unleash" => {
+                        if self.unleash.is_none() {
+                            self.unleash = Some(config_values::misc::Unleash::default());
+                        }
+
                         if let Some(unleash) = &mut self.unleash {
                             unleash.cfg_set_key(cfg).ok();
                         }
@@ -575,6 +578,10 @@ impl LoadFromDatabase for ConfigValues {
                         self.metadata_db.cfg_set_key(cfg).ok();
                     }
                     "UnleashDB" => {
+                        if self.unleash_db.is_none() {
+                            self.unleash_db = Some(config_values::db::DatabaseConfig::default());
+                        }
+
                         if let Some(unleash_db) = &mut self.unleash_db {
                             unleash_db.cfg_set_key(cfg).ok();
                         }
@@ -1008,7 +1015,6 @@ impl ConfigValues {
     }
 
     pub fn merge_with(&self, second: &ConfigValues) -> anyhow::Result<ConfigValues> {
-        println!("{:#?}", self);
         let base_values: Vec<db::ConfigurationValue> = self.clone().into();
         let merge_values: Vec<db::ConfigurationValue> = second.clone().into();
         let mut merged: HashMap<String, db::ConfigurationValue> = HashMap::new();
@@ -1047,9 +1053,9 @@ impl ConfigValues {
             .collect();
 
         let mut new_cv = ConfigValues::from(new_values);
-
         let section_options = new_cv.generate_section_options();
         new_cv.set_section_options(section_options);
+
         Ok(new_cv)
     }
 

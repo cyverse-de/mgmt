@@ -925,7 +925,6 @@ impl LoadFromDatabase for Harbor {
                 _ => (),
             }
         }
-        println!("");
         Ok(())
     }
 }

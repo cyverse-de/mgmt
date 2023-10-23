@@ -114,7 +114,6 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
 
     if !opts.no_env && !opts.no_values {
         println!("Writing out the environment config values...");
-        println!("env: {:?}", env_config.environment);
         let values_filename = Path::new(&opts.dir).join(&opts.values_filename);
         let mut section_option = config::SectionOptions::default();
         section_option.set_all(true)?;

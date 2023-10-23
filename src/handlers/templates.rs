@@ -1,7 +1,4 @@
-use crate::{
-    config_values::{self, config::ConfigValues},
-    db,
-};
+use crate::{config_values::config::ConfigValues, db};
 use anyhow::Context;
 use base64::{engine::general_purpose, Engine as _};
 use sqlx::{MySql, Transaction};
@@ -83,18 +80,14 @@ pub fn render_template(
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
     let defaults_file = fs::File::open(defaults_path)?;
-    let defaults_values: config_values::config::ConfigValues =
-        serde_yaml::from_reader(defaults_file)?;
+    let mut default_values: ConfigValues = serde_yaml::from_reader(defaults_file)?;
+    default_values.set_section_options(default_values.generate_section_options());
 
     let values_file = fs::File::open(values_path)?;
-    let values: config_values::config::ConfigValues = serde_yaml::from_reader(values_file)?;
+    let mut values: ConfigValues = serde_yaml::from_reader(values_file)?;
+    values.set_section_options(values.generate_section_options());
 
-    Ok(render_t(
-        template_path,
-        &defaults_values,
-        &values,
-        out_path,
-    )?)
+    Ok(render_t(template_path, &default_values, &values, out_path)?)
 }
 
 /// Renders a template out to a file, using the defaults and values queried
@@ -105,10 +98,14 @@ pub async fn render_template_from_db(
     env: &str,
     out_path: &PathBuf,
 ) -> anyhow::Result<()> {
-    let default_values: ConfigValues = db::list_default_config_values(tx, None, None).await?.into();
-    let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
+    let mut default_values: ConfigValues =
+        db::list_default_config_values(tx, None, None).await?.into();
+    default_values.set_section_options(default_values.generate_section_options());
+
+    let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
+    env_values.set_section_options(env_values.generate_section_options());
 
     Ok(render_t(
         template_path,
@@ -156,9 +153,10 @@ pub async fn render_template_dir_from_db(
     let mut default_values: ConfigValues = default_values_list.into();
     default_values.set_section_options(default_values.generate_section_options());
 
-    let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
+    let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
+    env_values.set_section_options(env_values.generate_section_options());
 
     Ok(render_d(
         templates_path,
@@ -185,15 +183,16 @@ pub async fn render_db(
     let mut default_values: ConfigValues =
         db::list_default_config_values(tx, None, None).await?.into();
     default_values.set_section_options(default_values.generate_section_options());
-    let env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
+
+    let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
+    env_values.set_section_options(env_values.generate_section_options());
+
+    default_values = default_values.merge_with(&env_values)?;
 
     println!("Merging defaults and values...");
-    let mut defaults_context = tera::Context::from_serialize(default_values)?;
-    let values_context: tera::Context = tera::Context::from_serialize(env_values)?;
-
-    defaults_context.extend(values_context);
+    let defaults_context = tera::Context::from_serialize(default_values)?;
 
     let mut tera = new_tera();
     for template_path in template_paths {

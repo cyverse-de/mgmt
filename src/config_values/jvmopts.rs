@@ -34,7 +34,6 @@ impl LoadFromDatabase for JVMOpts {
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            //println!("debug {} => {}", key, value);
             match key.as_str() {
                 "High" => self.high = Some(value),
                 "Low" => self.low = Some(value),
