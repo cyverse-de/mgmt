@@ -150,6 +150,10 @@ async fn env_services_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<
     }
 }
 
+async fn env_feature_flags_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    Ok(())
+}
+
 pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     let create_cmd = sub_m
         .subcommand()
@@ -161,6 +165,7 @@ pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
         ("list", _) => env_list(&pool).await,
         ("delete", sub_m) => env_delete(&pool, &sub_m).await,
         ("service", sub_m) => env_services_handler(&pool, &sub_m).await,
+        ("feature-flags", sub_m) => env_feature_flags_handler(&pool, &sub_m).await,
         (name, _) => unreachable!("Bad subcommand: {name}"),
     }
 }

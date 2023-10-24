@@ -1,6 +1,24 @@
 use clap::{arg, ArgAction, Command};
 
 pub fn cli() -> Command {
+    let feature_flags = clap::builder::PossibleValuesParser::new([
+        "admin",
+        "analytics",
+        "agave",
+        "base-urls",
+        "cas",
+        "docker",
+        "infosquito",
+        "intercom",
+        "jaeger",
+        "jobs",
+        "jvmopts",
+        "permanent-id",
+        "qa",
+        "qms",
+        "unleash",
+    ]);
+
     Command::new("env")
         .about("Manage environments for the DE")
         .args_conflicts_with_subcommands(true)
@@ -74,5 +92,33 @@ pub fn cli() -> Command {
                             .value_parser(clap::value_parser!(String)),
                     ]),
                 ),
+        )
+        .subcommand(
+            Command::new("feature-flags")
+                .about("Manages feature flags for an environment.")
+                .subcommand(
+                    Command::new("set")
+                        .about("Set a feature flag for an environment.")
+                        .args([
+                            arg!(-e --env <ENV> "The environment to set the feature flag for.")
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                            arg!(-f --flag <FLAG> "The name of the feature flag to set.")
+                                .required(true)
+                                .value_parser(feature_flags),
+                            arg!(-v --value <VALUE> "The value to set the feature flag to.")
+                                .required(true)
+                                .value_parser(clap::builder::PossibleValuesParser::new(["true", "false"])),
+                        ])
+                )
+                .subcommand(
+                    Command::new("list")
+                        .about("List the feature flags for an environment.")
+                        .args([
+                            arg!(-e --env <ENV> "The environment to list the feature flags for.")
+                                .required(true)
+                                .value_parser(clap::value_parser!(String)),
+                        ])
+                )
         )
 }
