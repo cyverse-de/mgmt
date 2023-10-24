@@ -1038,6 +1038,7 @@ pub async fn get_namespace(tx: &mut Transaction<'_, MySql>, env: &str) -> anyhow
 
 /// Represents a set of feature flags for an environment as returned from
 /// the database.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FeatureFlags {
     pub administration: Option<bool>,
     pub analytics: Option<bool>,
@@ -1187,6 +1188,42 @@ pub async fn upsert_feature_flags(
     .await?
     .rows_affected()
         > 0)
+}
+
+/// Sets a value for a feature flag. Returns a result with the number of rows affected.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::set_feature_flag(&mut tx, "dev", "administration", true).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn set_feature_flag(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    flag: &str,
+    value: &str,
+) -> anyhow::Result<u64> {
+    // I'm unsure about this, but it should be safe for now since the flag and the value are checked against a whitelist
+    // set in clap. If this changes, this should be revisited.
+    let flag = flag.to_lowercase();
+
+    let query = format!(
+        r#"
+            UPDATE environments_features
+            INNER JOIN environments ON environments.id = environments_features.environment_id
+            SET environments_features.{} = "#,
+        flag,
+    );
+
+    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
+    builder.push_bind(value);
+    builder.push("WHERE environments.name = ");
+    builder.push_bind(env);
+
+    let result = builder.build().execute(&mut **tx).await?;
+
+    Ok(result.rows_affected())
 }
 
 /// Returns a listing of the configuration templates in use by services

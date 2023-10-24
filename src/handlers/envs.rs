@@ -150,8 +150,56 @@ async fn env_services_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<
     }
 }
 
-async fn env_feature_flags_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_feature_flags_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let env = sub_m.get_one::<String>("env").ok_or_else(|| {
+        anyhow!("No environment specified. Use --env <env> to specify an environment.")
+    })?;
+
+    let flag = sub_m
+        .get_one::<String>("flag")
+        .ok_or_else(|| anyhow!("No flag specified. Use --flag <flag> to specify a flag."))?;
+
+    let value = sub_m
+        .get_one::<String>("value")
+        .ok_or_else(|| anyhow!("No value specified. Use --value <value> to specify a value."))?;
+
+    let mut tx = pool.begin().await?;
+    db::set_feature_flag(&mut tx, &env, &flag, &value).await?;
+    tx.commit().await?;
+
+    println!(
+        "Set feature flag {} to {} for environment {}",
+        flag, value, env
+    );
+
     Ok(())
+}
+
+async fn env_feature_flags_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let env = sub_m.get_one::<String>("env").ok_or_else(|| {
+        anyhow!("No environment specified. Use --env <env> to specify an environment.")
+    })?;
+
+    let mut tx = pool.begin().await?;
+    let flags = db::get_feature_flags(&mut tx, &env).await?;
+    tx.commit().await?;
+
+    println!("Feature flags for environment {}:", env);
+    println!("{:#?}", flags);
+
+    Ok(())
+}
+
+async fn env_feature_flags_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+    let ff_cmd = sub_m
+        .subcommand()
+        .ok_or_else(|| anyhow::anyhow!("bad command"))?;
+
+    match ff_cmd {
+        ("set", sub_m) => env_feature_flags_set(&pool, &sub_m).await,
+        ("list", sub_m) => env_feature_flags_list(&pool, &sub_m).await,
+        (name, _) => unreachable!("Bad subcommand: {name}"),
+    }
 }
 
 pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
