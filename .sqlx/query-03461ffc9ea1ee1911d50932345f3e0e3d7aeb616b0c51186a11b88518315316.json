@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT DISTINCT ct.path AS `path: String`\n            FROM config_templates ct\n            JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id\n            JOIN environments_services es ON es.id = ect.environment_service_id\n            JOIN environments e ON e.id = es.environment_id\n            WHERE e.name = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path: String",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "03461ffc9ea1ee1911d50932345f3e0e3d7aeb616b0c51186a11b88518315316"
+}
