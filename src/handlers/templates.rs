@@ -1,4 +1,7 @@
-use crate::{config_values::config::ConfigValues, db};
+use crate::{
+    config_values::config::{ConfigValues, SectionOptions},
+    db,
+};
 use anyhow::Context;
 use base64::{engine::general_purpose, Engine as _};
 use sqlx::{MySql, Transaction};
@@ -105,7 +108,8 @@ pub async fn render_template_from_db(
     let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
-    env_values.set_section_options(env_values.generate_section_options());
+    let section_options: SectionOptions = db::get_feature_flags(tx, env).await?.into();
+    env_values.set_section_options(section_options);
 
     Ok(render_t(
         template_path,
@@ -156,7 +160,8 @@ pub async fn render_template_dir_from_db(
     let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
-    env_values.set_section_options(env_values.generate_section_options());
+    let section_options: SectionOptions = db::get_feature_flags(tx, env).await?.into();
+    env_values.set_section_options(section_options);
 
     Ok(render_d(
         templates_path,
@@ -187,7 +192,8 @@ pub async fn render_db(
     let mut env_values: ConfigValues = db::list_config_values(tx, Some(env), None, None)
         .await?
         .into();
-    env_values.set_section_options(env_values.generate_section_options());
+    let section_options: SectionOptions = db::get_feature_flags(tx, env).await?.into();
+    env_values.set_section_options(section_options);
 
     default_values = default_values.merge_with(&env_values)?;
 
