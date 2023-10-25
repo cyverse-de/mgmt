@@ -486,7 +486,9 @@ pub async fn import_yaml_file(
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let file = std::fs::File::open(path)?;
-    let cv: config::ConfigValues = serde_yaml::from_reader(file)?;
+    let mut cv: config::ConfigValues = serde_yaml::from_reader(file)?;
+    cv.set_section_options(cv.generate_section_options());
+
     let items: Vec<db::ConfigurationValue> = cv.into();
     for item in items.into_iter() {
         if let (Some(section), Some(key), Some(value), Some(value_type)) = (
