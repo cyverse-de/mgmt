@@ -11,7 +11,7 @@ pub struct Icat {
     section: String,
 
     host: String,
-    port: u16,
+    port: Option<u16>,
     user: String,
     password: String,
 }
@@ -22,7 +22,7 @@ impl Default for Icat {
         Icat {
             section: "ICAT".to_string(),
             host: String::new(),
-            port: 1247,
+            port: None,
             user: String::new(),
             password: String::new(),
         }
@@ -38,7 +38,7 @@ impl LoadFromDatabase for Icat {
         if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
             match key.as_str() {
                 "Host" => self.host = value,
-                "Port" => self.port = value.parse::<u16>()?,
+                "Port" => self.port = Some(value.parse::<u16>()?),
                 "User" => self.user = value,
                 "Password" => self.password = value,
                 _ => (),
@@ -67,13 +67,15 @@ impl From<Icat> for Vec<db::ConfigurationValue> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Port".to_string()),
-            value: Some(i.port.to_string()),
-            value_type: Some("int".to_string()),
-        });
+        if let Some(port) = i.port {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Port".to_string()),
+                value: Some(port.to_string()),
+                value_type: Some("int".to_string()),
+            });
+        }
 
         vec.push(db::ConfigurationValue {
             id: None,
@@ -125,7 +127,7 @@ impl Icat {
 
         let port_id = set_config_value(tx, "ICAT", "Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
-        self.port = port;
+        self.port = Some(port);
 
         let user_id = set_config_value(tx, "ICAT", "User", &user, "string").await?;
         add_env_cfg_value(tx, env_id, user_id).await?;

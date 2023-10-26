@@ -19,10 +19,10 @@ impl Default for QACeph {
     fn default() -> Self {
         QACeph {
             section: "QA".to_string(),
-            password: Some(String::new()),
-            username: Some(String::new()),
-            first_name: Some(String::new()),
-            last_name: Some(String::new()),
+            password: None,
+            username: None,
+            first_name: None,
+            last_name: None,
         }
     }
 }
@@ -169,13 +169,13 @@ impl Default for QADE {
     fn default() -> Self {
         QADE {
             section: "QA".to_string(),
-            password: Some(String::new()),
-            username: Some(String::new()),
-            first_name: Some(String::new()),
-            last_name: Some(String::new()),
-            local_user: Some(String::new()),
-            jwt_name: Some(String::new()),
-            admin_password: Some(String::new()),
+            password: None,
+            username: None,
+            first_name: None,
+            last_name: None,
+            local_user: None,
+            jwt_name: None,
+            admin_password: None,
         }
     }
 }
@@ -388,15 +388,15 @@ impl Default for QALegacy {
     fn default() -> Self {
         QALegacy {
             section: "QA".to_string(),
-            password: Some(String::new()),
-            username: Some(String::new()),
-            first_name: Some(String::new()),
-            last_name: Some(String::new()),
-            local_user: Some(String::new()),
-            jwt_name: Some(String::new()),
-            admin_password: Some(String::new()),
-            admin_password2: Some(String::new()),
-            jwt_priv_pass: Some(String::new()),
+            password: None,
+            username: None,
+            first_name: None,
+            last_name: None,
+            local_user: None,
+            jwt_name: None,
+            admin_password: None,
+            admin_password2: None,
+            jwt_priv_pass: None,
         }
     }
 }

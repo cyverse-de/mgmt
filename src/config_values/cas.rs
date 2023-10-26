@@ -21,8 +21,8 @@ impl Default for CASTerrain {
     fn default() -> Self {
         Self {
             section: "CAS".to_string(),
-            client_id: "".to_string(),
-            client_secret: "".to_string(),
+            client_id: String::new(),
+            client_secret: String::new(),
         }
     }
 }

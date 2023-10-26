@@ -67,6 +67,7 @@ impl From<Email> for Vec<db::ConfigurationValue> {
             value: Some(email.src),
             value_type: Some("string".to_string()),
         });
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -74,6 +75,7 @@ impl From<Email> for Vec<db::ConfigurationValue> {
             value: Some(email.dest),
             value_type: Some("string".to_string()),
         });
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -81,6 +83,7 @@ impl From<Email> for Vec<db::ConfigurationValue> {
             value: Some(email.perm_id_request_dest),
             value_type: Some("string".to_string()),
         });
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -88,6 +91,7 @@ impl From<Email> for Vec<db::ConfigurationValue> {
             value: Some(email.support_dest),
             value_type: Some("string".to_string()),
         });
+
         cfgs
     }
 }

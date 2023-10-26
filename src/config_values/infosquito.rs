@@ -17,8 +17,8 @@ impl Default for Infosquito {
     fn default() -> Self {
         Infosquito {
             section: "Infosquito".to_string(),
-            day_num: Some(4),
-            prefix_length: Some(4),
+            day_num: None,
+            prefix_length: None,
         }
     }
 }
@@ -51,21 +51,25 @@ impl From<Infosquito> for Vec<db::ConfigurationValue> {
             section = i.section.clone();
         }
 
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DayNum".to_string()),
-            value: Some(i.day_num.unwrap().to_string()),
-            value_type: Some("int".to_string()),
-        });
+        if let Some(day_num) = i.day_num {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("DayNum".to_string()),
+                value: Some(day_num.to_string()),
+                value_type: Some("int".to_string()),
+            });
+        }
 
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("PrefixLength".to_string()),
-            value: Some(i.prefix_length.unwrap().to_string()),
-            value_type: Some("int".to_string()),
-        });
+        if let Some(prefix_length) = i.prefix_length {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("PrefixLength".to_string()),
+                value: Some(prefix_length.to_string()),
+                value_type: Some("int".to_string()),
+            });
+        }
 
         vec
     }

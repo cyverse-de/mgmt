@@ -18,8 +18,8 @@ impl Default for Jobs {
     fn default() -> Self {
         Jobs {
             section: "Jobs".to_string(),
-            data_transfer_tag: Some("latest".into()),
-            data_transfer_image: Some(String::from("harbor.cyverse.org/de/porklock")),
+            data_transfer_tag: None,
+            data_transfer_image: None,
         }
     }
 }
@@ -208,7 +208,7 @@ impl Default for PermanentIdDataCite {
     fn default() -> Self {
         PermanentIdDataCite {
             section: "PermanentID".to_string(),
-            base_uri: Url::parse("https://api.datacite.org/").ok(),
+            base_uri: None,
             user: String::new(),
             password: String::new(),
             doi_prefix: String::new(),
@@ -453,9 +453,9 @@ impl Default for Unleash {
     fn default() -> Self {
         Unleash {
             section: "Unleash".to_string(),
-            base_url: Url::parse("http://unleash:4242").ok(),
-            api_path: Some(String::from("/api")),
-            maintenance_flag: Some(String::from("DE-Maintenance")),
+            base_url: None,
+            api_path: None,
+            maintenance_flag: None,
             api_token: String::new(),
         }
     }
@@ -681,8 +681,8 @@ impl Default for Admin {
     fn default() -> Self {
         Admin {
             section: "Admin".to_string(),
-            groups: Some(String::from("de_admins")),
-            attribute: Some(String::from("entitlement")),
+            groups: None,
+            attribute: None,
         }
     }
 }
@@ -782,8 +782,8 @@ impl Default for Analytics {
     fn default() -> Self {
         Analytics {
             section: "Analytics".to_string(),
-            enabled: Some(false),
-            id: Some(String::from("g-id")),
+            enabled: None,
+            id: None,
         }
     }
 }
@@ -900,7 +900,7 @@ impl Default for Harbor {
     fn default() -> Self {
         Harbor {
             section: "Harbor".to_string(),
-            url: Some(String::from("harbor.cyverse.org")),
+            url: None,
             project_qa_image_pull_secret_name: Some(String::new()),
             project_qa_robot_name: Some(String::new()),
             project_qa_robot_secret: Some(String::new()),
@@ -1046,8 +1046,8 @@ pub struct Qms {
 impl Default for Qms {
     fn default() -> Self {
         Qms {
-            section: "QMS".to_string(),
-            enabled: Some(true),
+            section: String::from("QMS"),
+            enabled: None,
         }
     }
 }
@@ -1128,11 +1128,8 @@ impl Default for Jaeger {
     fn default() -> Self {
         Jaeger {
             section: "Jaeger".to_string(),
-            endpoint: Url::parse("http://jaeger-collector.jaeger.svc.cluster.local:14250").ok(),
-            http_endpoint: Url::parse(
-                "http://jaeger-collector.jaeger.svc.cluster.local:14268/api/traces",
-            )
-            .ok(),
+            endpoint: None,
+            http_endpoint: None,
         }
     }
 }

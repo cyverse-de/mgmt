@@ -23,8 +23,8 @@ impl Default for DatabaseConfig {
             user: String::new(),
             password: String::new(),
             host: String::new(),
-            port: Some(5432),
-            name: Some(String::new()),
+            port: None,
+            name: None,
         }
     }
 }
@@ -88,21 +88,25 @@ impl From<DatabaseConfig> for Vec<db::ConfigurationValue> {
             value_type: Some("string".to_string()),
         });
 
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Port".to_string()),
-            value: Some(format!("{}", db_cfg.port.unwrap_or_default())),
-            value_type: Some("int".to_string()),
-        });
+        if let Some(port) = db_cfg.port {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Port".to_string()),
+                value: Some(format!("{}", port.to_string())),
+                value_type: Some("int".to_string()),
+            });
+        }
 
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Name".to_string()),
-            value: db_cfg.name,
-            value_type: Some("string".to_string()),
-        });
+        if let Some(name) = db_cfg.name {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("Name".to_string()),
+                value: Some(name),
+                value_type: Some("string".to_string()),
+            });
+        }
 
         vec
     }
@@ -218,10 +222,10 @@ impl Default for QMSDatabaseConfig {
             user: String::new(),
             password: String::new(),
             host: String::new(),
-            port: Some(5432),
-            name: Some(String::from("qms")),
-            automigrate: Some(false),
-            reinitialize: Some(false),
+            port: None,
+            name: None,
+            automigrate: None,
+            reinitialize: None,
         }
     }
 }

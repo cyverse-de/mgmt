@@ -35,7 +35,7 @@ impl Default for IrodsWebDav {
     fn default() -> Self {
         IrodsWebDav {
             section: "IRODS".to_string(),
-            anon_uri: Url::parse("https://data.cyverse.rocks/dav-anon").ok(),
+            anon_uri: None,
         }
     }
 }
@@ -60,6 +60,7 @@ impl From<IrodsWebDav> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         vec
     }
 }
@@ -254,8 +255,8 @@ impl Default for Irods {
             admin_users: Some(Vec::new()),
             perms_filter: Some(Vec::new()),
             web_dav: Some(IrodsWebDav::default()),
-            external_host: Some(String::from("data.cyverse.rocks")),
-            quota_root_resources: Some(String::from("mainIngestRes,mainReplRes")),
+            external_host: None,
+            quota_root_resources: None,
         }
     }
 }

@@ -61,6 +61,7 @@ impl From<KeycloakVice> for Vec<db::ConfigurationValue> {
             value: Some(kv.client_id),
             value_type: Some("string".to_string()),
         });
+
         vec.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -68,6 +69,7 @@ impl From<KeycloakVice> for Vec<db::ConfigurationValue> {
             value: Some(kv.client_secret),
             value_type: Some("string".to_string()),
         });
+
         vec
     }
 }

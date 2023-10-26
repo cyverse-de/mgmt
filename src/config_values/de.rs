@@ -54,6 +54,7 @@ impl From<DESubscriptions> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -61,6 +62,7 @@ impl From<DESubscriptions> for Vec<db::ConfigurationValue> {
             value: Some(subs.enforce.to_string()),
             value_type: Some("bool".to_string()),
         });
+
         cfgs
     }
 }
@@ -166,7 +168,7 @@ impl Default for DECoge {
     fn default() -> Self {
         DECoge {
             section: "DE".to_string(),
-            base_uri: Url::parse("https://genomevolution.org/coge/api/v1").ok(),
+            base_uri: None,
         }
     }
 }
@@ -218,6 +220,7 @@ impl From<DETools> for Vec<db::ConfigurationValue> {
                 value_type: Some("int".to_string()),
             });
         }
+
         if let Some(max_memory_limit) = tools.admin.max_memory_limit {
             cfgs.push(db::ConfigurationValue {
                 id: None,
@@ -227,6 +230,7 @@ impl From<DETools> for Vec<db::ConfigurationValue> {
                 value_type: Some("int".to_string()),
             });
         }
+
         if let Some(max_disk_limit) = tools.admin.max_disk_limit {
             cfgs.push(db::ConfigurationValue {
                 id: None,
@@ -236,6 +240,7 @@ impl From<DETools> for Vec<db::ConfigurationValue> {
                 value_type: Some("int".to_string()),
             });
         }
+
         cfgs
     }
 }
@@ -310,9 +315,9 @@ pub struct DEToolsAdmin {
 impl Default for DEToolsAdmin {
     fn default() -> Self {
         DEToolsAdmin {
-            max_cpu_limit: Some(24),
-            max_memory_limit: Some(75161927680),
-            max_disk_limit: Some(1099511627776),
+            max_cpu_limit: None,
+            max_memory_limit: None,
+            max_disk_limit: None,
         }
     }
 }
@@ -333,8 +338,8 @@ impl Default for Info {
     fn default() -> Self {
         Info {
             section: "DE".to_string(),
-            faq: "https://wiki.cyverse.org/wiki/display/DEmanual/FAQ".to_string(),
-            description: "CyVerse Discovery Environment".to_string(),
+            faq: String::new(),
+            description: String::new(),
         }
     }
 }
@@ -374,6 +379,7 @@ impl From<Info> for Vec<db::ConfigurationValue> {
             value: Some(info.faq),
             value_type: Some("string".to_string()),
         });
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -381,6 +387,7 @@ impl From<Info> for Vec<db::ConfigurationValue> {
             value: Some(info.description),
             value_type: Some("string".to_string()),
         });
+
         cfgs
     }
 }
@@ -446,19 +453,33 @@ impl LoadFromDatabase for DE {
                 "DefaultOutputFolder" => self.default_output_folder = Some(value),
                 _ => (),
             }
+
             if key.starts_with("Subscriptions") {
+                if self.subscriptions.is_none() {
+                    self.subscriptions = Some(DESubscriptions::default());
+                }
+
                 if let Some(subs) = &mut self.subscriptions {
+                    println!("key: {}", key);
                     subs.cfg_set_key(cfg)?;
                 }
             }
 
             if key.starts_with("Coge") {
+                if self.coge.is_none() {
+                    self.coge = Some(DECoge::default());
+                }
+
                 if let Some(coge) = &mut self.coge {
                     coge.cfg_set_key(cfg)?;
                 }
             }
 
             if key.starts_with("Tools") {
+                if self.tools.is_none() {
+                    self.tools = Some(DETools::default());
+                }
+
                 if let Some(tools) = &mut self.tools {
                     tools.cfg_set_key(cfg)?;
                 }
@@ -470,6 +491,10 @@ impl LoadFromDatabase for DE {
             }
 
             if key.starts_with("Info") {
+                if self.info.is_none() {
+                    self.info = Some(Info::default());
+                }
+
                 if let Some(info) = &mut self.info {
                     info.cfg_set_key(cfg)?;
                 }
@@ -484,9 +509,9 @@ impl Default for DE {
         DE {
             section: "DE".to_string(),
             amqp: Amqp::default(),
-            base_uri: Url::parse("https://de.cyverse.org").ok(),
-            subscriptions: Some(DESubscriptions::default()),
-            default_output_folder: Some(String::from("analyses")),
+            base_uri: None,
+            subscriptions: None,
+            default_output_folder: None,
             coge: Some(DECoge::default()),
             tools: Some(DETools::default()),
             info: Some(Info::default()),
@@ -514,6 +539,7 @@ impl From<DE> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -521,12 +547,15 @@ impl From<DE> for Vec<db::ConfigurationValue> {
             value: de.default_output_folder,
             value_type: Some("string".to_string()),
         });
+
         if let Some(subs) = de.subscriptions {
             cfgs.extend::<Vec<db::ConfigurationValue>>(subs.into());
         }
+
         if let Some(coge) = de.coge {
             cfgs.extend::<Vec<db::ConfigurationValue>>(coge.into());
         }
+
         if let Some(tools) = de.tools {
             cfgs.extend::<Vec<db::ConfigurationValue>>(tools.into());
         }

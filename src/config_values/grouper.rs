@@ -164,6 +164,7 @@ impl LoadFromDatabase for Grouper {
                 self.loader.cfg_set_key(cfg)?;
             }
         }
+
         Ok(())
     }
 }
@@ -251,6 +252,7 @@ impl Grouper {
         self.folder_name_prefix = folder_name_prefix;
 
         self.loader.ask_for_info(tx, theme, env_id).await?;
+
         Ok(())
     }
 }

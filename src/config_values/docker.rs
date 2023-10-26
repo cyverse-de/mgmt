@@ -57,6 +57,7 @@ impl From<Docker> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         cfgs.push(db::ConfigurationValue {
             id: None,
             section: Some(section.clone()),
@@ -64,6 +65,7 @@ impl From<Docker> for Vec<db::ConfigurationValue> {
             value: Some(docker.tag),
             value_type: Some("string".to_string()),
         });
+
         cfgs
     }
 }
@@ -72,11 +74,8 @@ impl Default for Docker {
     fn default() -> Self {
         Docker {
             section: "Docker".to_string(),
-            tag: String::from("latest"),
-            trusted_registries: Some(vec![
-                String::from("harbor.cyverse.org"),
-                String::from("docker.cyverse.org"),
-            ]),
+            tag: String::new(),
+            trusted_registries: None,
         }
     }
 }

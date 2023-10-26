@@ -20,9 +20,9 @@ impl Default for JVMOpts {
     fn default() -> Self {
         JVMOpts {
             section: "JVMOpts".to_string(),
-            high: Some(String::new()),
-            low: Some(String::new()),
-            ui: Some(String::new()),
+            high: None,
+            low: None,
+            ui: None,
         }
     }
 }

@@ -12,7 +12,7 @@ pub struct Amqp {
     user: String,
     password: String,
     host: String,
-    port: u16,
+    port: Option<u16>,
     vhost: String,
 }
 
@@ -24,7 +24,7 @@ impl Default for Amqp {
             user: String::new(),
             password: String::new(),
             host: String::new(),
-            port: 5672,
+            port: None,
             vhost: String::new(),
         }
     }
@@ -68,14 +68,15 @@ impl From<Amqp> for Vec<db::ConfigurationValue> {
         });
 
         // Add port configuration
-        vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AMQP.Port".to_string()),
-            value: Some(amqp.port.to_string()),
-            value_type: Some("int".to_string()),
-        });
-
+        if let Some(port) = amqp.port {
+            vec.push(db::ConfigurationValue {
+                id: None,
+                section: Some(section.clone()),
+                key: Some("AMQP.Port".to_string()),
+                value: Some(port.to_string()),
+                value_type: Some("int".to_string()),
+            });
+        }
         // Add vhost configuration
         vec.push(db::ConfigurationValue {
             id: None,
@@ -100,7 +101,7 @@ impl LoadFromDatabase for Amqp {
                 "AMQP.User" => self.user = value,
                 "AMQP.Password" => self.password = value,
                 "AMQP.Host" => self.host = value,
-                "AMQP.Port" => self.port = value.parse::<u16>()?,
+                "AMQP.Port" => self.port = Some(value.parse::<u16>()?),
                 "AMQP.Vhost" => self.vhost = value,
                 _ => (),
             }
@@ -159,7 +160,7 @@ impl Amqp {
         let port_id =
             set_config_value(tx, &self.section, "AMQP.Port", &port.to_string(), "int").await?;
         add_env_cfg_value(tx, env_id, port_id).await?;
-        self.port = port;
+        self.port = Some(port);
 
         let vhost_id = set_config_value(tx, &self.section, "AMQP.Vhost", &vhost, "string").await?;
         add_env_cfg_value(tx, env_id, vhost_id).await?;

@@ -17,8 +17,8 @@ impl Default for ViceFileTransfers {
     fn default() -> Self {
         ViceFileTransfers {
             section: "VICE".to_string(),
-            image: Some(String::from("harbor.cyverse.org/de/vice-file-transfers")),
-            tag: Some(String::from("latest")),
+            image: None,
+            tag: None,
         }
     }
 }
@@ -60,6 +60,7 @@ impl From<ViceFileTransfers> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         if let Some(tag) = vft.tag {
             vec.push(db::ConfigurationValue {
                 id: None,
@@ -69,6 +70,7 @@ impl From<ViceFileTransfers> for Vec<db::ConfigurationValue> {
                 value_type: Some("string".to_string()),
             });
         }
+
         vec
     }
 }
@@ -117,7 +119,7 @@ impl Default for ViceDefaultBackend {
     fn default() -> Self {
         ViceDefaultBackend {
             section: "VICE".to_string(),
-            loading_page_template_string: String::from(""),
+            loading_page_template_string: String::new(),
         }
     }
 }
@@ -157,6 +159,7 @@ impl From<ViceDefaultBackend> for Vec<db::ConfigurationValue> {
             value: Some(vdb.loading_page_template_string),
             value_type: Some("string".to_string()),
         });
+
         vec
     }
 }
@@ -218,28 +221,12 @@ impl Default for Vice {
             section: "VICE".to_string(),
             base_uri: None,
             file_transfers: Some(ViceFileTransfers::default()),
-            image_pull_secret: Some(String::from("vice-image-pull-secret")),
-            image_cache: Some(vec![
-                String::from("harbor.cyverse.org/de/vice-proxy:latest"),
-                String::from("harbor.cyverse.org/de/porklock:latest"),
-                String::from("harbor.cyverse.org/de/vice-file-transfers:latest"),
-                String::from("harbor.cyverse.org/vice/cli/bash:latest"),
-                String::from("harbor.cyverse.org/legacy/datahog:beta"),
-                String::from("harbor.cyverse.org/vice/jupyter/datascience:latest"),
-                String::from("harbor.cyverse.org/vice/jupyter/rstudio:latest"),
-                String::from("harbor.cyverse.org/vice/jupyter/geospatial:latest"),
-                String::from("harbor.cyverse.org/vice/rstudio/rstudio"),
-                String::from("harbor.cyverse.org/vice/rstudio/geospatial:latest"),
-                String::from("harbor.cyverse.org/vice/rstudio/verse:latest"),
-                String::from("harbor.cyverse.org/vice/rstudio/verse:latest"),
-                String::from("harbor.cyverse.org/vice/vscode:latest"),
-                String::from("harbor.cyverse.org/vice/xpra/qgis:20.04"),
-                String::from("harbor.cyverse.org/vice/rstudio/stan:latest"),
-            ]),
-            use_csi_driver: Some(true),
-            default_cas_url: Some(String::from("https://auth.cyverse.org/cas5")),
-            default_cas_validate: Some(String::from("validate")),
-            use_case_chars_min: Some(60),
+            image_pull_secret: None,
+            image_cache: None,
+            use_csi_driver: None,
+            default_cas_url: None,
+            default_cas_validate: None,
+            use_case_chars_min: None,
             default_backend: ViceDefaultBackend::default(),
         }
     }
