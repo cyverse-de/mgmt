@@ -460,7 +460,6 @@ impl LoadFromDatabase for DE {
                 }
 
                 if let Some(subs) = &mut self.subscriptions {
-                    println!("key: {}", key);
                     subs.cfg_set_key(cfg)?;
                 }
             }
