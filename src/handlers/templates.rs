@@ -197,8 +197,6 @@ pub async fn render_db(
 
     default_values = default_values.merge_with(&env_values)?;
 
-    println!("{:#?}", env_values);
-
     println!("Merging defaults and values...");
     let defaults_context = tera::Context::from_serialize(default_values)?;
 
