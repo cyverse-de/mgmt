@@ -283,13 +283,24 @@ pub async fn set_value(
         .ok_or_else(|| anyhow::anyhow!("No environment found with name: {environment}"))?;
 
     let has_default = db::has_default_config_value(&mut tx, section, &key).await?;
+    let has_config_value = db::has_config_value(&mut tx, environment, section, &key).await?;
+
     if has_default {
-        let cfg_id = db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
-        db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
-        println!(
-            "Added config value to environment '{}': {}.{} = {}",
-            environment, section, key, value
-        );
+        if !has_config_value {
+            let cfg_id = db::set_config_value(&mut tx, section, &key, &value, &value_type).await?;
+            db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
+            println!(
+                "Added config value to environment '{}': {}.{} = {}",
+                environment, section, key, value
+            );
+        } else {
+            db::update_env_cfg_value(&mut tx, &environment, &section, &key, &value, &value_type)
+                .await?;
+            println!(
+                "Updated config value in environment '{}': {}.{} = {}",
+                environment, section, key, value
+            );
+        }
     } else {
         tx.rollback().await?;
         return Err(anyhow!(

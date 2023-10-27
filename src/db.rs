@@ -1,6 +1,7 @@
 //! # Database Access
 //!
 //! This module contains all the database access code for the application.
+use anyhow::Context;
 use sqlx::{MySql, Row, Transaction};
 
 /// Represents a single configuration value as stored in the database.
@@ -755,6 +756,45 @@ pub async fn add_env_cfg_value(
         .execute(&mut **tx)
         .await?
         .last_insert_id())
+}
+
+/// Updates a configuration value in an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::update_env_cfg_value(&mut tx, 1, 1).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn update_env_cfg_value(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    section: &str,
+    key: &str,
+    value: &str,
+    val_type: &str,
+) -> anyhow::Result<()> {
+    let cfg_id = get_config_value(tx, env, section, key)
+        .await?
+        .id
+        .context("Failed to get config value id")?;
+
+    sqlx::query!(
+        r#"
+            UPDATE config_values
+            SET
+                cfg_value = ?,
+                value_type_id = (SELECT id FROM config_value_types WHERE name = ?)
+            WHERE id = ?
+        "#,
+        value,
+        val_type,
+        cfg_id
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
 }
 
 /// Represents a single service as stored in the database.
