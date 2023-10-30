@@ -103,7 +103,10 @@ pub struct Irods {
     admin_users: Option<Vec<String>>,
     perms_filter: Option<Vec<String>>,
     pub external_host: Option<String>,
+
+    #[serde(rename = "WebDAV")]
     web_dav: Option<IrodsWebDav>,
+
     quota_root_resources: Option<String>,
 }
 
@@ -229,6 +232,10 @@ impl LoadFromDatabase for Irods {
             }
 
             if key.starts_with("WebDAV") {
+                if self.web_dav.is_none() {
+                    self.web_dav = Some(IrodsWebDav::default());
+                }
+
                 if let Some(web_dav) = self.web_dav.as_mut() {
                     web_dav.cfg_set_key(cfg)?;
                 }
