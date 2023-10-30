@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            UPDATE config_values\n            SET\n                cfg_value = ?,\n                value_type_id = (SELECT id FROM config_value_types WHERE name = ?)\n            WHERE id = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "26a2ba2a090c42ca1049be51035f3b79917f6ec1d3583b0abae1862e07557517"
+}
