@@ -3,6 +3,7 @@
 //! This module contains all the database access code for the application.
 use anyhow::Context;
 use sqlx::{MySql, Row, Transaction};
+use std::path::PathBuf;
 
 /// Represents a single configuration value as stored in the database.
 #[derive(
@@ -1409,4 +1410,70 @@ pub async fn copy_service_template_to_env(
     .await?;
 
     Ok(())
+}
+
+/// Adds a configuration template to the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_template(&mut tx, repo_id: u64, path: &PathBuf).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn add_template(
+    tx: &mut Transaction<'_, MySql>,
+    repo_id: u64,
+    path: &PathBuf,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+            INSERT INTO config_templates (repo_id, path) VALUES (?, ?)
+        "#,
+        repo_id,
+        path.to_str().context("Failed to convert path to string")?
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
+}
+
+/// Adds a configuration template to a service in an environment.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_template_to_service(&mut tx, "dev", "dashboard-aggregator", 1).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn add_template_to_service(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    service_name: &str,
+    config_template_id: u64,
+    render_path: &str,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+            INSERT INTO environments_services_config_templates
+                (environment_service_id, config_template_id, path)
+            VALUES
+                (
+                    (
+                        SELECT id 
+                        FROM environments_services
+                        WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
+                        AND service_id = (SELECT id FROM services WHERE name = ?)
+                    ),
+                    ?,
+                    ?
+                )
+        "#,
+        env,
+        service_name,
+        config_template_id,
+        render_path
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
 }

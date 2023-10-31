@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO config_templates (repo_id, path) VALUES (?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "6507f5ed0a47f0afe463d2469bc9ed6f40e92f90284df6c6a09928f2f913410d"
+}

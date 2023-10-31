@@ -1,4 +1,4 @@
-use clap::{arg, Command};
+use clap::{arg, ArgAction, Command};
 use std::path::PathBuf;
 
 pub fn cli() -> Command {
@@ -85,6 +85,25 @@ pub fn cli() -> Command {
                     arg!(-o --output [OUTPUT] "Path to the output directory")
                         .required(true)
                         .value_parser(clap::value_parser!(PathBuf)),
+                ])
+        )
+        .subcommand(
+            Command::new("assoc")
+                .about("Associates a template with a service in an environment.")
+                .args([
+                    arg!(-t --template [TEMPLATE] "A path to a template")
+                        .required(true)
+                        .action(ArgAction::Append)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-s --service [SERVICE] "The name of a service")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-e --environment [ENVIRONMENT] "The name of an environment")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                    arg!(-r --repo-id [REPO_ID] "The ID of the repo the template is in")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
                 ])
         )
 }

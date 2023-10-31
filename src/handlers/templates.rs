@@ -256,3 +256,22 @@ pub async fn render_db(
 
     Ok(())
 }
+
+pub async fn assoc_template(
+    tx: &mut Transaction<'_, MySql>,
+    env: &str,
+    repo_id: u64,
+    svc_name: &str,
+    templates: &[PathBuf],
+) -> anyhow::Result<()> {
+    for template in templates {
+        let render_path = template
+            .file_name()
+            .context("failed to get the filename")?
+            .to_str()
+            .context("failed to convert the filename to a string")?;
+        let tmpl_id = db::add_template(tx, repo_id, template).await?;
+        db::add_template_to_service(tx, env, svc_name, tmpl_id, render_path).await?;
+    }
+    Ok(())
+}
