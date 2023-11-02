@@ -212,6 +212,31 @@ async fn main() -> Result<()> {
                 tx.commit().await?;
             }
 
+            Some(("assoc", sub_m)) => {
+                let env = sub_m.get_one::<String>("environment").context(
+                    "No environment specified. Use --environment <name> to specify an environment.",
+                )?;
+
+                let repo_id = sub_m.get_one::<u64>("repo-id").context(
+                    "No repository name specified. Use --repo-name <name> to specify a repository name.",
+                )?;
+
+                let svc_name = sub_m.get_one::<String>("service").context(
+                    "No service name specified. Use --service <name> to specify a service name.",
+                )?;
+
+                let templates = sub_m
+                    .get_many::<String>("template")
+                    .unwrap_or_default()
+                    .map(|s| PathBuf::from(s))
+                    .collect::<Vec<PathBuf>>();
+
+                let mut tx = pool.begin().await?;
+                handlers::templates::assoc_template(&mut tx, &env, *repo_id, &svc_name, &templates)
+                    .await?;
+                tx.commit().await?;
+            }
+
             _ => unreachable!("Bad templates subcommand"),
         },
 

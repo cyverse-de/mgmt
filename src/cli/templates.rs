@@ -103,7 +103,7 @@ pub fn cli() -> Command {
                         .value_parser(clap::value_parser!(String)),
                     arg!(-r --repo-id [REPO_ID] "The ID of the repo the template is in")
                         .required(true)
-                        .value_parser(clap::value_parser!(String)),
+                        .value_parser(clap::value_parser!(u64)),
                 ])
         )
 }
