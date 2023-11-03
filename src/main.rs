@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{arg, Command};
-use mgmt::cli::{configs, container_images, deploy, envs, release, services, site, templates};
+use mgmt::cli::{
+    configs, container_images, deploy, envs, release, repos, services, site, templates,
+};
 use mgmt::handlers;
 use mgmt::{app, db};
 use sqlx::mysql::MySqlPoolOptions;
@@ -29,6 +31,7 @@ async fn main() -> Result<()> {
         .subcommand(templates::cli())
         .subcommand(services::cli())
         .subcommand(envs::cli())
+        .subcommand(repos::cli())
         .get_matches();
 
     let database_url = commands.get_one::<String>("database-url").context(
@@ -267,6 +270,49 @@ async fn main() -> Result<()> {
         },
 
         Some(("env", sub_m)) => handlers::envs::env(&pool, &sub_m).await?,
+
+        Some(("repos", sub_m)) => match sub_m.subcommand() {
+            Some(("list", _)) => {
+                let mut tx = pool.begin().await?;
+                let repo_list = db::list_repos(&mut tx).await?;
+                tx.commit().await?;
+
+                println!("{}", Table::new(&repo_list).to_string());
+            }
+
+            Some(("add", sub_m)) => {
+                let name = sub_m.get_one::<String>("name").context(
+                    "No repository name specified. Use --name <name> to specify a repository name.",
+                )?;
+
+                let url = sub_m.get_one::<url::Url>("url").context(
+                    "No repository URL specified. Use --url <url> to specify a repository URL.",
+                )?;
+
+                let revision = sub_m.get_one::<String>("revision").context(
+                    "No repository revision specified. Use --revision <revision> to specify a repository revision.",
+                )?;
+
+                let mut tx = pool.begin().await?;
+                let new_id = db::add_repo(&mut tx, &name, &url, &revision).await?;
+                tx.commit().await?;
+
+                println!("Added repository {} with ID {}", name, new_id);
+            }
+
+            Some(("delete", sub_m)) => {
+                let id = sub_m.get_one::<u64>("id").context(
+                    "No repository ID specified. Use --id <id> to specify a repository ID.",
+                )?;
+
+                let mut tx = pool.begin().await?;
+                db::delete_repo(&mut tx, *id).await?;
+                tx.commit().await?;
+
+                println!("Deleted repository with ID {}", id);
+            }
+            _ => unreachable!("Bad repos subcommand"),
+        },
 
         _ => unreachable!("Bad subcommand"),
     };

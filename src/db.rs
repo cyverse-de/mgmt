@@ -1565,3 +1565,113 @@ pub async fn list_template_info(
 
     Ok(results)
 }
+
+#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Repo {
+    pub id: Option<u64>,
+    pub name: Option<String>,
+    pub url: Option<String>,
+    pub revision: Option<String>,
+}
+
+#[derive(tabled::Tabled, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TableRepo {
+    pub id: u64,
+    pub name: String,
+    pub url: String,
+    pub revision: String,
+}
+
+impl From<Repo> for TableRepo {
+    fn from(repo: Repo) -> Self {
+        Self {
+            id: repo.id.unwrap_or_default(),
+            name: repo.name.unwrap_or_default(),
+            url: repo.url.unwrap_or_default(),
+            revision: repo.revision.unwrap_or_default(),
+        }
+    }
+}
+
+/// Lists repositories contained in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::list_repos(&mut tx).await?;
+/// tx.commit().await?;
+///
+/// for repo in result {
+///  println!("{}", repo);
+/// }
+/// ```
+pub async fn list_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<TableRepo>> {
+    let repos: Vec<TableRepo> = sqlx::query_as!(
+        Repo,
+        r#"
+            SELECT 
+                repos.id AS `id: u64`, 
+                repos.name AS `name: String`, 
+                repos.url AS `url: String`, 
+                repos.revision AS `revision: String`
+            FROM repos
+        "#
+    )
+    .fetch_all(&mut **tx)
+    .await?
+    .into_iter()
+    .map(|r| r.into())
+    .collect();
+
+    Ok(repos)
+}
+
+/// Adds a repo to the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::add_repo(&mut tx, "name", "url", "revision").await?;
+/// tx.commit().await?;
+///
+/// println!("{}", result);
+/// ```
+pub async fn add_repo(
+    tx: &mut Transaction<'_, MySql>,
+    name: &str,
+    url: &url::Url,
+    revision: &str,
+) -> anyhow::Result<u64> {
+    Ok(sqlx::query!(
+        r#"
+            INSERT INTO repos (name, url, revision) VALUES (?, ?, ?)
+        "#,
+        name,
+        url.as_str(),
+        revision
+    )
+    .execute(&mut **tx)
+    .await?
+    .last_insert_id())
+}
+
+/// Deletes a repo from the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let result = db::delete_repo(&mut tx, 1).await?;
+/// tx.commit().await?;
+/// ```
+pub async fn delete_repo(tx: &mut Transaction<'_, MySql>, id: u64) -> anyhow::Result<()> {
+    sqlx::query!(
+        r#"
+            DELETE FROM repos WHERE id = ?
+        "#,
+        id
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}

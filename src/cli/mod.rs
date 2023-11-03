@@ -3,6 +3,7 @@ pub mod container_images;
 pub mod deploy;
 pub mod envs;
 pub mod release;
+pub mod repos;
 pub mod services;
 pub mod site;
 pub mod templates;
