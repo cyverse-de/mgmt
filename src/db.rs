@@ -799,7 +799,7 @@ pub async fn update_env_cfg_value(
 }
 
 /// Represents a single service as stored in the database.
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Service {
     pub name: Option<String>,
     pub id: Option<i64>,
@@ -1476,4 +1476,87 @@ pub async fn add_template_to_service(
     .execute(&mut **tx)
     .await?
     .last_insert_id())
+}
+
+#[derive(tabled::Tabled, Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TemplateInfo {
+    pub environment: String,
+    pub service_id: u64,
+    pub service_name: String,
+    pub repo_id: u64,
+    pub repo_name: String,
+    pub repo_url: String,
+    pub repo_revision: String,
+    pub template_id: u64,
+    pub template_path: String,
+}
+
+/// Returns a listing of the configuration templates in the database.
+///
+/// # Examples
+/// ```ignore
+/// let mut tx = db.begin().await?;
+/// let mut templates: Vec<String> = Vec::new();
+/// templates.push(String::from("templates/website.conf"));
+/// templates.push(String::from("templates/website2.conf"));
+/// let result = db::list_template_info(tx, templates).await?;
+/// tx.commit().await?;
+///
+/// for template in result {
+///   println!("{:#?}", template);
+/// }
+/// ```
+pub async fn list_template_info(
+    tx: &mut Transaction<'_, MySql>,
+    template_paths: &[String],
+) -> anyhow::Result<Vec<TemplateInfo>> {
+    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(String::from(
+        r#"
+            SELECT
+                e.name AS `environment: String`,
+                s.id AS `service_id: u64`,
+                s.name AS `service_name: String`,
+                r.id AS `repo_id: u64`,
+                r.name AS `repo_name: String`,
+                r.url AS `repo_url: String`,
+                r.revision AS `repo_revision: String`,
+                ct.id AS `template_id: u64`,
+                ct.path AS `template_path: String`
+            FROM environments e
+            INNER JOIN environments_services es ON e.id = es.environment_id
+            INNER JOIN services s ON es.service_id = s.id
+            INNER JOIN repos r ON s.repo_id = r.id
+            INNER JOIN environments_services_config_templates esct ON es.id = esct.environment_service_id
+            INNER JOIN config_templates ct ON esct.config_template_id = ct.id
+            WHERE ct.path IN (
+        "#,
+    ));
+
+    for template_path in template_paths {
+        builder.push_bind(template_path);
+        builder.push(", ");
+    }
+
+    builder.push(")");
+
+    let query = builder.build();
+
+    let results = query
+        .fetch_all(&mut **tx)
+        .await?
+        .iter()
+        .map(|r| TemplateInfo {
+            environment: r.try_get("environment").unwrap_or_default(),
+            service_id: r.try_get("service_id").unwrap_or_default(),
+            service_name: r.try_get("service_name").unwrap_or_default(),
+            repo_id: r.try_get("repo_id").unwrap_or_default(),
+            repo_name: r.try_get("repo_name").unwrap_or_default(),
+            repo_url: r.try_get("repo_url").unwrap_or_default(),
+            repo_revision: r.try_get("repo_revision").unwrap_or_default(),
+            template_id: r.try_get("template_id").unwrap_or_default(),
+            template_path: r.try_get("template_path").unwrap_or_default(),
+        })
+        .collect();
+
+    Ok(results)
 }

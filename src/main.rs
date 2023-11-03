@@ -2,10 +2,11 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{arg, Command};
-use mgmt::app;
 use mgmt::cli::{configs, container_images, deploy, envs, release, services, site, templates};
 use mgmt::handlers;
+use mgmt::{app, db};
 use sqlx::mysql::MySqlPoolOptions;
+use tabled::Table;
 use which::which;
 
 #[tokio::main]
@@ -235,6 +236,20 @@ async fn main() -> Result<()> {
                 handlers::templates::assoc_template(&mut tx, &env, *repo_id, &svc_name, &templates)
                     .await?;
                 tx.commit().await?;
+            }
+
+            Some(("list", sub_m)) => {
+                let templates = sub_m
+                    .get_many::<String>("template")
+                    .unwrap_or_default()
+                    .map(|s| s.to_owned())
+                    .collect::<Vec<String>>();
+
+                let mut tx = pool.begin().await?;
+                let template_entries = db::list_template_info(&mut tx, &templates).await?;
+                tx.commit().await?;
+
+                println!("{}", Table::new(&template_entries).to_string());
             }
 
             _ => unreachable!("Bad templates subcommand"),

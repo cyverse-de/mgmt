@@ -106,4 +106,13 @@ pub fn cli() -> Command {
                         .value_parser(clap::value_parser!(u64)),
                 ])
         )
+        .subcommand(
+            Command::new("list")
+                .about("List the services, repos, and environments associated with a template a template.")
+                .args([
+                    arg!(-t --template [TEMPLATE] "A path to a template")
+                        .required(true)
+                        .value_parser(clap::value_parser!(String)),
+                ])
+        )
 }
