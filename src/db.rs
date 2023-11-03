@@ -1513,15 +1513,15 @@ pub async fn list_template_info(
     let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(String::from(
         r#"
             SELECT
-                e.name AS `environment: String`,
-                s.id AS `service_id: u64`,
-                s.name AS `service_name: String`,
-                r.id AS `repo_id: u64`,
-                r.name AS `repo_name: String`,
-                r.url AS `repo_url: String`,
-                r.revision AS `repo_revision: String`,
-                ct.id AS `template_id: u64`,
-                ct.path AS `template_path: String`
+                e.name AS environment,
+                s.id AS service_id,
+                s.name AS service_name,
+                r.id AS repo_id,
+                r.name AS repo_name,
+                r.url AS repo_url,
+                r.revision AS repo_revision,
+                ct.id AS template_id,
+                ct.path AS template_path
             FROM environments e
             INNER JOIN environments_services es ON e.id = es.environment_id
             INNER JOIN services s ON es.service_id = s.id
@@ -1532,10 +1532,15 @@ pub async fn list_template_info(
         "#,
     ));
 
-    for template_path in template_paths {
-        builder.push_bind(template_path);
-        builder.push(", ");
-    }
+    template_paths
+        .into_iter()
+        .enumerate()
+        .for_each(|(i, template_path)| {
+            if i > 0 {
+                builder.push(", ");
+            }
+            builder.push_bind(template_path);
+        });
 
     builder.push(")");
 

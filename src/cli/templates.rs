@@ -101,7 +101,7 @@ pub fn cli() -> Command {
                     arg!(-e --environment [ENVIRONMENT] "The name of an environment")
                         .required(true)
                         .value_parser(clap::value_parser!(String)),
-                    arg!(-r --repo-id [REPO_ID] "The ID of the repo the template is in")
+                    arg!(-r --"repo-id" [REPO_ID] "The ID of the repo the template is in")
                         .required(true)
                         .value_parser(clap::value_parser!(u64)),
                 ])
