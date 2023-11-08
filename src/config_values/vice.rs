@@ -209,8 +209,8 @@ pub struct Vice {
     #[serde(rename = "UseCSIDriver")]
     use_csi_driver: Option<bool>,
 
-    default_cas_url: Option<String>,
-    default_cas_validate: Option<String>,
+    // default_cas_url: Option<String>,
+    // default_cas_validate: Option<String>,
     use_case_chars_min: Option<u32>,
     default_backend: ViceDefaultBackend,
 }
@@ -224,8 +224,8 @@ impl Default for Vice {
             image_pull_secret: None,
             image_cache: None,
             use_csi_driver: None,
-            default_cas_url: None,
-            default_cas_validate: None,
+            // default_cas_url: None,
+            // default_cas_validate: None,
             use_case_chars_min: None,
             default_backend: ViceDefaultBackend::default(),
         }
@@ -256,8 +256,8 @@ impl LoadFromDatabase for Vice {
                     self.image_cache = Some(value.split(',').map(|s| s.to_string()).collect())
                 }
                 "UseCSIDriver" => self.use_csi_driver = Some(value.parse::<bool>()?),
-                "DefaultCasUrl" => self.default_cas_url = Some(value),
-                "DefaultCasValidate" => self.default_cas_validate = Some(value),
+                // "DefaultCasUrl" => self.default_cas_url = Some(value),
+                // "DefaultCasValidate" => self.default_cas_validate = Some(value),
                 "UseCaseCharsMin" => self.use_case_chars_min = Some(value.parse::<u32>()?),
                 "DefaultBackend.LoadingPageTemplateString" => {
                     self.default_backend.loading_page_template_string = value
@@ -324,25 +324,25 @@ impl From<Vice> for Vec<db::ConfigurationValue> {
             });
         }
 
-        if let Some(dcu) = v.default_cas_url {
-            vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DefaultCasUrl".to_string()),
-                value: Some(dcu),
-                value_type: Some("string".to_string()),
-            });
-        }
+        // if let Some(dcu) = v.default_cas_url {
+        //     vec.push(db::ConfigurationValue {
+        //         id: None,
+        //         section: Some(section.clone()),
+        //         key: Some("DefaultCasUrl".to_string()),
+        //         value: Some(dcu),
+        //         value_type: Some("string".to_string()),
+        //     });
+        // }
 
-        if let Some(dcv) = v.default_cas_validate {
-            vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DefaultCasValidate".to_string()),
-                value: Some(dcv),
-                value_type: Some("string".to_string()),
-            });
-        }
+        // if let Some(dcv) = v.default_cas_validate {
+        //     vec.push(db::ConfigurationValue {
+        //         id: None,
+        //         section: Some(section.clone()),
+        //         key: Some("DefaultCasValidate".to_string()),
+        //         value: Some(dcv),
+        //         value_type: Some("string".to_string()),
+        //     });
+        // }
 
         if let Some(ucm) = v.use_case_chars_min {
             vec.push(db::ConfigurationValue {
@@ -384,15 +384,15 @@ impl Vice {
             )
             .interact()?;
 
-        let default_cas_url = Input::<String>::with_theme(theme)
-            .with_prompt("Vice Default CAS URL")
-            .default("https://auth.cyverse.org/cas5".into())
-            .interact()?;
+        // let default_cas_url = Input::<String>::with_theme(theme)
+        //     .with_prompt("Vice Default CAS URL")
+        //     .default("https://auth.cyverse.org/cas5".into())
+        //     .interact()?;
 
-        let default_cas_validate = Input::<String>::with_theme(theme)
-            .with_prompt("Vice Default CAS Validate")
-            .default("validate".into())
-            .interact()?;
+        // let default_cas_validate = Input::<String>::with_theme(theme)
+        //     .with_prompt("Vice Default CAS Validate")
+        //     .default("validate".into())
+        //     .interact()?;
 
         let use_csi_data = Select::with_theme(theme)
             .with_prompt("Vice Use CSI Driver")
@@ -427,21 +427,21 @@ impl Vice {
         add_env_cfg_value(tx, env_id, image_cache_id).await?;
         self.image_cache = Some(image_cache.split(',').map(|s| s.to_string()).collect());
 
-        let default_cas_url_id =
-            set_config_value(tx, "VICE", "DefaultCasUrl", &default_cas_url, "string").await?;
-        add_env_cfg_value(tx, env_id, default_cas_url_id).await?;
-        self.default_cas_url = Some(default_cas_url);
+        // let default_cas_url_id =
+        //     set_config_value(tx, "VICE", "DefaultCasUrl", &default_cas_url, "string").await?;
+        // add_env_cfg_value(tx, env_id, default_cas_url_id).await?;
+        // self.default_cas_url = Some(default_cas_url);
 
-        let default_cas_validate_id = set_config_value(
-            tx,
-            "VICE",
-            "DefaultCasValidate",
-            &default_cas_validate,
-            "string",
-        )
-        .await?;
-        add_env_cfg_value(tx, env_id, default_cas_validate_id).await?;
-        self.default_cas_validate = Some(default_cas_validate);
+        // let default_cas_validate_id = set_config_value(
+        //     tx,
+        //     "VICE",
+        //     "DefaultCasValidate",
+        //     &default_cas_validate,
+        //     "string",
+        // )
+        // .await?;
+        // add_env_cfg_value(tx, env_id, default_cas_validate_id).await?;
+        // self.default_cas_validate = Some(default_cas_validate);
 
         let use_case_chars_min_id = set_config_value(
             tx,
