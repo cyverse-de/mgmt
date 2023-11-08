@@ -4,38 +4,27 @@ use std::path::PathBuf;
 pub fn cli() -> Command {
     Command::new("configs")
         .about("Manages config values files for the DE")
-        .args_conflicts_with_subcommands(true)
         .subcommand_required(true)
-        .arg(
-            arg!(-d --"database-url" <DATABASE>)
-                .default_value("mysql://root@127.0.0.1:3306/de_releases")
-                .value_parser(clap::value_parser!(String)),
-        )
         .subcommand(
             Command::new("sections")
-                .args_conflicts_with_subcommands(true)
                 .subcommand(
                     Command::new("add")
-                        .args_conflicts_with_subcommands(true)
                         .args([arg!(-s --"section" <SECTION>)
                             .required(true)
                             .value_parser(clap::value_parser!(String))]),
                 )
                 .subcommand(
                     Command::new("delete")
-                        .args_conflicts_with_subcommands(true)
                         .args([arg!(-s --"section" <SECTION>)
                             .required(true)
                             .value_parser(clap::value_parser!(String))]),
                 )
-                .subcommand(Command::new("list").args_conflicts_with_subcommands(true)),
+                .subcommand(Command::new("list")),
         )
         .subcommand(
             Command::new("values")
-                .args_conflicts_with_subcommands(true)
                 .subcommand(
                     Command::new("set")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
@@ -60,7 +49,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("get")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
@@ -75,7 +63,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("delete")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(true)
@@ -90,7 +77,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("list")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-e --"environment" <ENVIRONMENT>)
                                 .required(false)
@@ -105,7 +91,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("render")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(
                                 -f --file <FILE> "The file to render the config values to"
@@ -184,7 +169,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("import")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(--"file" <FILE>)
                                 .required(true)
@@ -197,10 +181,8 @@ pub fn cli() -> Command {
         )
         .subcommand(
             Command::new("defaults")
-                .args_conflicts_with_subcommands(true)
                 .subcommand(
                     Command::new("set")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-s --"section" <SECTION>)
                                 .required(true)
@@ -222,7 +204,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("get")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-s --"section" <SECTION>)
                                 .required(true)
@@ -234,7 +215,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("delete")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-s --"section" <SECTION>)
                                 .required(true)
@@ -246,7 +226,6 @@ pub fn cli() -> Command {
                 )
                 .subcommand(
                     Command::new("list")
-                        .args_conflicts_with_subcommands(true)
                         .args([
                             arg!(-s --"section" <SECTION>)
                                 .required(false)
@@ -257,8 +236,7 @@ pub fn cli() -> Command {
                         ]),
                 )
                 .subcommand(
-                    Command::new("render")
-                        .args_conflicts_with_subcommands(true)
+                Command::new("render")
                         .arg(arg!(-f --file <FILE> "The file to render the config values to")
                             .value_parser(clap::value_parser!(PathBuf))),
                 ),

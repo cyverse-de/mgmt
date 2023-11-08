@@ -16,7 +16,6 @@ async fn main() -> Result<()> {
     let commands = Command::new("mgmt")
         .version("0.1.0")
         .about("Discovery Environment deployment management tool")
-        .args_conflicts_with_subcommands(true)
         .subcommand_required(true)
         .arg(
             arg!(-d --"database-url" <DATABASE>)

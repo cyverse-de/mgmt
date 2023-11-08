@@ -4,14 +4,7 @@ use std::path::PathBuf;
 pub fn cli() -> Command {
     Command::new("release")
         .about("Creates and posts a release to a git repository")
-        .args_conflicts_with_subcommands(true)
         .subcommand_required(true)
-        .arg(
-            arg!(-d --"database-url" <DATABASE>)
-                .help("The URL of the MySQL database to connect to.")
-                .default_value("mysql://root@127.0.0.1:3306/de_releases")
-                .value_parser(clap::value_parser!(String)),
-        )
         .subcommand(
             Command::new("create").args([
                 arg!(-s --"skip" <SKIP> "A service to skip for the release")

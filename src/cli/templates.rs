@@ -4,7 +4,6 @@ use std::path::PathBuf;
 pub fn cli() -> Command {
     Command::new("templates")
         .about("Template-related tools")
-        .args_conflicts_with_subcommands(true)
         .subcommand(
             Command::new("render-file")
                 .about("Render a template")

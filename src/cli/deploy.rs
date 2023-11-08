@@ -4,11 +4,9 @@ use std::str;
 pub fn cli() -> Command {
     Command::new("deploy")
         .about("Encapsulates different DE deployment methods")
-        .args_conflicts_with_subcommands(true)
         .subcommand(
             Command::new("backwards-compat")
                 .about("Builds and deploys a project to a Kubernetes cluster using the older process")
-                .args_conflicts_with_subcommands(true)
                 .args([
                     arg!(--"all-projects" "Build and/or deploy all projects for which a build description file exists.")
                         .required(false)
