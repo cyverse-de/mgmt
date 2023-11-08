@@ -74,21 +74,39 @@ impl DESubscriptions {
         theme: &ColorfulTheme,
         env_id: u64,
     ) -> anyhow::Result<()> {
-        let checkout_url = Input::<String>::with_theme(theme)
-            .with_prompt("Subscriptions Checkout URL")
-            .default("https://cyverse-subscription.phoenixbioinformatics.org".into())
+        let enforce_subs = Input::<bool>::with_theme(theme)
+            .with_prompt("Enforce Subscriptions")
+            .default(false)
             .interact()?;
 
-        let checkout_url_id = set_config_value(
+        let enforce_subs_id = set_config_value(
             tx,
             "DE",
-            "Subscriptions.CheckoutURL",
-            &checkout_url,
-            "string",
+            "Subscriptions.Enforce",
+            &enforce_subs.to_string(),
+            "bool",
         )
         .await?;
-        add_env_cfg_value(tx, env_id, checkout_url_id).await?;
-        self.checkout_url = Url::parse(&checkout_url).ok();
+        add_env_cfg_value(tx, env_id, enforce_subs_id).await?;
+        self.enforce = enforce_subs;
+
+        if enforce_subs {
+            let checkout_url = Input::<String>::with_theme(theme)
+                .with_prompt("Subscriptions Checkout URL")
+                .default("https://cyverse-subscription.phoenixbioinformatics.org".into())
+                .interact()?;
+
+            let checkout_url_id = set_config_value(
+                tx,
+                "DE",
+                "Subscriptions.CheckoutURL",
+                &checkout_url,
+                "string",
+            )
+            .await?;
+            add_env_cfg_value(tx, env_id, checkout_url_id).await?;
+            self.checkout_url = Url::parse(&checkout_url).ok();
+        }
 
         Ok(())
     }

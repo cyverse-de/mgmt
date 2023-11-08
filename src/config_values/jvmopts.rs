@@ -99,14 +99,17 @@ impl JVMOpts {
     ) -> anyhow::Result<()> {
         let high = Input::<String>::with_theme(theme)
             .with_prompt("High")
+            .default(String::from("-Xmx1G -Dlog4j2.formatMsgNoLookups=true"))
             .interact()?;
 
         let low = Input::<String>::with_theme(theme)
             .with_prompt("Low")
+            .default(String::from("-Xmx512M -Dlog4j2.formatMsgNoLookups=true"))
             .interact()?;
 
         let ui = Input::<String>::with_theme(theme)
             .with_prompt("UI")
+            .default(String::from("--Xmx1G -Djava.net.preferIPv4Stack=true"))
             .interact()?;
 
         let high_id = set_config_value(tx, &self.get_section(), "High", &high, "string").await?;

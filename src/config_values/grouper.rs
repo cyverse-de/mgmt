@@ -1,5 +1,5 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use dialoguer::{theme::ColorfulTheme, Input, Password};
+use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -102,7 +102,7 @@ impl GrouperLoader {
             .with_prompt("Grouper Loader User")
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Loader Password")
             .interact()?;
 
@@ -222,7 +222,7 @@ impl Grouper {
             .with_prompt("Grouper Morph String")
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::<String>::with_theme(theme)
             .with_prompt("Grouper Password")
             .interact()?;
 

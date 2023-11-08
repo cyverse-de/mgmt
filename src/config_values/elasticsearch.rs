@@ -1,5 +1,5 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use dialoguer::{theme::ColorfulTheme, Input, Password};
+use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -115,9 +115,9 @@ impl Elasticsearch {
             .allow_empty(true)
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Password")
-            .allow_empty_password(true)
+            .allow_empty(true)
             .interact()?;
 
         let index = Input::<String>::with_theme(theme)

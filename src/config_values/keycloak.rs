@@ -1,5 +1,5 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use dialoguer::{theme::ColorfulTheme, Input, Password};
+use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -86,7 +86,7 @@ impl KeycloakVice {
             .default("de-vice".into())
             .interact()?;
 
-        let client_secret = Password::with_theme(theme)
+        let client_secret = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client Secret")
             .interact()?;
 
@@ -237,7 +237,7 @@ impl Keycloak {
             .default("de".into())
             .interact()?;
 
-        let client_secret = Password::with_theme(theme)
+        let client_secret = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Client Secret")
             .interact()?;
 

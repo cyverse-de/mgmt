@@ -1,5 +1,5 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -138,7 +138,7 @@ impl Pgp {
         theme: &ColorfulTheme,
         env_id: u64,
     ) -> anyhow::Result<()> {
-        let key_password = Password::with_theme(theme)
+        let key_password = Input::<String>::with_theme(theme)
             .with_prompt("PGP Key Password")
             .interact()?;
         let key_password_id =
@@ -232,7 +232,7 @@ impl PermanentIdDataCite {
             .with_prompt("Permanent ID DataCite User")
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Password")
             .interact()?;
 
@@ -555,7 +555,7 @@ impl Unleash {
             .default("DE-Maintenance".into())
             .interact()?;
 
-        let api_token = Password::with_theme(theme)
+        let api_token = Input::<String>::with_theme(theme)
             .with_prompt("Unleash API Token")
             .interact()?;
 
@@ -1000,7 +1000,7 @@ impl Harbor {
             .with_prompt("Harbor Project QA Robot Name")
             .interact()?;
 
-        let project_qa_robot_secret = Password::with_theme(theme)
+        let project_qa_robot_secret = Input::<String>::with_theme(theme)
             .with_prompt("Harbor Project QA Robot Secret")
             .interact()?;
 

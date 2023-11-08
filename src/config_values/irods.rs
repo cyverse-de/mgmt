@@ -1,6 +1,6 @@
 use crate::config_values::amqp::Amqp;
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use dialoguer::{theme::ColorfulTheme, Input, Password};
+use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Transaction};
 use url::Url;
@@ -295,7 +295,7 @@ impl Irods {
             .with_prompt("iRODS Zone")
             .interact()?;
 
-        let password = Password::with_theme(theme)
+        let password = Input::<String>::with_theme(theme)
             .with_prompt("iRODS Password")
             .interact()?;
 
