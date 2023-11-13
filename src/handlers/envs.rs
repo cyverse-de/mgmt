@@ -1,7 +1,40 @@
 use crate::{db, ops};
 use anyhow::{anyhow, Context, Result};
 use clap::ArgMatches;
-use sqlx::{MySql, Pool};
+use sqlx::{MySql, Pool, Transaction};
+
+pub async fn populate_env_templates(
+    tx: &mut Transaction<'_, MySql>,
+    from: &str,
+    to: &str,
+) -> Result<()> {
+    // Get the list of services available in the --from environment.
+    let from_services = db::list_services(tx, &from).await?;
+    for from_service in from_services {
+        let from_service_name = from_service.name.context("no name set for service")?;
+        db::add_service_to_env(tx, &to, &from_service_name).await?;
+        println!("Added {} service to {} environment", from_service_name, to);
+
+        let service_template_ids =
+            db::list_service_templates(tx, &from, &from_service_name).await?;
+        for service_template_id in service_template_ids {
+            db::copy_service_template_to_env(
+                tx,
+                &to,
+                &from,
+                &from_service_name,
+                service_template_id,
+            )
+            .await?;
+        }
+        println!(
+            "Copied config templates for {} service to {} environment",
+            from_service_name, to
+        );
+    }
+
+    Ok(())
+}
 
 async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
@@ -23,29 +56,7 @@ async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     println!("Setting up environment...");
 
     // Get the list of services available in the --from environment.
-    let from_services = db::list_services(&mut tx, &from).await?;
-    for from_service in from_services {
-        let from_service_name = from_service.name.context("no name set for service")?;
-        db::add_service_to_env(&mut tx, &env, &from_service_name).await?;
-        println!("Added {} service to {} environment", from_service_name, env);
-
-        let service_template_ids =
-            db::list_service_templates(&mut tx, &from, &from_service_name).await?;
-        for service_template_id in service_template_ids {
-            db::copy_service_template_to_env(
-                &mut tx,
-                &env,
-                &from,
-                &from_service_name,
-                service_template_id,
-            )
-            .await?;
-        }
-        println!(
-            "Copied config templates for {} service to {} environment",
-            from_service_name, env
-        );
-    }
+    populate_env_templates(&mut tx, &from, &env).await?;
 
     tx.commit().await?;
 
@@ -208,7 +219,7 @@ pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;
 
     match create_cmd {
-        ("populate", _) => Ok(ops::populate_env(&pool).await?),
+        ("populate", _) => Ok(ops::populate_env(&pool, "de").await?),
         ("create", sub_m) => env_create(&pool, &sub_m).await,
         ("list", _) => env_list(&pool).await,
         ("delete", sub_m) => env_delete(&pool, &sub_m).await,

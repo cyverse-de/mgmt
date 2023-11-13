@@ -7,7 +7,7 @@
 //!
 use crate::config_values::config;
 use crate::db::{self, ConfigurationValue, LoadFromDatabase};
-use crate::{dolt, git};
+use crate::{dolt, git, handlers::envs::populate_env_templates};
 use anyhow::{anyhow, Context};
 use sqlx::{MySql, Pool};
 use std::fs;
@@ -29,10 +29,11 @@ use std::path::{Path, PathBuf};
 ///
 ///     populate_env(&pool).await?;
 /// ```
-pub async fn populate_env(pool: &Pool<MySql>) -> anyhow::Result<()> {
+pub async fn populate_env(pool: &Pool<MySql>, from_env: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut env_config = config::ConfigValues::default();
     env_config.ask_for_info(&mut tx).await?;
+    populate_env_templates(&mut tx, &from_env, &env_config.environment).await?;
     tx.commit().await?;
     Ok(())
 }
