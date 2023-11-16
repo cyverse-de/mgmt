@@ -2,6 +2,16 @@
 
 A tool for managing DE deployments.
 
+## Overview
+
+`mgmt` is a tool used to manage the configuration of the CyVerse Discovery Environment. It allows users to have multiple sites consisting of one or more environments. Each environment corresponds to a deployment of the Discovery Environment. A set of configuration values (a.k.a "config values", or simply "values") is set up for each environment. Each config value overrides a default value (a.k.a "default"), all of which are global and not specific to a site or environment.
+
+Each config default and value have a section, key, value, and value type. A section corresponds to a top-level object in a YAML file or a section in an INI file. The key is remainder of the selector in a YAML file. For example if the YAML selector for a value is `DE.BaseURL.Protocol`, the section is `DE` and the key is `BaseURL.Protocol`. The value is the what the config value contains and the type tells mgmt what format to expect the value to be in.
+
+The configuration defaults and values for a site are stored in a Dolt database, which is a MySQL-compatible versioned database.
+
+## Definitions
+
 ## Development
 
 ### Install Rust and Cargo on MacOS with zsh
@@ -79,11 +89,50 @@ Of the two, the `mgmt env populate` is the recommended method.
 
 #### Interactively populating an environment
 
+To interactively create and populate an environment run the following command:
+
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site" env populate
+```
+
+Fill in the information as prompted. The database will not be updated until you successfully fill in the information (or use the defaults). The environment should not exist before running the command.
+
 #### Importing config values from an existing environment
+
+To import config values from existing defaults and values YAML files for an environment, run the following command:
+
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site" configs defaults import --file <path-to-defaults.yaml> --environment <env-name>
+```
+
+Followed by the following to import the config values:
+
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site configs values import --file <path-to-values.yaml> --environment <env-name>
+```
 
 ### Configuration management
 
 #### Default values
+
+To create or set a new default value, run a command like the following:
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site configs defaults set -s <section> -k <key> -v <value> -t <type>
+```
+
+Please note that the section must exist first. See the instructions for `Sections` for more info.
+
+#### Sections
+
+To see the list of available sections:
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site configs sections list
+```
+
+To add a new section:
+```
+mgmt --database-url "mysql://root@127.0.0.1:3306/tutorial_site configs sections add --section <section-name>
+```
 
 #### Environment values
 
