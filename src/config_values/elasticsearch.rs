@@ -16,6 +16,8 @@ pub struct Elasticsearch {
     username: String,
     password: String,
     index: String,
+
+    enabled: bool,
 }
 
 impl Default for Elasticsearch {
@@ -26,6 +28,7 @@ impl Default for Elasticsearch {
             username: String::new(),
             password: String::new(),
             index: String::new(),
+            enabled: true,
         }
     }
 }
@@ -42,6 +45,7 @@ impl LoadFromDatabase for Elasticsearch {
                 "Username" => self.username = value,
                 "Password" => self.password = value,
                 "Index" => self.index = value,
+                "Enabled" => self.enabled = value.parse::<bool>()?,
                 _ => (),
             }
         }
@@ -94,6 +98,14 @@ impl From<Elasticsearch> for Vec<db::ConfigurationValue> {
             value_type: Some("string".to_string()),
         });
 
+        vec.push(db::ConfigurationValue {
+            id: None,
+            section: Some(section.clone()),
+            key: Some("Enabled".to_string()),
+            value: Some(es.enabled.to_string()),
+            value_type: Some("bool".to_string()),
+        });
+
         vec
     }
 }
@@ -125,6 +137,11 @@ impl Elasticsearch {
             .default("data".into())
             .interact()?;
 
+        let enabled = Input::<bool>::with_theme(theme)
+            .with_prompt("ElasticSearch Enabled")
+            .default(true)
+            .interact()?;
+
         let base_uri_id =
             set_config_value(tx, "Elasticsearch", "BaseURI", &base_uri, "string").await?;
         add_env_cfg_value(tx, env_id, base_uri_id).await?;
@@ -143,6 +160,10 @@ impl Elasticsearch {
         let index_id = set_config_value(tx, "Elasticsearch", "Index", &index, "string").await?;
         add_env_cfg_value(tx, env_id, index_id).await?;
         self.index = index;
+
+        let enabled_id = set_config_value(tx, "Elasticsearch", "Enabled", &enabled.to_string(), "bool").await?;
+        add_env_cfg_value(tx, env_id, enabled_id).await?;
+        self.enabled = enabled;
 
         Ok(())
     }
