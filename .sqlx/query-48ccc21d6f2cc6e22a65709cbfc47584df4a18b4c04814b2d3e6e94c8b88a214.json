@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO repos (name, url, revision) VALUES (?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "48ccc21d6f2cc6e22a65709cbfc47584df4a18b4c04814b2d3e6e94c8b88a214"
+}

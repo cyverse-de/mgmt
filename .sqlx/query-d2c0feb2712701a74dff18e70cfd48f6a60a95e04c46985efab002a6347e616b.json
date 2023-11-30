@@ -1,0 +1,58 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT \n                repos.id AS `id: u64`, \n                repos.name AS `name: String`, \n                repos.url AS `url: String`, \n                repos.revision AS `revision: String`\n            FROM repos\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: u64",
+        "type_info": {
+          "type": "Long",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "url: String",
+        "type_info": {
+          "type": "Blob",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "revision: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 33,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d2c0feb2712701a74dff18e70cfd48f6a60a95e04c46985efab002a6347e616b"
+}
