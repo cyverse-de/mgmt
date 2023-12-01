@@ -1,5 +1,4 @@
-INSERT INTO repos (url, revision, name) 
-VALUES 
+INSERT INTO repos (url, revision, name) VALUES 
     ('https://github.com/cyverse-de/analyses', 'master', 'analyses'),
     ('https://github.com/cyverse-de/app-exposer', 'master', 'app-exposer'),
     ('https://github.com/cyverse-de/apply-labels', 'master', 'apply-labels'),

@@ -622,7 +622,7 @@ VALUES
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "Jobs"),
+        (SELECT id FROM config_sections WHERE name = 'Jobs'),
         'DataTransferTag',
         'latest',
         (SELECT id FROM config_value_types WHERE name = 'string')
@@ -1102,121 +1102,121 @@ INSERT INTO config_defaults
     (section_id, cfg_key, cfg_value, value_type_id)
 VALUES
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Ceph.Password',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Ceph.Username',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Ceph.FirstName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Ceph.LastName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.Password',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.Username',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.FirstName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.LastName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.AdminPassword',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.LocalUser',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'DE.JwtName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.AdminPassword',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),    
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.AdminPassword2',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.FirstName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.LastName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.LocalUser',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.JwtName',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.Password',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.Username',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')
     ),
     (
-        (SELECT id FROM config_sections WHERE name = "QA"),
+        (SELECT id FROM config_sections WHERE name = 'QA'),
         'Legacy.JwtPrivPass',
         '',
         (SELECT id FROM config_value_types WHERE name = 'string')

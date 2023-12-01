@@ -1,6 +1,6 @@
 -- Associates a service in an environment with a config value
 CREATE TABLE IF NOT EXISTS environments_services_config_values (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     environment_service_id INT NOT NULL,
     environment_config_value_id INT NOT NULL,
 

@@ -1,6 +1,6 @@
 -- Records of config values used to render a template.
 CREATE TABLE IF NOT EXISTS config_values (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     section_id INT NOT NULL,
     cfg_key TEXT NOT NULL,
     cfg_value TEXT NOT NULL,

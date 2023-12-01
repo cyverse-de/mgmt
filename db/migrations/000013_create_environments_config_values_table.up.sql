@@ -3,11 +3,10 @@
 -- to a service. That is done in the environments_services_config_values
 -- table.
 CREATE TABLE IF NOT EXISTS environments_config_values (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    environment_id INT NOT NULL,
-    config_value_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    environment_id INTEGER NOT NULL,
+    config_value_id INTEGER NOT NULL,
 
-    FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE,
-    FOREIGN KEY (config_value_id) REFERENCES config_values(id) ON DELETE CASCADE,
-    UNIQUE (environment_id, config_value_id)
+    FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (config_value_id) REFERENCES config_values(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
