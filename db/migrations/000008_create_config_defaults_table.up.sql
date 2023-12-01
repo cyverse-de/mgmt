@@ -1,5 +1,3 @@
-USE de_releases;
-
 CREATE TABLE IF NOT EXISTS config_defaults (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     section_id INT NOT NULL,

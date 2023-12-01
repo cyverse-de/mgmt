@@ -1,5 +1,3 @@
-USE de_releases;
-
 WITH 
     js_template_id AS (
         SELECT id FROM config_templates WHERE path = 'templates/jobservices.yml'

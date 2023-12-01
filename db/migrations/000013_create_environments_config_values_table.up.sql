@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Records the config values that are available to services
 -- within the environments. Does not actually associate a config value
 -- to a service. That is done in the environments_services_config_values

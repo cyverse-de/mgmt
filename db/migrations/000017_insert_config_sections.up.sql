@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO config_sections (name) VALUES ('Admin');
 INSERT INTO config_sections (name) VALUES ('Agave');
 INSERT INTO config_sections (name) VALUES ('AMQP');

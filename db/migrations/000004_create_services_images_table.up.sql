@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Maps services to one or more container images.
 CREATE TABLE IF NOT EXISTS services_images (
     id           INT            NOT NULL AUTO_INCREMENT PRIMARY KEY,

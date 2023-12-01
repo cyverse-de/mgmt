@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO config_templates
     (repo_id, path)
 VALUES

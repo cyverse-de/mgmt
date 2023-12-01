@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Maps services to one or more environments.
 -- This is a many-to-many relationship.
 -- A service can be deployed to many environments.

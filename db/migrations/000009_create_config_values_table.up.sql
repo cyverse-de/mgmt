@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Records of config values used to render a template.
 CREATE TABLE IF NOT EXISTS config_values (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO repos (url, revision, name) 
 VALUES 
     ('https://github.com/cyverse-de/analyses', 'master', 'analyses'),

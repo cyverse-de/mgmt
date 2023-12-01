@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO config_defaults 
     (section_id, cfg_key, cfg_value, value_type_id)
 VALUES

@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Contains records of all services that are deployed in a release.
 CREATE TABLE IF NOT EXISTS services (
     id              INT             NOT NULL AUTO_INCREMENT PRIMARY KEY,

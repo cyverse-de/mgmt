@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Tells whether a feature is enabled in an environment.
 CREATE TABLE IF NOT EXISTS environments_features (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

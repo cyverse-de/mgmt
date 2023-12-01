@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO services 
     (name, skaffold_path, repo_id)
 VALUES 

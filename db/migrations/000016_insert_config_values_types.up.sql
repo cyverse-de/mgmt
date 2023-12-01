@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO config_value_types (name) VALUES ('string');
 INSERT INTO config_value_types (name) VALUES ('int');
 INSERT INTO config_value_types (name) VALUES ('bigint');

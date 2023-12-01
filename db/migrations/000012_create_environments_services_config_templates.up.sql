@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Maps services to config templates in an environment.
 CREATE TABLE IF NOT EXISTS environments_services_config_templates (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

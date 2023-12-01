@@ -1,5 +1,3 @@
-USE de_releases;
-
 -- Associates a service in an environment with a config value
 CREATE TABLE IF NOT EXISTS environments_services_config_values (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

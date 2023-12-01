@@ -1,5 +1,3 @@
-USE de_releases;
-
 INSERT INTO environments_services 
     (environment_id, service_id)
 SELECT 
