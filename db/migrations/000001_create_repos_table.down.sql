@@ -1,3 +1,2 @@
-USE de_releases;
-
+-- Drop the table if it exists
 DROP TABLE IF EXISTS repos;

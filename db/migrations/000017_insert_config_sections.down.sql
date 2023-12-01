@@ -1,5 +1,3 @@
-USE de_releases;
-
 DELETE FROM config_sections WHERE name = 'Admin';
 DELETE FROM config_sections WHERE name = 'Agave';
 DELETE FROM config_sections WHERE name = 'AMQP';

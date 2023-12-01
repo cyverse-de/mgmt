@@ -1,5 +1,3 @@
-USE de_releases;
-
 DELETE FROM services
 WHERE services.name IN (
     SELECT name

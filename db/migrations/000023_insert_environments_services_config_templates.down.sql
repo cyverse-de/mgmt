@@ -1,5 +1,3 @@
-USE de_releases;
-
 DELETE FROM environments_services_config_templates
 WHERE environment_service_id IN (
     SELECT id 

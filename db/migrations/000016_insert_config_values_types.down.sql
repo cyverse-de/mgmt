@@ -1,5 +1,3 @@
-USE de_releases;
-
 DELETE FROM config_value_types WHERE name = 'string';
 DELETE FROM config_value_types WHERE name = 'int';
 DELETE FROM config_value_types WHERE name = 'bigint';
