@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Context;
 use base64::{engine::general_purpose, Engine as _};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use std::{collections::HashMap, fs, path::PathBuf};
 use tera::{to_value, try_get_value, Result as TeraResult, Tera, Value};
 
@@ -96,7 +96,7 @@ pub fn render_template(
 /// Renders a template out to a file, using the defaults and values queried
 /// from the database for the provided environment to populate the template.
 pub async fn render_template_from_db(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     template_path: &PathBuf,
     env: &str,
     out_path: &PathBuf,
@@ -147,7 +147,7 @@ pub fn render_template_dir(
 /// values queried from the database for the provided environment to populate
 /// the templates.
 pub async fn render_template_dir_from_db(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     templates_path: &PathBuf,
     env: &str,
     out_path: &PathBuf,
@@ -174,7 +174,7 @@ pub async fn render_template_dir_from_db(
 /// Renders templates returned from the database with values returned
 /// from the database. It's database all the way down.
 pub async fn render_db(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     templates_dir: &PathBuf,
     out_path: &PathBuf,
@@ -258,9 +258,9 @@ pub async fn render_db(
 }
 
 pub async fn assoc_template(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
-    repo_id: u64,
+    repo_id: i32,
     svc_name: &str,
     templates: &[PathBuf],
 ) -> anyhow::Result<()> {

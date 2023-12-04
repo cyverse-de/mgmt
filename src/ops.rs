@@ -9,7 +9,7 @@ use crate::config_values::config;
 use crate::db::{self, ConfigurationValue, LoadFromDatabase};
 use crate::{dolt, git, handlers::envs::populate_env_templates};
 use anyhow::{anyhow, Context};
-use sqlx::{MySql, Pool};
+use sqlx::{Pool, Postgres};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -29,7 +29,7 @@ use std::path::{Path, PathBuf};
 ///
 ///     populate_env(&pool).await?;
 /// ```
-pub async fn populate_env(pool: &Pool<MySql>, from_env: &str) -> anyhow::Result<()> {
+pub async fn populate_env(pool: &Pool<Postgres>, from_env: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let mut env_config = config::ConfigValues::default();
     env_config.ask_for_info(&mut tx).await?;
@@ -46,7 +46,7 @@ pub async fn populate_env(pool: &Pool<MySql>, from_env: &str) -> anyhow::Result<
 /// ```ignore
 ///    add_section(&pool, "Agave").await?;
 /// ```
-pub async fn add_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
+pub async fn add_section(pool: &Pool<Postgres>, section: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     db::add_section(&mut tx, &section).await?;
     tx.commit().await?;
@@ -61,7 +61,7 @@ pub async fn add_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()
 /// ```ignore
 ///     delete_section(&pool, "Agave").await?;
 /// ```
-pub async fn delete_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result<()> {
+pub async fn delete_section(pool: &Pool<Postgres>, section: &str) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     db::delete_section(&mut tx, &section).await?;
     tx.commit().await?;
@@ -76,7 +76,7 @@ pub async fn delete_section(pool: &Pool<MySql>, section: &str) -> anyhow::Result
 /// ```ignore
 ///    list_sections(&pool).await?;
 /// ```
-pub async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
+pub async fn list_sections(pool: &Pool<Postgres>) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let sections = db::list_sections(&mut tx).await?;
     tx.commit().await?;
@@ -95,7 +95,7 @@ pub async fn list_sections(pool: &Pool<MySql>) -> anyhow::Result<()> {
 ///    set_default_value(&pool, "Agave", "Key", "12345", "string").await?;
 /// ```
 pub async fn set_default_value(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     section: &str,
     key: &str,
     value: &str,
@@ -123,7 +123,11 @@ pub async fn set_default_value(
 /// ```ignore
 ///   get_default_value(&pool, "Agave", "Key").await?;
 /// ```
-pub async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> anyhow::Result<()> {
+pub async fn get_default_value(
+    pool: &Pool<Postgres>,
+    section: &str,
+    key: &str,
+) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
     let cfg: db::ConfigurationValue;
     let has_section = db::has_section(&mut tx, section).await?;
@@ -154,7 +158,7 @@ pub async fn get_default_value(pool: &Pool<MySql>, section: &str, key: &str) -> 
 ///     delete_default_value(&pool, "Agave", "Key").await?;
 /// ```
 pub async fn delete_default_value(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     section: &str,
     key: &str,
 ) -> anyhow::Result<()> {
@@ -203,7 +207,7 @@ pub async fn delete_default_value(
 ///    list_default_values(&pool, None, Some("Key"))
 /// ```
 pub async fn list_default_values(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     section: Option<&str>,
     key: Option<&str>,
 ) -> anyhow::Result<()> {
@@ -211,9 +215,7 @@ pub async fn list_default_values(
     let cfgs = db::list_default_config_values(&mut tx, section, key).await?;
     tx.commit().await?;
     for cfg in cfgs {
-        if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
-            println!("{}.{} = {}", section, key, value);
-        }
+        println!("{}.{} = {}", cfg.section, cfg.key, cfg.value);
     }
     Ok(())
 }
@@ -235,7 +237,7 @@ pub async fn list_default_values(
 ///     render_default_values(&pool, Some(PathBuf::from("defaults.yaml"))).await?;
 /// ```
 pub async fn render_default_values(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     output_file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
@@ -270,7 +272,7 @@ pub async fn render_default_values(
 ///    set_value(&pool, "prod", "Agave", "Key", "12345", "string").await?;
 /// ```
 pub async fn set_value(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     environment: &str,
     section: &str,
     key: &str,
@@ -279,9 +281,7 @@ pub async fn set_value(
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await?;
 
-    let env_id = db::get_env_id(&mut tx, &environment)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("No environment found with name: {environment}"))?;
+    let env_id = db::get_env_id(&mut tx, &environment).await?;
 
     let has_default = db::has_default_config_value(&mut tx, section, &key).await?;
     let has_config_value = db::has_config_value(&mut tx, environment, section, &key).await?;
@@ -326,7 +326,7 @@ pub async fn set_value(
 ///    get_value(&pool, "prod", "Agave", "Key").await?;
 /// ```
 pub async fn get_value(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     environment: &str,
     section: &str,
     key: &str,
@@ -348,10 +348,11 @@ pub async fn get_value(
             ));
         }
     }
+
     tx.commit().await?;
-    if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
-        println!("{}.{} = {}", section, key, value);
-    }
+
+    println!("{}.{} = {}", cfg.section, cfg.key, cfg.value);
+
     Ok(())
 }
 
@@ -365,7 +366,7 @@ pub async fn get_value(
 ///   delete_value(&pool, "prod", "Agave", "Key").await?;
 /// ```
 pub async fn delete_value(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     environment: &str,
     section: &str,
     key: &str,
@@ -401,7 +402,7 @@ pub async fn delete_value(
 ///     list_values(&pool, Some("prod"), None, Some("Key")).await?;
 /// ```
 pub async fn list_values(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     environment: Option<&str>,
     section: Option<&str>,
     key: Option<&str>,
@@ -410,9 +411,7 @@ pub async fn list_values(
     let cfgs = db::list_config_values(&mut tx, environment, section, key).await?;
     tx.commit().await?;
     for cfg in cfgs {
-        if let (Some(section), Some(key), Some(value)) = (cfg.section, cfg.key, cfg.value) {
-            println!("{}.{} = {}", section, key, value);
-        }
+        println!("{}.{} = {}", cfg.section, cfg.key, cfg.value);
     }
     Ok(())
 }
@@ -434,7 +433,7 @@ pub async fn list_values(
 ///   render_values(&pool, "prod", &opts, Some(PathBuf::from("prod.yaml"))).await?;
 /// ```
 pub async fn render_values(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     environment: &str,
     opts: &config::SectionOptions,
     output_file: Option<PathBuf>,
@@ -445,22 +444,22 @@ pub async fn render_values(
 
     for default in all_default_cfgs
         .into_iter()
-        .filter(|cfg| opts.include_section(&cfg.section.clone().unwrap_or_default()))
+        .filter(|cfg| opts.include_section(&cfg.section.clone()))
     {
-        if let (Some(section), Some(key)) = (default.section.clone(), default.key.clone()) {
-            let has_config_value = db::has_config_value(&mut tx, environment, &section, &key)
-                .await
-                .unwrap_or(false);
+        let section = default.section.clone();
+        let key = default.key.clone();
+        let has_config_value = db::has_config_value(&mut tx, environment, &section, &key)
+            .await
+            .unwrap_or(false);
 
-            if has_config_value {
-                all_cfgs.push(
-                    db::get_config_value(&mut tx, environment, &section, &key)
-                        .await
-                        .unwrap(),
-                );
-            } else {
-                all_cfgs.push(default);
-            }
+        if has_config_value {
+            all_cfgs.push(
+                db::get_config_value(&mut tx, environment, &section, &key)
+                    .await
+                    .unwrap(),
+            );
+        } else {
+            all_cfgs.push(default);
         }
     }
 
@@ -492,7 +491,7 @@ pub async fn render_values(
 ///    import_yaml_file(&pool, PathBuf::from("prod.yaml"), "prod").await?;
 /// ```
 pub async fn import_yaml_file(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     path: PathBuf,
     environment: &str,
 ) -> anyhow::Result<()> {
@@ -503,39 +502,33 @@ pub async fn import_yaml_file(
 
     let items: Vec<db::ConfigurationValue> = cv.into();
     for item in items.into_iter() {
-        if let (Some(section), Some(key), Some(value), Some(value_type)) = (
-            item.section.clone(),
-            item.key.clone(),
-            item.value.clone(),
-            item.value_type.clone(),
-        ) {
-            println!("{}.{} = {}", section, key, value);
-            let real_section: String;
-            if section.is_empty() {
-                real_section = "TopLevel".to_string();
-            } else {
-                real_section = section;
-            }
+        let section = item.section.clone();
+        let key = item.key.clone();
+        let value = item.value.clone();
+        let value_type = item.value_type.clone();
+        println!("{}.{} = {}", section, key, value);
+        let real_section: String;
+        if section.is_empty() {
+            real_section = "TopLevel".to_string();
+        } else {
+            real_section = section;
+        }
 
-            if db::has_default_config_value(&mut tx, &real_section, &key).await? {
-                let cfg_id =
-                    db::set_config_value(&mut tx, &real_section, &key, &value, &value_type).await?;
-                let env_id = db::get_env_id(&mut tx, &environment)
-                    .await?
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("No environment found with name: {environment}")
-                    })?;
-                db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
-            } else {
-                tx.rollback().await?;
-                return Err(anyhow!(
-                    "No default value found for section: {real_section}, key: {key}"
-                ));
-            }
+        if db::has_default_config_value(&mut tx, &real_section, &key).await? {
+            let cfg_id =
+                db::set_config_value(&mut tx, &real_section, &key, &value, &value_type).await?;
+            let env_id = db::get_env_id(&mut tx, &environment).await?;
+            db::add_env_cfg_value(&mut tx, env_id, cfg_id).await?;
+        } else {
+            tx.rollback().await?;
+            return Err(anyhow!(
+                "No default value found for section: {real_section}, key: {key}"
+            ));
         }
     }
 
     tx.commit().await?;
+
     Ok(())
 }
 

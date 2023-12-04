@@ -3,7 +3,7 @@
 //! This module contains the functions that can be reused across the mgmt
 //! commands to deploy the Discovery Environment.
 use anyhow::{Context, Result};
-use sqlx::{MySql, Pool, Transaction};
+use sqlx::{Pool, Postgres, Transaction};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -13,7 +13,7 @@ use crate::{configs, db, ops};
 #[derive(Debug, Clone)]
 pub struct DeploymentOptions {
     // The database connection pool.
-    pub pool: Pool<MySql>,
+    pub pool: Pool<Postgres>,
 
     // The path to the directory containing the de-releases repository.
     pub repodir: PathBuf,
@@ -50,24 +50,23 @@ pub struct DeploymentOptions {
 }
 
 async fn get_services(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     skips: &[String],
 ) -> Result<Vec<db::Service>> {
     let mut services = db::get_services(tx, &env).await?;
-    services.retain(|service| !skips.contains(&service.name.as_ref().unwrap_or(&"".to_string())));
+    services.retain(|service| !skips.contains(&service.name));
     Ok(services)
 }
 
-async fn get_namespace(tx: &mut Transaction<'_, MySql>, env: &str) -> Result<String> {
+async fn get_namespace(tx: &mut Transaction<'_, Postgres>, env: &str) -> Result<String> {
     Ok(db::get_namespace(tx, &env).await?)
 }
 
 pub fn deploy_service(releases_dir: &PathBuf, ns: &str, svc: &db::Service) -> Result<bool> {
-    let svc_json = releases_dir.join("builds").join(format!(
-        "{}.json",
-        svc.name.as_ref().context("couldn't get service name")?
-    ));
+    let svc_json = releases_dir
+        .join("builds")
+        .join(format!("{}.json", svc.name));
 
     Ok(Command::new("skaffold")
         .args([
@@ -85,7 +84,7 @@ pub fn deploy_service(releases_dir: &PathBuf, ns: &str, svc: &db::Service) -> Re
 }
 
 pub async fn deploy(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     env: &str,
     release_repo_dir: &PathBuf,
     release_repo_url: &str,
@@ -124,20 +123,13 @@ pub async fn deploy(
     // first.
     let pre_deploy_services = all_services
         .iter()
-        .filter(|svc| {
-            opts.pre_deploy
-                .contains(&svc.name.as_ref().unwrap_or(&"".to_string()))
-        })
+        .filter(|svc| opts.pre_deploy.contains(&svc.name))
         .collect::<Vec<&db::Service>>();
 
     println!(
         "services to deploy first:{}",
         pre_deploy_services.iter().fold(String::new(), |acc, svc| {
-            format!(
-                "{}\n\t{}",
-                acc,
-                svc.name.as_ref().unwrap_or(&"".to_string())
-            )
+            format!("{}\n\t{}", acc, svc.name)
         })
     );
 
@@ -145,21 +137,13 @@ pub async fn deploy(
     // first.
     let services = all_services
         .iter()
-        .filter(|svc| {
-            !opts
-                .pre_deploy
-                .contains(&svc.name.as_ref().unwrap_or(&"".to_string()))
-        })
+        .filter(|svc| !opts.pre_deploy.contains(&svc.name))
         .collect::<Vec<&db::Service>>();
 
     println!(
         "services:{}",
         services.iter().fold(String::new(), |acc, svc| {
-            format!(
-                "{}\n\t{}",
-                acc,
-                svc.name.as_ref().unwrap_or(&"".to_string())
-            )
+            format!("{}\n\t{}", acc, svc.name)
         })
     );
 

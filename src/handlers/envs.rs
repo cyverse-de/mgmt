@@ -1,17 +1,17 @@
 use crate::{db, ops};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use sqlx::{MySql, Pool, Transaction};
+use sqlx::{Pool, Postgres, Transaction};
 
 pub async fn populate_env_templates(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     from: &str,
     to: &str,
 ) -> Result<()> {
     // Get the list of services available in the --from environment.
     let from_services = db::list_services(tx, &from).await?;
     for from_service in from_services {
-        let from_service_name = from_service.name.context("no name set for service")?;
+        let from_service_name = from_service.name;
         db::add_service_to_env(tx, &to, &from_service_name).await?;
         println!("Added {} service to {} environment", from_service_name, to);
 
@@ -36,7 +36,7 @@ pub async fn populate_env_templates(
     Ok(())
 }
 
-async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_create(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No name specified. Use --env <env> to specify an environment name.")
     })?;
@@ -65,7 +65,7 @@ async fn env_create(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn env_list(pool: &Pool<MySql>) -> Result<()> {
+async fn env_list(pool: &Pool<Postgres>) -> Result<()> {
     let mut tx = pool.begin().await?;
     let envs = db::list_envs(&mut tx).await?;
     tx.commit().await?;
@@ -76,7 +76,7 @@ async fn env_list(pool: &Pool<MySql>) -> Result<()> {
     Ok(())
 }
 
-async fn env_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_delete(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m
         .get_one::<String>("env")
         .ok_or_else(|| anyhow!("No name specified. Use --env <env> to specify a name."))?;
@@ -90,7 +90,7 @@ async fn env_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn env_services_add(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_services_add(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment specified. Use --env <env> to specify an environment.")
     })?;
@@ -110,7 +110,7 @@ async fn env_services_add(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> 
     Ok(())
 }
 
-async fn env_services_remove(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_services_remove(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment specified. Use --env <env> to specify an environment.")
     })?;
@@ -130,7 +130,7 @@ async fn env_services_remove(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<(
     Ok(())
 }
 
-async fn env_services_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_services_list(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment specified. Use --env <env> to specify an environment.")
     })?;
@@ -140,15 +140,13 @@ async fn env_services_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()>
     tx.commit().await?;
 
     for svc in services {
-        if let Some(name) = svc.name {
-            println!("{}", name);
-        }
+        println!("{}", svc.name);
     }
 
     Ok(())
 }
 
-async fn env_services_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_services_handler(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let services_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;
@@ -161,7 +159,7 @@ async fn env_services_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<
     }
 }
 
-async fn env_feature_flags_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_feature_flags_set(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment specified. Use --env <env> to specify an environment.")
     })?;
@@ -186,7 +184,7 @@ async fn env_feature_flags_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result
     Ok(())
 }
 
-async fn env_feature_flags_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_feature_flags_list(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let env = sub_m.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment specified. Use --env <env> to specify an environment.")
     })?;
@@ -201,7 +199,7 @@ async fn env_feature_flags_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Resul
     Ok(())
 }
 
-async fn env_feature_flags_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn env_feature_flags_handler(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let ff_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;
@@ -213,7 +211,7 @@ async fn env_feature_flags_handler(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Re
     }
 }
 
-pub async fn env(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn env(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let create_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;

@@ -2,7 +2,7 @@
 //!
 //! This module contains all the database access code for the application.
 use anyhow::Context;
-use sqlx::{MySql, Row, Transaction};
+use sqlx::{Postgres, Row, Transaction};
 use std::path::PathBuf;
 
 /// Represents a single configuration value as stored in the database.
@@ -10,11 +10,11 @@ use std::path::PathBuf;
     sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash,
 )]
 pub struct ConfigurationValue {
-    pub id: Option<i64>,
-    pub section: Option<String>,
-    pub key: Option<String>,
-    pub value: Option<String>,
-    pub value_type: Option<String>,
+    pub id: i32,
+    pub section: String,
+    pub key: String,
+    pub value: String,
+    pub value_type: String,
 }
 
 /// The trait that all domain objects need to implement so they can load
@@ -47,20 +47,25 @@ pub trait LoadFromDatabase {
 /// tx.commit().await?;
 /// ```
 pub async fn upsert_environment(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
     namespace: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
-            r#"
-                INSERT INTO environments (name, namespace) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name)
+        r#"
+                INSERT INTO environments 
+                    (name, namespace) 
+                VALUES 
+                    ($1, $2) 
+                ON CONFLICT (name) DO UPDATE SET name = $1
+                RETURNING id
             "#,
-            environment,
-            namespace
-        )
-        .execute(&mut **tx)
-        .await?
-        .last_insert_id())
+        environment,
+        namespace
+    )
+    .fetch_one(&mut **tx)
+    .await?
+    .id)
 }
 
 /// Returns a listing of the environments stored in the database.
@@ -75,7 +80,7 @@ pub async fn upsert_environment(
 ///     println!("{}", env);
 /// }
 /// ```
-pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<String>> {
+pub async fn list_envs(tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<Vec<String>> {
     let envs = sqlx::query!(
         r#"
             SELECT name FROM environments
@@ -84,7 +89,7 @@ pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<St
     .fetch_all(&mut **tx)
     .await?;
 
-    Ok(envs.into_iter().filter_map(|e| e.name).collect())
+    Ok(envs.into_iter().map(|e| e.name).collect())
 }
 
 /// Deletes an environment from the database.
@@ -95,16 +100,19 @@ pub async fn list_envs(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<St
 /// let result = db::delete_env(&mut tx, "dev").await?;
 /// tx.commit().await?;
 /// ```
-pub async fn delete_env(tx: &mut Transaction<'_, MySql>, environment: &str) -> anyhow::Result<u64> {
+pub async fn delete_env(
+    tx: &mut Transaction<'_, Postgres>,
+    environment: &str,
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-                DELETE FROM environments WHERE name = ?
+                DELETE FROM environments WHERE name = $1 RETURNING id
         "#,
         environment
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns the primary key of the environment from the database.
@@ -116,12 +124,12 @@ pub async fn delete_env(tx: &mut Transaction<'_, MySql>, environment: &str) -> a
 /// tx.commit().await?;
 /// ```
 pub async fn get_env_id(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
-) -> anyhow::Result<Option<u64>> {
+) -> anyhow::Result<i32> {
     let env_id = sqlx::query!(
         r#"
-                SELECT id AS `id: u64` FROM environments WHERE name = ?
+                SELECT id FROM environments WHERE name = $1
         "#,
         environment
     )
@@ -140,7 +148,9 @@ pub async fn get_env_id(
 /// let result = db::get_repos(&mut tx).await?;
 /// tx.commit().await?;
 /// ```
-pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(String, String)>> {
+pub async fn get_repos(
+    tx: &mut Transaction<'_, Postgres>,
+) -> anyhow::Result<Vec<(String, String)>> {
     let repos = sqlx::query!(
         r#"
             SELECT url, name FROM repos
@@ -152,8 +162,8 @@ pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(S
     Ok(repos
         .into_iter()
         .filter_map(|r| {
-            let u = r.url.unwrap_or_default();
-            let n = r.name.unwrap_or_default();
+            let u = r.url;
+            let n = r.name;
             if !u.is_empty() && !n.is_empty() {
                 Some((u, n))
             } else {
@@ -172,16 +182,16 @@ pub async fn get_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<(S
 /// let result = db::add_section(&mut tx, "DashboardAggregator").await?;
 /// tx.commit().await?;
 /// ```
-pub async fn add_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<u64> {
+pub async fn add_section(tx: &mut Transaction<'_, Postgres>, section: &str) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-                INSERT INTO config_sections (name) VALUES (?) ON DUPLICATE KEY UPDATE id = id
+                INSERT INTO config_sections (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id
         "#,
         section
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns whether the section exists in the database.
@@ -194,10 +204,13 @@ pub async fn add_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyh
 ///
 /// assert!(result);
 /// ```
-pub async fn has_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<bool> {
+pub async fn has_section(
+    tx: &mut Transaction<'_, Postgres>,
+    section: &str,
+) -> anyhow::Result<bool> {
     let section = sqlx::query!(
         r#"
-                SELECT id FROM config_sections WHERE name = ?
+                SELECT id FROM config_sections WHERE name = $1
         "#,
         section
     )
@@ -216,16 +229,19 @@ pub async fn has_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyh
 /// let result = db::delete_section(&mut tx, "DashboardAggregator").await?;
 /// tx.commit().await?;
 /// ```
-pub async fn delete_section(tx: &mut Transaction<'_, MySql>, section: &str) -> anyhow::Result<u64> {
+pub async fn delete_section(
+    tx: &mut Transaction<'_, Postgres>,
+    section: &str,
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-                DELETE FROM config_sections WHERE name = ?
+                DELETE FROM config_sections WHERE name = $1 RETURNING id
         "#,
         section
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns a listing of the configuration sections stored in the database.
@@ -240,7 +256,7 @@ pub async fn delete_section(tx: &mut Transaction<'_, MySql>, section: &str) -> a
 ///    println!("{}", section);
 /// }
 /// ```
-pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<String>> {
+pub async fn list_sections(tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<Vec<String>> {
     let sections = sqlx::query!(
         r#"
                 SELECT name FROM config_sections
@@ -249,7 +265,7 @@ pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Ve
     .fetch_all(&mut **tx)
     .await?;
 
-    Ok(sections.into_iter().filter_map(|s| s.name).collect())
+    Ok(sections.into_iter().map(|s| s.name).collect())
 }
 
 /// Returns a default configuration value from the database based on the
@@ -262,7 +278,7 @@ pub async fn list_sections(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Ve
 /// tx.commit().await?;
 /// ```
 pub async fn get_default_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
 ) -> anyhow::Result<ConfigurationValue> {
@@ -270,15 +286,15 @@ pub async fn get_default_config_value(
         ConfigurationValue,
         r#"
                 SELECT
-                    config_defaults.id AS `id: i64`,
-                    config_sections.name AS `section: String`,
-                    config_defaults.cfg_key AS `key: String`, 
-                    config_defaults.cfg_value AS `value: String`,
-                    config_value_types.name AS `value_type: String`
+                    config_defaults.id AS id,
+                    config_sections.name AS section,
+                    config_defaults.cfg_key AS key, 
+                    config_defaults.cfg_value AS value,
+                    config_value_types.name AS value_type
                 FROM config_defaults
                 INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
                 INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id
-                WHERE config_sections.name = ? AND config_defaults.cfg_key = ?
+                WHERE config_sections.name = $1 AND config_defaults.cfg_key = $2
         "#,
         section,
         key
@@ -298,29 +314,30 @@ pub async fn get_default_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn set_default_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
     value: &str,
     value_type: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
                 INSERT INTO config_defaults (section_id, cfg_key, cfg_value, value_type_id) VALUES (
-                    (SELECT id FROM config_sections WHERE name = ?),
-                    ?,
-                    ?,
-                    (SELECT id FROM config_value_types WHERE name = ?)
-                ) ON DUPLICATE KEY UPDATE cfg_value = VALUES(cfg_value)
+                    (SELECT id FROM config_sections WHERE name = $1),
+                    $2,
+                    $3,
+                    (SELECT id FROM config_value_types WHERE name = $4)
+                ) ON CONFLICT (id) DO UPDATE SET cfg_value = $3
+                RETURNING id
             "#,
         section,
         key,
         value,
         value_type
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns whether a default configuration value exists in the database
@@ -333,7 +350,7 @@ pub async fn set_default_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn has_default_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
 ) -> anyhow::Result<bool> {
@@ -341,7 +358,7 @@ pub async fn has_default_config_value(
         r#"
                 SELECT config_defaults.id FROM config_defaults
                 INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
-                WHERE config_sections.name = ? AND config_defaults.cfg_key = ?
+                WHERE config_sections.name = $1 AND config_defaults.cfg_key = $2
         "#,
         section,
         key
@@ -362,22 +379,23 @@ pub async fn has_default_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn delete_default_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-                DELETE config_defaults FROM config_defaults
-                INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
-                WHERE config_sections.name = ? AND config_defaults.cfg_key = ?
+                DELETE FROM config_defaults WHERE config_defaults.section_id = (
+                    SELECT id FROM config_sections WHERE name = $1
+                ) AND config_defaults.cfg_key = $2
+                RETURNING id
             "#,
         section,
         key
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns a listing of the default configuration values stored in the
@@ -399,7 +417,7 @@ pub async fn delete_default_config_value(
 /// }
 /// ```
 pub async fn list_default_config_values(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: Option<&str>,
     key: Option<&str>,
 ) -> anyhow::Result<Vec<ConfigurationValue>> {
@@ -416,7 +434,7 @@ INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
 INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id"#,
     );
 
-    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
+    let mut builder: sqlx::QueryBuilder<Postgres> = sqlx::QueryBuilder::new(query);
 
     if let Some(section) = section {
         builder.push("\nWHERE config_sections.name = ");
@@ -441,11 +459,11 @@ INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_ty
         .await?
         .iter()
         .map(|r| ConfigurationValue {
-            id: Some(r.get("id")),
-            section: Some(r.get("section")),
-            key: Some(r.get("key")),
-            value: Some(r.get("value")),
-            value_type: Some(r.get("value_type")),
+            id: r.get("id"),
+            section: r.get("section"),
+            key: r.get("key"),
+            value: r.get("value"),
+            value_type: r.get("value_type"),
         })
         .collect();
 
@@ -461,37 +479,36 @@ INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_ty
 /// tx.commit().await?;
 /// ```
 pub async fn set_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
     value: &str,
     value_type: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     let section_record = sqlx::query!(
         r#"
-                SELECT id as `id: u64` FROM config_sections WHERE name = ?
+                SELECT id FROM config_sections WHERE name = $1
         "#,
         section
     )
     .fetch_one(&mut **tx)
     .await?;
 
-    let section_id = section_record
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Failed to get section id for section {}", section))?;
+    let section_id = section_record.id;
 
     Ok(sqlx::query!(
         r#"
-                INSERT INTO config_values
-                    (section_id, cfg_key, cfg_value, value_type_id, default_id) 
-                VALUES (
-                    ?,
-                    ?,
-                    ?,
-                    (SELECT id FROM config_value_types WHERE name = ?),
-                    (SELECT id FROM config_defaults WHERE cfg_key = ? AND section_id = ?)
-                )
-            "#,
+            INSERT INTO config_values
+                (section_id, cfg_key, cfg_value, value_type_id, default_id) 
+            VALUES (
+                $1,
+                $2,
+                $3,
+                (SELECT id FROM config_value_types WHERE name = $4),
+                (SELECT id FROM config_defaults WHERE cfg_key = $5 AND section_id = $6)
+            )
+            RETURNING id
+        "#,
         section_id,
         key,
         value,
@@ -499,9 +516,9 @@ pub async fn set_config_value(
         key,
         section_id,
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Updates or inserts a configuration value in the database.
@@ -513,36 +530,37 @@ pub async fn set_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn update_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     section: &str,
     key: &str,
     value: &str,
     value_type: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
                 UPDATE config_values 
-                SET cfg_value = ?, 
+                SET cfg_value = $1, 
                     value_type_id = (
                         SELECT id 
                         FROM config_value_types 
-                        WHERE name = ?
+                        WHERE name = $2
                     ) 
-                WHERE cfg_key = ? 
+                WHERE cfg_key = $3 
                 AND section_id = (
                     SELECT id 
                     FROM config_sections 
-                    WHERE name = ?
+                    WHERE name = $4
                 )
+                RETURNING id
             "#,
         value,
         value_type,
         key,
         section
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Returns whether a configuration value exists in the database associated
@@ -555,7 +573,7 @@ pub async fn update_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn has_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
     section: &str,
     key: &str,
@@ -567,7 +585,7 @@ pub async fn has_config_value(
                 INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
                 INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
                 INNER JOIN config_sections ON config_values.section_id = config_sections.id
-                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?
+                WHERE environments.name = $1 AND config_sections.name = $2 AND config_values.cfg_key = $3
         "#,
         environment,
         section,
@@ -589,7 +607,7 @@ pub async fn has_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn get_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
     section: &str,
     key: &str,
@@ -598,17 +616,17 @@ pub async fn get_config_value(
         ConfigurationValue,
         r#"
                 SELECT 
-                    config_values.id AS `id: i64`,
-                    config_sections.name AS `section: String`,
-                    config_values.cfg_key AS `key: String`,
-                    config_values.cfg_value AS `value: String`,
-                    config_value_types.name AS `value_type: String`
+                    config_values.id AS id,
+                    config_sections.name AS section,
+                    config_values.cfg_key AS key,
+                    config_values.cfg_value AS value,
+                    config_value_types.name AS value_type
                 FROM environments
                 INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
                 INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
                 INNER JOIN config_sections ON config_values.section_id = config_sections.id
                 INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id
-                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?
+                WHERE environments.name = $1 AND config_sections.name = $2 AND config_values.cfg_key = $3
         "#,
         environment,
         section,
@@ -629,26 +647,31 @@ pub async fn get_config_value(
 /// tx.commit().await?;
 /// ```
 pub async fn delete_config_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
     section: &str,
     key: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
             r#"
-                DELETE config_values FROM environments
-                INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
-                INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
-                INNER JOIN config_sections ON config_values.section_id = config_sections.id
-                WHERE environments.name = ? AND config_sections.name = ? AND config_values.cfg_key = ?
+                DELETE FROM environments
+                WHERE environments.id = (
+                    SELECT environments.id
+                    FROM environments
+                    INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
+                    INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
+                    INNER JOIN config_sections ON config_values.section_id = config_sections.id
+                    WHERE environments.name = $1 AND config_sections.name = $2 AND config_values.cfg_key = $3
+                )
+                RETURNING id
             "#,
             environment,
             section,
             key
         )
-        .execute(&mut **tx)
+        .fetch_one(&mut **tx)
         .await?
-        .last_insert_id())
+        .id)
 }
 
 /// Returns a listing of the configuration values stored in the
@@ -671,7 +694,7 @@ pub async fn delete_config_value(
 /// }
 /// ```
 pub async fn list_config_values(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: Option<&str>,
     section: Option<&str>,
     key: Option<&str>,
@@ -681,8 +704,8 @@ pub async fn list_config_values(
 SELECT 
     config_values.id AS id,
     config_sections.name AS section,
-    config_values.cfg_key AS 'key',
-    config_values.cfg_value AS 'value',
+    config_values.cfg_key AS key,
+    config_values.cfg_value AS value,
     config_value_types.name AS value_type
 FROM environments
 INNER JOIN environments_config_values ON environments.id = environments_config_values.environment_id
@@ -691,7 +714,7 @@ INNER JOIN config_sections ON config_values.section_id = config_sections.id
 INNER JOIN config_value_types ON config_values.value_type_id = config_value_types.id"#,
     );
 
-    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
+    let mut builder: sqlx::QueryBuilder<Postgres> = sqlx::QueryBuilder::new(query);
 
     if let Some(environment) = environment {
         builder.push("\nWHERE environments.name = ");
@@ -743,20 +766,20 @@ INNER JOIN config_value_types ON config_values.value_type_id = config_value_type
 /// tx.commit().await?;
 /// ```
 pub async fn add_env_cfg_value(
-    tx: &mut Transaction<'_, MySql>,
-    env_id: u64,
-    cfg_id: u64,
-) -> anyhow::Result<u64> {
+    tx: &mut Transaction<'_, Postgres>,
+    env_id: i32,
+    cfg_id: i32,
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
             r#"
-                INSERT INTO environments_config_values (environment_id, config_value_id) VALUES (?, ?)
+                INSERT INTO environments_config_values (environment_id, config_value_id) VALUES ($1, $2) RETURNING id
             "#,
             env_id,
             cfg_id
         )
-        .execute(&mut **tx)
+        .fetch_one(&mut **tx)
         .await?
-        .last_insert_id())
+        .id)
 }
 
 /// Updates a configuration value in an environment.
@@ -768,25 +791,22 @@ pub async fn add_env_cfg_value(
 /// tx.commit().await?;
 /// ```
 pub async fn update_env_cfg_value(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     section: &str,
     key: &str,
     value: &str,
     val_type: &str,
 ) -> anyhow::Result<()> {
-    let cfg_id = get_config_value(tx, env, section, key)
-        .await?
-        .id
-        .context("Failed to get config value id")?;
+    let cfg_id = get_config_value(tx, env, section, key).await?.id;
 
     sqlx::query!(
         r#"
             UPDATE config_values
             SET
-                cfg_value = ?,
-                value_type_id = (SELECT id FROM config_value_types WHERE name = ?)
-            WHERE id = ?
+                cfg_value = $1,
+                value_type_id = (SELECT id FROM config_value_types WHERE name = $2)
+            WHERE id = $3
         "#,
         value,
         val_type,
@@ -801,9 +821,9 @@ pub async fn update_env_cfg_value(
 /// Represents a single service as stored in the database.
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Service {
-    pub name: Option<String>,
-    pub id: Option<i64>,
-    pub repo_id: Option<i64>,
+    pub name: String,
+    pub id: i32,
+    pub repo_id: i32,
 }
 
 /// Returns a listing of the services stored in the database that are affected
@@ -820,17 +840,17 @@ pub struct Service {
 /// }
 /// ```
 pub async fn list_affected_services(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
-    cfg_id: u64,
+    cfg_id: i32,
 ) -> anyhow::Result<Vec<Service>> {
     let services = sqlx::query_as!(
         Service,
         r#"
                 SELECT 
-                    services.name AS `name: String`,
-                    services.id AS `id: i64`,
-                    services.repo_id AS `repo_id: i64`
+                    services.name AS name,
+                    services.id AS id,
+                    services.repo_id AS repo_id
                 FROM environments
                 INNER JOIN environments_services ON environments.id = environments_services.environment_id
                 INNER JOIN services ON environments_services.service_id = services.id
@@ -838,7 +858,7 @@ pub async fn list_affected_services(
                 INNER JOIN config_values ON environments_config_values.config_value_id = config_values.id
                 INNER JOIN environments_services_config_values a ON environments_services.id = a.environment_service_id
                 INNER JOIN environments_services_config_values b ON environments_config_values.id = b.environment_config_value_id
-                WHERE environments.name = ? AND config_values.id = ?
+                WHERE environments.name = $1 AND config_values.id = $2
         "#,
         environment,
         cfg_id
@@ -862,20 +882,20 @@ pub async fn list_affected_services(
 /// }
 /// ```
 pub async fn list_services(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
 ) -> anyhow::Result<Vec<Service>> {
     let services = sqlx::query_as!(
         Service,
         r#"
                 SELECT 
-                    services.name AS `name: String`,
-                    services.id AS `id: i64`,
-                    services.repo_id AS `repo_id: i64`
+                    services.name AS name,
+                    services.id AS id,
+                    services.repo_id AS repo_id
                 FROM environments
                 INNER JOIN environments_services ON environments.id = environments_services.environment_id
                 INNER JOIN services ON environments_services.service_id = services.id
-                WHERE environments.name = ?
+                WHERE environments.name = $1
         "#,
         environment
     )
@@ -898,20 +918,20 @@ pub async fn list_services(
 /// }
 /// ```
 pub async fn get_services(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     environment: &str,
 ) -> anyhow::Result<Vec<Service>> {
     let services = sqlx::query_as!(
         Service,
         r#"
             SELECT 
-                services.id AS `id: i64`, 
-                services.name AS `name: String`, 
-                services.repo_id AS `repo_id: i64`
+                services.id AS id, 
+                services.name AS name, 
+                services.repo_id AS repo_id
             FROM environments
             INNER JOIN environments_services ON environments.id = environments_services.environment_id
             INNER JOIN services ON environments_services.service_id = services.id
-            WHERE environments.name = ?
+            WHERE environments.name = $1
         "#,
         environment
     )
@@ -931,14 +951,14 @@ pub async fn get_services(
 /// for service in result {
 ///    println!("{}", service.name);
 /// }
-pub async fn get_all_services(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<Service>> {
+pub async fn get_all_services(tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<Vec<Service>> {
     let services = sqlx::query_as!(
         Service,
         r#"
             SELECT 
-                services.id AS `id: i64`, 
-                services.name AS `name: String`, 
-                services.repo_id AS `repo_id: i64`
+                services.id AS id, 
+                services.name AS name, 
+                services.repo_id AS repo_id
             FROM services
         "#
     )
@@ -958,26 +978,27 @@ pub async fn get_all_services(tx: &mut Transaction<'_, MySql>) -> anyhow::Result
 /// tx.commit().await?;
 /// ```
 pub async fn add_service_to_env(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     service_name: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
             INSERT INTO 
                 environments_services (environment_id, service_id) 
             VALUES 
                 (
-                    (SELECT id FROM environments WHERE name = ?),
-                    (SELECT id FROM services WHERE name = ?)
+                    (SELECT id FROM environments WHERE name = $1),
+                    (SELECT id FROM services WHERE name = $2)
                 )
+            RETURNING id
         "#,
         env,
         service_name
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Removes a service from an environment.
@@ -989,15 +1010,15 @@ pub async fn add_service_to_env(
 /// tx.commit().await?;
 /// ```
 pub async fn remove_service_from_env(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     service_name: &str,
 ) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
             DELETE FROM environments_services
-            WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
-            AND service_id = (SELECT id FROM services WHERE name = ?)
+            WHERE environment_id = (SELECT id FROM environments WHERE name = $1)
+            AND service_id = (SELECT id FROM services WHERE name = $2)
         "#,
         env,
         service_name
@@ -1010,10 +1031,10 @@ pub async fn remove_service_from_env(
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Repository {
-    pub id: Option<i64>,
-    pub name: Option<String>,
-    pub url: Option<String>,
-    pub revision: Option<String>,
+    pub id: i32,
+    pub name: String,
+    pub url: String,
+    pub revision: String,
 }
 
 /// Returns the repository by its primary key.
@@ -1030,19 +1051,19 @@ pub struct Repository {
 /// println!("{}", result.revision);
 /// ```
 pub async fn get_repo_by_id(
-    tx: &mut Transaction<'_, MySql>,
-    id: i64,
+    tx: &mut Transaction<'_, Postgres>,
+    id: i32,
 ) -> anyhow::Result<Repository> {
     let repo = sqlx::query_as!(
         Repository,
         r#"
             SELECT 
-                repos.id AS `id: i64`, 
-                repos.name AS `name: String`, 
-                repos.url AS `url: String`, 
-                repos.revision AS `revision: String`
+                repos.id AS id, 
+                repos.name AS name, 
+                repos.url AS url, 
+                repos.revision AS revision
             FROM repos
-            WHERE repos.id = ?
+            WHERE repos.id = $1
         "#,
         id
     )
@@ -1062,40 +1083,43 @@ pub async fn get_repo_by_id(
 ///
 /// println!("{}", result);
 /// ```
-pub async fn get_namespace(tx: &mut Transaction<'_, MySql>, env: &str) -> anyhow::Result<String> {
+pub async fn get_namespace(
+    tx: &mut Transaction<'_, Postgres>,
+    env: &str,
+) -> anyhow::Result<String> {
     let namespace = sqlx::query!(
         r#"
-            SELECT environments.namespace AS `namespace: String`
+            SELECT environments.namespace AS namespace
             FROM environments
-            WHERE environments.name = ?
+            WHERE environments.name = $1
         "#,
         env
     )
     .fetch_one(&mut **tx)
     .await?;
 
-    Ok(namespace.namespace.unwrap_or_default())
+    Ok(namespace.namespace)
 }
 
 /// Represents a set of feature flags for an environment as returned from
 /// the database.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FeatureFlags {
-    pub administration: Option<bool>,
-    pub analytics: Option<bool>,
-    pub agave: Option<bool>,
-    pub base_urls: Option<bool>,
-    pub cas: Option<bool>,
-    pub docker: Option<bool>,
-    pub infosquito: Option<bool>,
-    pub intercom: Option<bool>,
-    pub jaeger: Option<bool>,
-    pub jobs: Option<bool>,
-    pub jvmopts: Option<bool>,
-    pub permanent_id: Option<bool>,
-    pub qa: Option<bool>,
-    pub qms: Option<bool>,
-    pub unleash: Option<bool>,
+    pub administration: bool,
+    pub analytics: bool,
+    pub agave: bool,
+    pub base_urls: bool,
+    pub cas: bool,
+    pub docker: bool,
+    pub infosquito: bool,
+    pub intercom: bool,
+    pub jaeger: bool,
+    pub jobs: bool,
+    pub jvmopts: bool,
+    pub permanent_id: bool,
+    pub qa: bool,
+    pub qms: bool,
+    pub unleash: bool,
 }
 
 /// Returns the feature flag settings for the provided environment.
@@ -1111,31 +1135,31 @@ pub struct FeatureFlags {
 /// }
 /// ```
 pub async fn get_feature_flags(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
 ) -> anyhow::Result<FeatureFlags> {
     Ok(sqlx::query_as!(
         FeatureFlags,
         r#"
             SELECT 
-                environments_features.administration AS `administration: bool`,
-                environments_features.analytics AS `analytics: bool`,
-                environments_features.agave AS `agave: bool`,
-                environments_features.base_urls AS `base_urls: bool`,
-                environments_features.cas AS `cas: bool`,
-                environments_features.docker AS `docker: bool`,
-                environments_features.infosquito AS `infosquito: bool`,
-                environments_features.intercom AS `intercom: bool`,
-                environments_features.jaeger AS `jaeger: bool`,
-                environments_features.jobs AS `jobs: bool`,
-                environments_features.jvmopts AS `jvmopts: bool`,
-                environments_features.permanent_id AS `permanent_id: bool`,
-                environments_features.qa AS `qa: bool`,
-                environments_features.qms AS `qms: bool`,
-                environments_features.unleash AS `unleash: bool`
+                environments_features.administration AS administration,
+                environments_features.analytics AS analytics,
+                environments_features.agave AS agave,
+                environments_features.base_urls AS base_urls,
+                environments_features.cas AS cas,
+                environments_features.docker AS docker,
+                environments_features.infosquito AS infosquito,
+                environments_features.intercom AS intercom,
+                environments_features.jaeger AS jaeger,
+                environments_features.jobs AS jobs,
+                environments_features.jvmopts AS jvmopts,
+                environments_features.permanent_id AS permanent_id,
+                environments_features.qa AS qa,
+                environments_features.qms AS qms,
+                environments_features.unleash AS unleash
             FROM environments_features
             INNER JOIN environments ON environments.id = environments_features.environment_id
-            WHERE environments.name = ?
+            WHERE environments.name = $1
         "#,
         env
     )
@@ -1152,7 +1176,7 @@ pub async fn get_feature_flags(
 /// tx.commit().await?;
 /// ```
 pub async fn upsert_feature_flags(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     flags: &FeatureFlags,
 ) -> anyhow::Result<bool> {
@@ -1175,38 +1199,39 @@ pub async fn upsert_feature_flags(
                 qms, 
                 unleash
             ) VALUES (
-                (SELECT id FROM environments WHERE name = ?),
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?
-            ) ON DUPLICATE KEY UPDATE
-                administration = VALUES(administration),
-                analytics = VALUES(analytics),
-                agave = VALUES(agave),
-                base_urls = VALUES(base_urls),
-                cas = VALUES(cas),
-                docker = VALUES(docker),
-                infosquito = VALUES(infosquito),
-                intercom = VALUES(intercom),
-                jaeger = VALUES(jaeger),
-                jobs = VALUES(jobs),
-                jvmopts = VALUES(jvmopts),
-                permanent_id = VALUES(permanent_id),
-                qa = VALUES(qa),
-                qms = VALUES(qms),
-                unleash = VALUES(unleash)
+                (SELECT id FROM environments WHERE name = $1),
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                $9,
+                $10,
+                $11,
+                $12,
+                $13,
+                $14,
+                $15,
+                $16
+            ) ON CONFLICT (environment_id) DO UPDATE
+            SET
+                administration = $2,
+                analytics = $3,
+                agave = $4,
+                base_urls = $5,
+                cas = $6,
+                docker = $7,
+                infosquito = $8,
+                intercom = $9,
+                jaeger = $10,
+                jobs = $11,
+                jvmopts = $12,
+                permanent_id = $13,
+                qa = $14,
+                qms = $15,
+                unleash = $16
         "#,
         env,
         flags.administration,
@@ -1240,7 +1265,7 @@ pub async fn upsert_feature_flags(
 /// tx.commit().await?;
 /// ```
 pub async fn set_feature_flag(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     flag: &str,
     value: &str,
@@ -1257,7 +1282,7 @@ pub async fn set_feature_flag(
         flag,
     );
 
-    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(query);
+    let mut builder: sqlx::QueryBuilder<Postgres> = sqlx::QueryBuilder::new(query);
     builder.push_bind(value);
     builder.push("WHERE environments.name = ");
     builder.push_bind(env);
@@ -1281,62 +1306,62 @@ pub async fn set_feature_flag(
 /// }
 /// ```
 pub async fn list_templates(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
 ) -> anyhow::Result<Vec<String>> {
     let templates = sqlx::query!(
         r#"
-            SELECT DISTINCT ct.path AS `path: String`
+            SELECT DISTINCT ct.path AS path
             FROM config_templates ct
             JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
             JOIN environments_services es ON es.id = ect.environment_service_id
             JOIN environments e ON e.id = es.environment_id
-            WHERE e.name = ?
+            WHERE e.name = $1
         "#,
         env
     )
     .fetch_all(&mut **tx)
     .await?;
 
-    Ok(templates.into_iter().filter_map(|t| t.path).collect())
+    Ok(templates.into_iter().map(|t| t.path).collect())
 }
 
 pub async fn list_template_ids(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
-) -> anyhow::Result<Vec<u64>> {
+) -> anyhow::Result<Vec<i32>> {
     Ok(sqlx::query!(
         r#"
-            SELECT ct.id AS `id: u64`
+            SELECT ct.id AS id
             FROM config_templates ct
             JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
             JOIN environments_services es ON es.id = ect.environment_service_id
             JOIN environments e ON e.id = es.environment_id
-            WHERE e.name = ?
+            WHERE e.name = $1
         "#,
         env
     )
     .fetch_all(&mut **tx)
     .await?
     .into_iter()
-    .filter_map(|t| t.id)
+    .map(|t| t.id)
     .collect())
 }
 
 pub async fn list_service_templates(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     service_name: &str,
-) -> anyhow::Result<Vec<u64>> {
+) -> anyhow::Result<Vec<i32>> {
     Ok(sqlx::query!(
         r#"
-            SELECT ct.id AS `id: u64`
+            SELECT ct.id AS id
             FROM config_templates ct
             JOIN environments_services_config_templates ect ON ect.config_template_id = ct.id
             JOIN environments_services es ON es.id = ect.environment_service_id
             JOIN environments e ON e.id = es.environment_id
             JOIN services s ON s.id = es.service_id
-            WHERE e.name = ? AND s.name = ?
+            WHERE e.name = $1 AND s.name = $2
         "#,
         env,
         service_name
@@ -1344,41 +1369,41 @@ pub async fn list_service_templates(
     .fetch_all(&mut **tx)
     .await?
     .into_iter()
-    .filter_map(|t| t.id)
+    .map(|t| t.id)
     .collect())
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct ESCT {
-    id: Option<i64>,
-    environment_service_id: Option<i64>,
-    config_template_id: Option<i64>,
-    path: Option<String>,
+    id: i32,
+    environment_service_id: i32,
+    config_template_id: i32,
+    path: String,
 }
 
 /// Adds a configuration template for a service to an environment.
 pub async fn copy_service_template_to_env(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     from: &str,
     service_name: &str,
-    config_template_id: u64,
+    config_template_id: i32,
 ) -> anyhow::Result<()> {
     // Get the ESCTs for the from environment. Basically just need the path.
     let from_esct: ESCT = sqlx::query_as!(
         ESCT,
         r#"
             SELECT 
-                environments_services_config_templates.id AS `id: i64`,
-                environments_services_config_templates.environment_service_id AS `environment_service_id: i64`,
-                environments_services_config_templates.config_template_id AS `config_template_id: i64`,
-                config_templates.path AS `path: String`
+                environments_services_config_templates.id AS id,
+                environments_services_config_templates.environment_service_id AS environment_service_id,
+                environments_services_config_templates.config_template_id AS config_template_id,
+                config_templates.path AS path
             FROM environments_services_config_templates
             JOIN environments_services ON environments_services.id = environments_services_config_templates.environment_service_id
             JOIN environments ON environments.id = environments_services.environment_id
             JOIN config_templates ON config_templates.id = environments_services_config_templates.config_template_id
             JOIN services ON services.id = environments_services.service_id
-            WHERE environments.name = ? AND services.name = ? AND config_templates.id = ?
+            WHERE environments.name = $1 AND services.name = $2 AND config_templates.id = $3
         "#,
         from,
         service_name,
@@ -1394,11 +1419,11 @@ pub async fn copy_service_template_to_env(
                     (
                         SELECT id 
                         FROM environments_services
-                        WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
-                        AND service_id = (SELECT id FROM services WHERE name = ?)
+                        WHERE environment_id = (SELECT id FROM environments WHERE name = $1)
+                        AND service_id = (SELECT id FROM services WHERE name = $2)
                     ),
-                    ?,
-                    ?
+                    $3,
+                    $4
                 )
         "#,
         env,
@@ -1417,24 +1442,24 @@ pub async fn copy_service_template_to_env(
 /// # Examples
 /// ```ignore
 /// let mut tx = db.begin().await?;
-/// let result = db::add_template(&mut tx, repo_id: u64, path: &PathBuf).await?;
+/// let result = db::add_template(&mut tx, repo_id: i32, path: &PathBuf).await?;
 /// tx.commit().await?;
 /// ```
 pub async fn add_template(
-    tx: &mut Transaction<'_, MySql>,
-    repo_id: u64,
+    tx: &mut Transaction<'_, Postgres>,
+    repo_id: i32,
     path: &PathBuf,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-            INSERT INTO config_templates (repo_id, path) VALUES (?, ?)
+            INSERT INTO config_templates (repo_id, path) VALUES ($1, $2) RETURNING id
         "#,
         repo_id,
         path.to_str().context("Failed to convert path to string")?
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Adds a configuration template to a service in an environment.
@@ -1446,12 +1471,12 @@ pub async fn add_template(
 /// tx.commit().await?;
 /// ```
 pub async fn add_template_to_service(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     env: &str,
     service_name: &str,
-    config_template_id: u64,
+    config_template_id: i32,
     render_path: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
             INSERT INTO environments_services_config_templates
@@ -1461,33 +1486,34 @@ pub async fn add_template_to_service(
                     (
                         SELECT id 
                         FROM environments_services
-                        WHERE environment_id = (SELECT id FROM environments WHERE name = ?)
-                        AND service_id = (SELECT id FROM services WHERE name = ?)
+                        WHERE environment_id = (SELECT id FROM environments WHERE name = $1)
+                        AND service_id = (SELECT id FROM services WHERE name = $2)
                     ),
-                    ?,
-                    ?
+                    $3,
+                    $4
                 )
+            RETURNING id
         "#,
         env,
         service_name,
         config_template_id,
         render_path
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 #[derive(tabled::Tabled, Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct TemplateInfo {
     pub environment: String,
-    pub service_id: u64,
+    pub service_id: i32,
     pub service_name: String,
-    pub repo_id: u64,
+    pub repo_id: i32,
     pub repo_name: String,
     pub repo_url: String,
     pub repo_revision: String,
-    pub template_id: u64,
+    pub template_id: i32,
     pub template_path: String,
 }
 
@@ -1507,10 +1533,10 @@ pub struct TemplateInfo {
 /// }
 /// ```
 pub async fn list_template_info(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     template_paths: &[String],
 ) -> anyhow::Result<Vec<TemplateInfo>> {
-    let mut builder: sqlx::QueryBuilder<MySql> = sqlx::QueryBuilder::new(String::from(
+    let mut builder: sqlx::QueryBuilder<Postgres> = sqlx::QueryBuilder::new(String::from(
         r#"
             SELECT
                 e.name AS environment,
@@ -1551,15 +1577,15 @@ pub async fn list_template_info(
         .await?
         .iter()
         .map(|r| TemplateInfo {
-            environment: r.try_get("environment").unwrap_or_default(),
-            service_id: r.try_get("service_id").unwrap_or_default(),
-            service_name: r.try_get("service_name").unwrap_or_default(),
-            repo_id: r.try_get("repo_id").unwrap_or_default(),
-            repo_name: r.try_get("repo_name").unwrap_or_default(),
-            repo_url: r.try_get("repo_url").unwrap_or_default(),
-            repo_revision: r.try_get("repo_revision").unwrap_or_default(),
-            template_id: r.try_get("template_id").unwrap_or_default(),
-            template_path: r.try_get("template_path").unwrap_or_default(),
+            environment: r.get("environment"),
+            service_id: r.get("service_id"),
+            service_name: r.get("service_name"),
+            repo_id: r.get("repo_id"),
+            repo_name: r.get("repo_name"),
+            repo_url: r.get("repo_url"),
+            repo_revision: r.get("repo_revision"),
+            template_id: r.get("template_id"),
+            template_path: r.get("template_path"),
         })
         .collect();
 
@@ -1568,15 +1594,15 @@ pub async fn list_template_info(
 
 #[derive(sqlx::FromRow, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Repo {
-    pub id: Option<u64>,
-    pub name: Option<String>,
-    pub url: Option<String>,
-    pub revision: Option<String>,
+    pub id: i32,
+    pub name: String,
+    pub url: String,
+    pub revision: String,
 }
 
 #[derive(tabled::Tabled, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TableRepo {
-    pub id: u64,
+    pub id: i32,
     pub name: String,
     pub url: String,
     pub revision: String,
@@ -1585,10 +1611,10 @@ pub struct TableRepo {
 impl From<Repo> for TableRepo {
     fn from(repo: Repo) -> Self {
         Self {
-            id: repo.id.unwrap_or_default(),
-            name: repo.name.unwrap_or_default(),
-            url: repo.url.unwrap_or_default(),
-            revision: repo.revision.unwrap_or_default(),
+            id: repo.id,
+            name: repo.name,
+            url: repo.url,
+            revision: repo.revision,
         }
     }
 }
@@ -1605,15 +1631,15 @@ impl From<Repo> for TableRepo {
 ///  println!("{}", repo);
 /// }
 /// ```
-pub async fn list_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<TableRepo>> {
+pub async fn list_repos(tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<Vec<TableRepo>> {
     let repos: Vec<TableRepo> = sqlx::query_as!(
         Repo,
         r#"
             SELECT 
-                repos.id AS `id: u64`, 
-                repos.name AS `name: String`, 
-                repos.url AS `url: String`, 
-                repos.revision AS `revision: String`
+                repos.id AS id, 
+                repos.name AS name, 
+                repos.url AS url, 
+                repos.revision AS revision
             FROM repos
         "#
     )
@@ -1637,22 +1663,22 @@ pub async fn list_repos(tx: &mut Transaction<'_, MySql>) -> anyhow::Result<Vec<T
 /// println!("{}", result);
 /// ```
 pub async fn add_repo(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     name: &str,
     url: &url::Url,
     revision: &str,
-) -> anyhow::Result<u64> {
+) -> anyhow::Result<i32> {
     Ok(sqlx::query!(
         r#"
-            INSERT INTO repos (name, url, revision) VALUES (?, ?, ?)
+            INSERT INTO repos (name, url, revision) VALUES ($1, $2, $3) RETURNING id
         "#,
         name,
         url.as_str(),
         revision
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id())
+    .id)
 }
 
 /// Deletes a repo from the database.
@@ -1663,10 +1689,10 @@ pub async fn add_repo(
 /// let result = db::delete_repo(&mut tx, 1).await?;
 /// tx.commit().await?;
 /// ```
-pub async fn delete_repo(tx: &mut Transaction<'_, MySql>, id: u64) -> anyhow::Result<()> {
+pub async fn delete_repo(tx: &mut Transaction<'_, Postgres>, id: i32) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
-            DELETE FROM repos WHERE id = ?
+            DELETE FROM repos WHERE id = $1
         "#,
         id
     )

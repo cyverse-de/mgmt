@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use serde::Deserialize;
-use sqlx::mysql::MySql;
+use sqlx::Postgres;
 use sqlx::{Pool, Transaction};
 use std::fs;
 use std::path::PathBuf;
@@ -42,17 +42,16 @@ pub fn parse_container_image(image: &str) -> Result<ContainerImageParts> {
 /**
  * Returns the repo_id for a given service.
  */
-pub async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str) -> Result<i32> {
+pub async fn get_service_repo_id(tx: &mut Transaction<'_, Postgres>, service: &str) -> Result<i32> {
     let repo_id = sqlx::query!(
         r#"
-        SELECT repo_id FROM services WHERE name = (?)
+            SELECT repo_id FROM services WHERE name = $1
         "#,
         service,
     )
     .fetch_one(&mut **tx)
     .await?
-    .repo_id
-    .ok_or_else(|| anyhow::anyhow!("repo_id not found"))?;
+    .repo_id;
 
     Ok(repo_id)
 }
@@ -60,10 +59,10 @@ pub async fn get_service_repo_id(tx: &mut Transaction<'_, MySql>, service: &str)
 /**
  * Returns true if the service exists in the database.
  */
-async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Result<bool> {
+async fn service_exists(tx: &mut Transaction<'_, Postgres>, service: &str) -> Result<bool> {
     let services = sqlx::query!(
         r#"
-        SELECT COUNT(*) AS count FROM services WHERE name = (?)
+            SELECT COUNT(*) AS count FROM services WHERE name = $1
         "#,
         service,
     )
@@ -77,15 +76,15 @@ async fn service_exists(tx: &mut Transaction<'_, MySql>, service: &str) -> Resul
  * Returns true if the container image exists in the database.
  */
 async fn image_exists(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     image: &ContainerImageParts,
 ) -> Result<bool> {
     let images = sqlx::query!(
         r#"
-        SELECT COUNT(*) AS count 
-        FROM container_images 
-        WHERE name = (?)
-        AND tag = (?)
+            SELECT COUNT(*) AS count 
+            FROM container_images 
+            WHERE name = $1
+            AND tag = $2
         "#,
         image.name,
         image.tag,
@@ -100,7 +99,7 @@ async fn image_exists(
  * Updates an image in the database.
  */
 async fn update_image(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     repo_id: i32,
     dockerfile: &str,
     container_image: &ContainerImageParts,
@@ -109,11 +108,11 @@ async fn update_image(
         r#"
             UPDATE container_images 
             SET 
-                dockerfile = (?),
-                repo_id = (?),
-                digest = (?)
-            WHERE name = (?)
-            AND tag = (?)
+                dockerfile = $1,
+                repo_id = $2,
+                digest = $3
+            WHERE name = $4
+            AND tag = $5
         "#,
         dockerfile,
         repo_id,
@@ -131,17 +130,18 @@ async fn update_image(
  * Inserts an image into the database.
  */
 pub async fn insert_image(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     repo_id: i32,
     dockerfile: &str,
     container_image: &ContainerImageParts,
-) -> Result<u64> {
+) -> Result<i32> {
     let image_id = sqlx::query!(
         r#"
             INSERT INTO container_images 
                 (name, tag, digest, repo_id, dockerfile)
             VALUES 
-                (?, ?, ?, ?, ?)
+                ($1, $2, $3, $4, $5)
+            RETURNING id
         "#,
         container_image.name,
         container_image.tag,
@@ -149,9 +149,9 @@ pub async fn insert_image(
         repo_id,
         dockerfile,
     )
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?
-    .last_insert_id();
+    .id;
 
     Ok(image_id)
 }
@@ -159,7 +159,7 @@ pub async fn insert_image(
 /**
  * Lists the images in the database.
  */
-pub async fn list_images(pool: &Pool<MySql>) -> Result<()> {
+pub async fn list_images(pool: &Pool<Postgres>) -> Result<()> {
     let images = sqlx::query!(
         r#"
         SELECT 
@@ -179,16 +179,7 @@ pub async fn list_images(pool: &Pool<MySql>) -> Result<()> {
     for image in images {
         println!(
             "  id: {}, name: {}, tag: {}, digest: {}, dockerfile: {}, service: {}",
-            image.id.ok_or_else(|| anyhow!("missing id"))?,
-            image.name.ok_or_else(|| anyhow!("missing name"))?,
-            image.tag.ok_or_else(|| anyhow!("missing tag"))?,
-            image.digest.ok_or_else(|| anyhow!("missing digest"))?,
-            image
-                .dockerfile
-                .ok_or_else(|| anyhow!("missing dockerfile"))?,
-            image
-                .service_name
-                .ok_or_else(|| anyhow!("missing service_name"))?,
+            image.id, image.name, image.tag, image.digest, image.dockerfile, image.service_name,
         );
     }
 
@@ -218,7 +209,7 @@ enum BuildFileError {
 }
 
 pub async fn upsert_build(
-    tx: &mut Transaction<'_, MySql>,
+    tx: &mut Transaction<'_, Postgres>,
     builds_file: &PathBuf,
     service_name: &str,
     force_insert: bool,
@@ -256,7 +247,11 @@ pub async fn upsert_build(
  * Upserts the container images in the database based on the contents of the JSON files
  * in the given directory. Optionally can be forced to insert the images.
  */
-pub async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: bool) -> Result<()> {
+pub async fn upsert_builds(
+    pool: &Pool<Postgres>,
+    builds_dir: &str,
+    force_insert: bool,
+) -> Result<()> {
     let mut build_dirs = fs::read_dir(builds_dir)?;
     let mut tx = pool.begin().await?;
 
@@ -305,7 +300,7 @@ pub async fn upsert_builds(pool: &Pool<MySql>, builds_dir: &str, force_insert: b
  * Upserts a single image to the database.
  */
 pub async fn upsert_image(
-    pool: &Pool<MySql>,
+    pool: &Pool<Postgres>,
     image: &str,
     service_name: &str,
     dockerfile: &str,
@@ -335,13 +330,13 @@ pub async fn upsert_image(
 /**
  * Deletes an image from the database.
  */
-pub async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
+pub async fn delete_image(pool: &Pool<Postgres>, id: &i32) -> Result<()> {
     let mut tx = pool.begin().await?;
     println!("Deleting image with id {}", id);
 
     sqlx::query!(
         r#"
-        DELETE FROM container_images WHERE id = (?)
+            DELETE FROM container_images WHERE id = $1
         "#,
         *id,
     )
@@ -354,7 +349,7 @@ pub async fn delete_image(pool: &Pool<MySql>, id: &i32) -> Result<()> {
 }
 
 // The actual handlers.
-pub async fn insert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn insert(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let image = sub_m.get_one::<String>("image").ok_or_else(|| {
         anyhow!("No image specified. Use --image <image> to specify an image to insert.")
     })?;
@@ -373,7 +368,7 @@ pub async fn insert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn upsert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn upsert(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let image = sub_m.get_one::<String>("image").ok_or_else(|| {
         anyhow!("No image specified. Use --image <image> to specify an image to insert.")
     })?;
@@ -388,7 +383,7 @@ pub async fn upsert(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn upsert_multi_builds(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn upsert_multi_builds(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
                 anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
             })?;
@@ -398,7 +393,7 @@ pub async fn upsert_multi_builds(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Resu
     Ok(())
 }
 
-pub async fn upsert_single_build(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn upsert_single_build(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let builds_dir = sub_m.get_one::<String>("builds-dir").ok_or_else(|| {
                 anyhow!("No builds-dir specified. Use --builds-dir <builds-dir> to specify a builds-dir to insert.")
             })?;
@@ -416,7 +411,7 @@ pub async fn upsert_single_build(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Resu
     Ok(())
 }
 
-pub async fn delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn delete(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let id = sub_m
         .get_one::<i32>("id")
         .ok_or_else(|| anyhow!("No id specified. Use --id <id> to specify an id to delete."))?;
@@ -425,7 +420,7 @@ pub async fn delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn list_all_images(pool: &Pool<MySql>) -> Result<()> {
+pub async fn list_all_images(pool: &Pool<Postgres>) -> Result<()> {
     list_images(&pool).await?;
 
     Ok(())

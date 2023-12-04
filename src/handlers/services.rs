@@ -1,10 +1,10 @@
-use sqlx::{MySql, Pool};
+use sqlx::{Pool, Postgres};
 
 use crate::db;
 
 use anyhow::Result;
 
-pub async fn list_all_services(pool: &Pool<MySql>) -> Result<Vec<String>> {
+pub async fn list_all_services(pool: &Pool<Postgres>) -> Result<Vec<String>> {
     let mut tx = pool.begin().await?;
 
     let result = db::get_all_services(&mut tx).await?;
@@ -12,7 +12,7 @@ pub async fn list_all_services(pool: &Pool<MySql>) -> Result<Vec<String>> {
     let mut services = Vec::new();
 
     for service in result {
-        services.push(service.name.unwrap());
+        services.push(service.name);
     }
 
     Ok(services)

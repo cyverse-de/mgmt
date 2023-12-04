@@ -2,7 +2,7 @@ use crate::{db, deploy, git, ops};
 use anyhow::{anyhow, Context, Result};
 use clap::ArgMatches;
 use flate2::read::GzDecoder;
-use sqlx::{MySql, Pool};
+use sqlx::{Pool, Postgres};
 use std::fs;
 use std::path::PathBuf;
 use tar::Archive;
@@ -69,30 +69,25 @@ fn latest_release_version(tags: &[String]) -> Result<semver::Version, VersionTag
 /// let (repo_dir, builds_dir, services_dir) = ops::setup_release_dir(&opts).unwrap();
 /// ```
 async fn get_service_repos(
-    tx: &mut sqlx::Transaction<'_, MySql>,
+    tx: &mut sqlx::Transaction<'_, Postgres>,
     opts: &ops::ReleaseOpts,
 ) -> Result<Vec<(db::Service, db::Repository)>> {
     let services = db::get_services(tx, &opts.env)
         .await?
         .into_iter()
         .filter(|s| {
-            !opts.skips.iter().any(|skipped_service| {
-                s.name
-                    .as_ref()
-                    .map(|name| name == skipped_service)
-                    .unwrap_or(false)
-            })
+            !opts
+                .skips
+                .iter()
+                .any(|skipped_service| s.name.eq(skipped_service))
         })
         .collect::<Vec<_>>();
 
     //// For each service, get the repository from the database.
     let mut tuples: Vec<(db::Service, db::Repository)> = Vec::new();
     for service in services {
-        let repo_id = service
-            .repo_id
-            .clone()
-            .ok_or_else(|| anyhow!("No repository ID found for service"))?;
-        let repo = db::get_repo_by_id(tx, repo_id).await?;
+        let repo_id = service.repo_id.clone();
+        let repo = db::get_repo_by_id(tx, repo_id.into()).await?;
 
         tuples.push((service, repo));
     }
@@ -107,12 +102,7 @@ async fn get_service_repos(
 /// let repo_url = mgmt::get_repo_url(&repo).unwrap();
 /// ```
 fn get_repo_url(repo: &db::Repository) -> Result<String> {
-    let mut repo_url = repo.url.clone().ok_or_else(|| {
-        anyhow!(
-            "No URL found for repository {}",
-            repo.name.as_ref().unwrap_or(&String::new())
-        )
-    })?;
+    let mut repo_url = repo.url.clone();
 
     if !repo_url.ends_with("/") {
         repo_url.push_str("/");
@@ -128,10 +118,7 @@ fn get_repo_url(repo: &db::Repository) -> Result<String> {
 /// let service_dir = mgmt::get_service_dir(&services_dir, &service).unwrap();
 /// ```
 fn get_service_dir(services_dir: &PathBuf, service: &db::Service) -> Result<PathBuf> {
-    let service_name = service
-        .name
-        .clone()
-        .context(format!("No name found for service {:?}", service))?;
+    let service_name = service.name.clone();
     let service_dir = services_dir.join(&service_name);
 
     Ok(service_dir)
@@ -226,7 +213,7 @@ fn get_new_version_number(repodir: &PathBuf, opts: &ops::ReleaseOpts) -> Result<
 /// ```ignore
 /// mgmt::create_release(&pool, &opts).await?;
 /// ```
-async fn create_release(pool: &Pool<MySql>, opts: &ops::ReleaseOpts) -> Result<()> {
+async fn create_release(pool: &Pool<Postgres>, opts: &ops::ReleaseOpts) -> Result<()> {
     let mut tx = pool.begin().await?;
 
     // Clone the releases repo (default is 'de-releases') if no-clone is false.
@@ -247,13 +234,10 @@ async fn create_release(pool: &Pool<MySql>, opts: &ops::ReleaseOpts) -> Result<(
     for (service, repo) in tuples {
         let repo_url = get_repo_url(&repo)?;
         let service_dir = get_service_dir(&services_dir, &service)?;
-        let service_name = service
-            .name
-            .as_ref()
-            .ok_or_else(|| anyhow!("No name found for service {:?}", service))?;
+        let service_name = service.name;
 
         println!("Downloading release tarball for {}", service_name);
-        match process_release_tarball(&repo_url, service_name, &builds_dir, &service_dir).await {
+        match process_release_tarball(&repo_url, &service_name, &builds_dir, &service_dir).await {
             Ok(_) => {
                 println!("Processed release tarball for {}\n", service_name);
             }
@@ -348,7 +332,7 @@ async fn create_release(pool: &Pool<MySql>, opts: &ops::ReleaseOpts) -> Result<(
     Ok(())
 }
 
-pub async fn create(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
+pub async fn create(pool: &Pool<Postgres>, matches: &ArgMatches) -> Result<()> {
     let env = matches.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment provided. Use --env <env> to specify an environment.")
     })?;
@@ -404,7 +388,7 @@ pub async fn create(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn deploy(pool: &Pool<MySql>, matches: &ArgMatches) -> Result<()> {
+pub async fn deploy(pool: &Pool<Postgres>, matches: &ArgMatches) -> Result<()> {
     let env = matches.get_one::<String>("env").ok_or_else(|| {
         anyhow!("No environment provided. Use --env <env> to specify an environment.")
     })?;

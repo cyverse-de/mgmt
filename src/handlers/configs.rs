@@ -4,10 +4,10 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use sqlx::{MySql, Pool};
+use sqlx::{Pool, Postgres};
 use std::path::PathBuf;
 
-async fn section_add(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn section_add(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
         anyhow!("No section specified. Use --section <section> to specify a section.")
     })?;
@@ -17,7 +17,7 @@ async fn section_add(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn section_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn section_delete(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
         anyhow!("No section specified. Use --section <section> to specify a section.")
     })?;
@@ -27,7 +27,7 @@ async fn section_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn sections(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn sections(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;
@@ -40,7 +40,7 @@ pub async fn sections(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     }
 }
 
-pub async fn defaults_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn defaults_set(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
         anyhow!("No section specified. Use --section <section> to specify a section.")
     })?;
@@ -62,7 +62,7 @@ pub async fn defaults_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> 
     Ok(())
 }
 
-async fn defaults_get(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn defaults_get(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
         anyhow!("No section specified. Use --section <section> to specify a section.")
     })?;
@@ -76,7 +76,7 @@ async fn defaults_get(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn defaults_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn defaults_delete(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = sub_m.get_one::<String>("section").ok_or_else(|| {
         anyhow!("No section specified. Use --section <section> to specify a section.")
     })?;
@@ -90,7 +90,7 @@ async fn defaults_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn defaults_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn defaults_list(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let section = match sub_m.get_one::<String>("section") {
         Some(section) => Some(section.as_str()),
         None => None,
@@ -106,14 +106,14 @@ async fn defaults_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn defaults_render(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn defaults_render(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let output_file = sub_m.get_one::<PathBuf>("file").cloned();
     ops::render_default_values(&pool, output_file).await?;
 
     Ok(())
 }
 
-pub async fn defaults(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn defaults(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let defaults_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;
@@ -128,7 +128,7 @@ pub async fn defaults(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     }
 }
 
-async fn values_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_set(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
         anyhow!(
             "No environment specified. Use --environment <environment> to specify an environment."
@@ -156,7 +156,7 @@ async fn values_set(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn values_get(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_get(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
         anyhow!(
             "No environment specified. Use --environment <environment> to specify an environment."
@@ -176,7 +176,7 @@ async fn values_get(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn values_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_delete(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
         anyhow!(
             "No environment specified. Use --environment <environment> to specify an environment."
@@ -196,7 +196,7 @@ async fn values_delete(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn values_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_list(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let environment = match sub_m.get_one::<String>("environment") {
         Some(env) => Some(env.as_str()),
         None => None,
@@ -217,7 +217,7 @@ async fn values_list(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn values_render(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_render(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let environment = sub_m.get_one::<String>("environment").ok_or_else(|| {
         anyhow!(
             "No environment specified. Use --environment <environment> to specify an environment."
@@ -235,7 +235,7 @@ async fn values_render(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-async fn values_import(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+async fn values_import(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let path = sub_m
         .get_one::<PathBuf>("file")
         .ok_or_else(|| anyhow!("No file specified. Use --file <file> to specify a file."))?;
@@ -269,7 +269,7 @@ async fn values_import(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-pub async fn values(pool: &Pool<MySql>, sub_m: &ArgMatches) -> Result<()> {
+pub async fn values(pool: &Pool<Postgres>, sub_m: &ArgMatches) -> Result<()> {
     let values_cmd = sub_m
         .subcommand()
         .ok_or_else(|| anyhow::anyhow!("bad command"))?;

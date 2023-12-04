@@ -1,7 +1,7 @@
 use crate::{config_values::config, db, dolt, git, ops};
 use anyhow::Result;
 use clap::ArgMatches;
-use sqlx::mysql::MySqlPoolOptions;
+use sqlx::postgres::PgPoolOptions;
 use std::path::{Path, PathBuf};
 /**
  * Set up the CLI for the mgmt-site binary.
@@ -65,7 +65,7 @@ async fn init(opts: &InitOpts) -> anyhow::Result<()> {
     println!("Done staring the database.\n");
 
     println!("Connecting to the database...");
-    let pool = MySqlPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
         .await?;
@@ -162,7 +162,7 @@ async fn deploy(opts: &DeployOpts) -> anyhow::Result<()> {
 
     print!("Connecting to the database...");
     // Connect to the database.
-    let pool = MySqlPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&format!("mysql://root@127.0.0.1:3306/{}", &opts.db_name))
         .await?;
@@ -175,7 +175,7 @@ async fn deploy(opts: &DeployOpts) -> anyhow::Result<()> {
         services_to_deploy = db::list_services(&mut tx, &opts.env)
             .await?
             .into_iter()
-            .filter_map(|svc| svc.name)
+            .map(|svc| svc.name)
             .collect();
     } else {
         services_to_deploy = opts.services.clone();
