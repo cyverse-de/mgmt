@@ -7,7 +7,7 @@ use mgmt::cli::{
 };
 use mgmt::handlers;
 use mgmt::{app, db};
-use sqlx::mysql::MySqlPoolOptions;
+use sqlx::postgres::PgPoolOptions;
 use tabled::Table;
 use which::which;
 
@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
         .subcommand_required(true)
         .arg(
             arg!(-d --"database-url" <DATABASE>)
-                .default_value("mysql://root@127.0.0.1:3306/de_releases")
+                .default_value("postgresql://root@127.0.0.1:5432/de_releases?sslmode=disable")
                 .value_parser(clap::value_parser!(String)),
         )
         .subcommand(configs::cli())
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
         "No database URL specified. Use --database-url <url> to specify a database URL.",
     )?;
 
-    let pool = MySqlPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(database_url)
         .await
@@ -220,7 +220,7 @@ async fn main() -> Result<()> {
                     "No environment specified. Use --environment <name> to specify an environment.",
                 )?;
 
-                let repo_id = sub_m.get_one::<u64>("repo-id").context(
+                let repo_id = sub_m.get_one::<i32>("repo-id").context(
                     "No repository name specified. Use --repo-name <name> to specify a repository name.",
                 )?;
 
@@ -300,7 +300,7 @@ async fn main() -> Result<()> {
             }
 
             Some(("delete", sub_m)) => {
-                let id = sub_m.get_one::<u64>("id").context(
+                let id = sub_m.get_one::<i32>("id").context(
                     "No repository ID specified. Use --id <id> to specify a repository ID.",
                 )?;
 

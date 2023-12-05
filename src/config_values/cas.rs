@@ -2,7 +2,7 @@ use crate::db::{add_env_cfg_value, set_config_value, ConfigurationValue, LoadFro
 use anyhow::{Context, Result};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -37,13 +37,14 @@ impl LoadFromDatabase for CAS {
     }
 
     fn cfg_set_key(&mut self, cfg: &ConfigurationValue) -> Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "ClientID" => self.client_id = value,
-                "ClientSecret" => self.client_secret = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            "ClientID" => self.client_id = value,
+            "ClientSecret" => self.client_secret = value,
+            _ => (),
         }
 
         Ok(())
@@ -63,28 +64,28 @@ impl From<CAS> for Vec<ConfigurationValue> {
 
         if let Some(base_uri) = cas.base_uri {
             cfgs.push(ConfigurationValue {
-                id: None,
-                section: Some(section.to_string()),
-                key: Some("BaseURI".to_string()),
-                value: Some(base_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.to_string(),
+                key: "BaseURI".to_string(),
+                value: base_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         cfgs.push(ConfigurationValue {
-            id: None,
-            section: Some(section.to_string()),
-            key: Some("ClientID".to_string()),
-            value: Some(cas.client_id.to_string()),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.to_string(),
+            key: "ClientID".to_string(),
+            value: cas.client_id.to_string(),
+            value_type: "string".to_string(),
         });
 
         cfgs.push(ConfigurationValue {
-            id: None,
-            section: Some(section.to_string()),
-            key: Some("ClientSecret".to_string()),
-            value: Some(cas.client_secret.to_string()),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.to_string(),
+            key: "ClientSecret".to_string(),
+            value: cas.client_secret.to_string(),
+            value_type: "string".to_string(),
         });
 
         cfgs
@@ -94,9 +95,9 @@ impl From<CAS> for Vec<ConfigurationValue> {
 impl CAS {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("CAS Base URI")

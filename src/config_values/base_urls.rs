@@ -45,191 +45,191 @@ impl From<BaseURLs> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = base_urls.analyses {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Analyses".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Analyses".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.app_exposer {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("AppExposer".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "AppExposer".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.apps {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Apps".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Apps".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.async_tasks {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("AsyncTasks".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "AsyncTasks".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.dashboard_aggregator {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DashboardAggregator".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DashboardAggregator".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.data_info {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DataInfo".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DataInfo".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.grouper_web_services {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("GrouperWebServices".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "GrouperWebServices".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.iplant_email {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("IplantEmail".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "IplantEmail".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.iplant_groups {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("IplantGroups".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "IplantGroups".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.jex_adapter {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("JexAdapter".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "JexAdapter".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.job_status_listener {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("JobStatusListener".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "JobStatusListener".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.metadata {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Metadata".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Metadata".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.notifications {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Notifications".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Notifications".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.permissions {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Permissions".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Permissions".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.qms {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("QMS".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "QMS".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.requests {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Requests".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Requests".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.search {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Search".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Search".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.terrain {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Terrain".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Terrain".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(url) = base_urls.user_info {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("UserInfo".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "UserInfo".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
@@ -243,29 +243,30 @@ impl LoadFromDatabase for BaseURLs {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Analyses" => self.analyses = Url::parse(&value).ok(),
-                "AppExposer" => self.app_exposer = Url::parse(&value).ok(),
-                "Apps" => self.apps = Url::parse(&value).ok(),
-                "AsyncTasks" => self.async_tasks = Url::parse(&value).ok(),
-                "DashboardAggregator" => self.dashboard_aggregator = Url::parse(&value).ok(),
-                "DataInfo" => self.data_info = Url::parse(&value).ok(),
-                "GrouperWebServices" => self.grouper_web_services = Url::parse(&value).ok(),
-                "IplantEmail" => self.iplant_email = Url::parse(&value).ok(),
-                "IplantGroups" => self.iplant_groups = Url::parse(&value).ok(),
-                "JexAdapter" => self.jex_adapter = Url::parse(&value).ok(),
-                "JobStatusListener" => self.job_status_listener = Url::parse(&value).ok(),
-                "Metadata" => self.metadata = Url::parse(&value).ok(),
-                "Notifications" => self.notifications = Url::parse(&value).ok(),
-                "Permissions" => self.permissions = Url::parse(&value).ok(),
-                "QMS" => self.qms = Url::parse(&value).ok(),
-                "Requests" => self.requests = Url::parse(&value).ok(),
-                "Search" => self.search = Url::parse(&value).ok(),
-                "Terrain" => self.terrain = Url::parse(&value).ok(),
-                "UserInfo" => self.user_info = Url::parse(&value).ok(),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Analyses" => self.analyses = Url::parse(&value).ok(),
+            "AppExposer" => self.app_exposer = Url::parse(&value).ok(),
+            "Apps" => self.apps = Url::parse(&value).ok(),
+            "AsyncTasks" => self.async_tasks = Url::parse(&value).ok(),
+            "DashboardAggregator" => self.dashboard_aggregator = Url::parse(&value).ok(),
+            "DataInfo" => self.data_info = Url::parse(&value).ok(),
+            "GrouperWebServices" => self.grouper_web_services = Url::parse(&value).ok(),
+            "IplantEmail" => self.iplant_email = Url::parse(&value).ok(),
+            "IplantGroups" => self.iplant_groups = Url::parse(&value).ok(),
+            "JexAdapter" => self.jex_adapter = Url::parse(&value).ok(),
+            "JobStatusListener" => self.job_status_listener = Url::parse(&value).ok(),
+            "Metadata" => self.metadata = Url::parse(&value).ok(),
+            "Notifications" => self.notifications = Url::parse(&value).ok(),
+            "Permissions" => self.permissions = Url::parse(&value).ok(),
+            "QMS" => self.qms = Url::parse(&value).ok(),
+            "Requests" => self.requests = Url::parse(&value).ok(),
+            "Search" => self.search = Url::parse(&value).ok(),
+            "Terrain" => self.terrain = Url::parse(&value).ok(),
+            "UserInfo" => self.user_info = Url::parse(&value).ok(),
+            _ => (),
         }
 
         Ok(())

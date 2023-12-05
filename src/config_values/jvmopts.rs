@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase", rename = "JVMOpts")]
@@ -33,14 +33,16 @@ impl LoadFromDatabase for JVMOpts {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "High" => self.high = Some(value),
-                "Low" => self.low = Some(value),
-                "UI" => self.ui = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "High" => self.high = Some(value),
+            "Low" => self.low = Some(value),
+            "UI" => self.ui = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -58,31 +60,31 @@ impl From<JVMOpts> for Vec<db::ConfigurationValue> {
 
         if let Some(high) = jvmopts.high {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("High".to_string()),
-                value: Some(high.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "High".to_string(),
+                value: high.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(low) = jvmopts.low {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Low".to_string()),
-                value: Some(low.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Low".to_string(),
+                value: low.to_string(),
+                value_type: "string".to_string(),
             })
         }
 
         if let Some(ui) = jvmopts.ui {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("UI".to_string()),
-                value: Some(ui.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "UI".to_string(),
+                value: ui.to_string(),
+                value_type: "string".to_string(),
             })
         }
 
@@ -93,9 +95,9 @@ impl From<JVMOpts> for Vec<db::ConfigurationValue> {
 impl JVMOpts {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let high = Input::<String>::with_theme(theme)
             .with_prompt("High")

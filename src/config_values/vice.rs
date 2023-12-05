@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -29,12 +29,12 @@ impl LoadFromDatabase for ViceFileTransfers {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "FileTransfers.Image" => self.image = Some(value),
-                "FileTransfers.Tag" => self.tag = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "FileTransfers.Image" => self.image = Some(value),
+            "FileTransfers.Tag" => self.tag = Some(value),
+            _ => (),
         }
         Ok(())
     }
@@ -53,21 +53,21 @@ impl From<ViceFileTransfers> for Vec<db::ConfigurationValue> {
 
         if let Some(image) = vft.image {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("FileTransfers.Image".to_string()),
-                value: Some(image),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "FileTransfers.Image".to_string(),
+                value: image,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(tag) = vft.tag {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("FileTransfers.Tag".to_string()),
-                value: Some(tag),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "FileTransfers.Tag".to_string(),
+                value: tag,
+                value_type: "string".to_string(),
             });
         }
 
@@ -78,9 +78,9 @@ impl From<ViceFileTransfers> for Vec<db::ConfigurationValue> {
 impl ViceFileTransfers {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let image = Input::<String>::with_theme(theme)
             .with_prompt("Vice File Transfers Image")
@@ -130,14 +130,14 @@ impl LoadFromDatabase for ViceDefaultBackend {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "DefaultBackend.LoadingPageTemplateString" => {
-                    self.loading_page_template_string = value
-                }
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "DefaultBackend.LoadingPageTemplateString" => self.loading_page_template_string = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -153,11 +153,11 @@ impl From<ViceDefaultBackend> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DefaultBackend.LoadingPageTemplateString".to_string()),
-            value: Some(vdb.loading_page_template_string),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "DefaultBackend.LoadingPageTemplateString".to_string(),
+            value: vdb.loading_page_template_string,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -167,9 +167,9 @@ impl From<ViceDefaultBackend> for Vec<db::ConfigurationValue> {
 impl ViceDefaultBackend {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
         base_url: &url::Url,
     ) -> anyhow::Result<()> {
         let lpt = base_url.join("/vice/{{.URL}}")?;
@@ -238,33 +238,35 @@ impl LoadFromDatabase for Vice {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "FileTransfers.Image" => {
-                    if let Some(ft) = &mut self.file_transfers {
-                        ft.image = Some(value);
-                    }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            "FileTransfers.Image" => {
+                if let Some(ft) = &mut self.file_transfers {
+                    ft.image = Some(value);
                 }
-                "FileTransfers.Tag" => {
-                    if let Some(ft) = &mut self.file_transfers {
-                        ft.tag = Some(value);
-                    }
-                }
-                "ImagePullSecret" => self.image_pull_secret = Some(value),
-                "ImageCache" => {
-                    self.image_cache = Some(value.split(',').map(|s| s.to_string()).collect())
-                }
-                "UseCSIDriver" => self.use_csi_driver = Some(value.parse::<bool>()?),
-                // "DefaultCasUrl" => self.default_cas_url = Some(value),
-                // "DefaultCasValidate" => self.default_cas_validate = Some(value),
-                "UseCaseCharsMin" => self.use_case_chars_min = Some(value.parse::<u32>()?),
-                "DefaultBackend.LoadingPageTemplateString" => {
-                    self.default_backend.loading_page_template_string = value
-                }
-                _ => (),
             }
+            "FileTransfers.Tag" => {
+                if let Some(ft) = &mut self.file_transfers {
+                    ft.tag = Some(value);
+                }
+            }
+            "ImagePullSecret" => self.image_pull_secret = Some(value),
+            "ImageCache" => {
+                self.image_cache = Some(value.split(',').map(|s| s.to_string()).collect())
+            }
+            "UseCSIDriver" => self.use_csi_driver = Some(value.parse::<bool>()?),
+            // "DefaultCasUrl" => self.default_cas_url = Some(value),
+            // "DefaultCasValidate" => self.default_cas_validate = Some(value),
+            "UseCaseCharsMin" => self.use_case_chars_min = Some(value.parse::<u32>()?),
+            "DefaultBackend.LoadingPageTemplateString" => {
+                self.default_backend.loading_page_template_string = value
+            }
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -282,11 +284,11 @@ impl From<Vice> for Vec<db::ConfigurationValue> {
 
         if let Some(base_uri) = v.base_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("BaseURI".to_string()),
-                value: Some(base_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "BaseURI".to_string(),
+                value: base_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
@@ -296,61 +298,61 @@ impl From<Vice> for Vec<db::ConfigurationValue> {
 
         if let Some(ips) = v.image_pull_secret {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ImagePullSecret".to_string()),
-                value: Some(ips),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ImagePullSecret".to_string(),
+                value: ips,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(ic) = v.image_cache {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ImageCache".to_string()),
-                value: Some(ic.join(",")),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ImageCache".to_string(),
+                value: ic.join(","),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(ucd) = v.use_csi_driver {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("UseCSIDriver".to_string()),
-                value: Some(format!("{}", ucd)),
-                value_type: Some("bool".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "UseCSIDriver".to_string(),
+                value: format!("{}", ucd),
+                value_type: "bool".to_string(),
             });
         }
 
         // if let Some(dcu) = v.default_cas_url {
         //     vec.push(db::ConfigurationValue {
-        //         id: None,
-        //         section: Some(section.clone()),
-        //         key: Some("DefaultCasUrl".to_string()),
-        //         value: Some(dcu),
-        //         value_type: Some("string".to_string()),
+        //         id: 0,
+        //         section: section.clone(),
+        //         key: "DefaultCasUrl".to_string(),
+        //         value: dcu,
+        //         value_type: "string".to_string(),
         //     });
         // }
 
         // if let Some(dcv) = v.default_cas_validate {
         //     vec.push(db::ConfigurationValue {
-        //         id: None,
-        //         section: Some(section.clone()),
-        //         key: Some("DefaultCasValidate".to_string()),
-        //         value: Some(dcv),
-        //         value_type: Some("string".to_string()),
+        //         id: 0,
+        //         section: section.clone(),
+        //         key: "DefaultCasValidate".to_string(),
+        //         value: dcv,
+        //         value_type: "string".to_string(),
         //     });
         // }
 
         if let Some(ucm) = v.use_case_chars_min {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("UseCaseCharsMin".to_string()),
-                value: Some(format!("{}", ucm)),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "UseCaseCharsMin".to_string(),
+                value: format!("{}", ucm),
+                value_type: "int".to_string(),
             });
         }
 
@@ -363,9 +365,9 @@ impl From<Vice> for Vec<db::ConfigurationValue> {
 impl Vice {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Vice Base URI")

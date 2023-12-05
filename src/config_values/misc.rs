@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -30,13 +30,14 @@ impl LoadFromDatabase for Jobs {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "DataTransferTag" => self.data_transfer_tag = Some(value),
-                "DataTransferImage" => self.data_transfer_image = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "DataTransferTag" => self.data_transfer_tag = Some(value),
+            "DataTransferImage" => self.data_transfer_image = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -54,21 +55,21 @@ impl From<Jobs> for Vec<db::ConfigurationValue> {
 
         if let Some(image) = job.data_transfer_image {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DataTransferImage".to_string()),
-                value: Some(image),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DataTransferImage".to_string(),
+                value: image,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(tag) = job.data_transfer_tag {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DataTransferTag".to_string()),
-                value: Some(tag),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DataTransferTag".to_string(),
+                value: tag,
+                value_type: "string".to_string(),
             });
         }
 
@@ -79,9 +80,9 @@ impl From<Jobs> for Vec<db::ConfigurationValue> {
 impl Jobs {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let data_transfer_image = Input::<String>::with_theme(theme)
             .with_prompt("Jobs Data Transfer Image")
@@ -134,9 +135,9 @@ impl Default for Pgp {
 impl Pgp {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let key_password = Input::<String>::with_theme(theme)
             .with_prompt("PGP Key Password")
@@ -156,11 +157,11 @@ impl LoadFromDatabase for Pgp {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "KeyPassword" => self.key_password = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "KeyPassword" => self.key_password = value,
+            _ => (),
         }
         Ok(())
     }
@@ -178,11 +179,11 @@ impl From<Pgp> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("KeyPassword".to_string()),
-            value: Some(p.key_password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "KeyPassword".to_string(),
+            value: p.key_password,
+            value_type: "string".to_string(),
         });
         vec
     }
@@ -219,9 +220,9 @@ impl Default for PermanentIdDataCite {
 impl PermanentIdDataCite {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID DataCite Base URI")
@@ -275,15 +276,17 @@ impl LoadFromDatabase for PermanentIdDataCite {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "DataCite.BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "DataCite.User" => self.user = value,
-                "DataCite.Password" => self.password = value,
-                "DataCite.DOIPrefix" => self.doi_prefix = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "DataCite.BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            "DataCite.User" => self.user = value,
+            "DataCite.Password" => self.password = value,
+            "DataCite.DOIPrefix" => self.doi_prefix = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -301,36 +304,36 @@ impl From<PermanentIdDataCite> for Vec<db::ConfigurationValue> {
 
         if let Some(base_uri) = p.base_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DataCite.BaseURI".to_string()),
-                value: Some(base_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DataCite.BaseURI".to_string(),
+                value: base_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DataCite.User".to_string()),
-            value: Some(p.user),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "DataCite.User".to_string(),
+            value: p.user,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DataCite.Password".to_string()),
-            value: Some(p.password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "DataCite.Password".to_string(),
+            value: p.password,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DataCite.DOIPrefix".to_string()),
-            value: Some(p.doi_prefix),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "DataCite.DOIPrefix".to_string(),
+            value: p.doi_prefix,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -360,9 +363,9 @@ impl Default for PermanentId {
 impl PermanentId {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let curators_group = Input::<String>::with_theme(theme)
             .with_prompt("Permanent ID Curators Group")
@@ -391,15 +394,16 @@ impl LoadFromDatabase for PermanentId {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "CuratorsGroup" => self.curators_group = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
 
-            if key.starts_with("DataCite.") {
-                self.data_cite.cfg_set_key(cfg)?;
-            }
+        match key.as_str() {
+            "CuratorsGroup" => self.curators_group = value,
+            _ => (),
+        }
+
+        if key.starts_with("DataCite.") {
+            self.data_cite.cfg_set_key(cfg)?;
         }
 
         Ok(())
@@ -418,11 +422,11 @@ impl From<PermanentId> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("CuratorsGroup".to_string()),
-            value: Some(p.curators_group),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "CuratorsGroup".to_string(),
+            value: p.curators_group,
+            value_type: "string".to_string(),
         });
 
         vec.extend::<Vec<db::ConfigurationValue>>(p.data_cite.into());
@@ -467,15 +471,17 @@ impl LoadFromDatabase for Unleash {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURL" => self.base_url = Url::parse(&value).ok(),
-                "APIPath" => self.api_path = Some(value),
-                "APIToken" => self.api_token = value,
-                "MaintenanceFlag" => self.maintenance_flag = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURL" => self.base_url = Url::parse(&value).ok(),
+            "APIPath" => self.api_path = Some(value),
+            "APIToken" => self.api_token = value,
+            "MaintenanceFlag" => self.maintenance_flag = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -493,39 +499,39 @@ impl From<Unleash> for Vec<db::ConfigurationValue> {
 
         if let Some(base_url) = u.base_url {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("BaseURL".to_string()),
-                value: Some(base_url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "BaseURL".to_string(),
+                value: base_url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(api_path) = u.api_path {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("APIPath".to_string()),
-                value: Some(api_path),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "APIPath".to_string(),
+                value: api_path,
+                value_type: "string".to_string(),
             });
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("APIToken".to_string()),
-            value: Some(u.api_token),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "APIToken".to_string(),
+            value: u.api_token,
+            value_type: "string".to_string(),
         });
 
         if let Some(maintenance_flag) = u.maintenance_flag {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("MaintenanceFlag".to_string()),
-                value: Some(maintenance_flag),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "MaintenanceFlag".to_string(),
+                value: maintenance_flag,
+                value_type: "string".to_string(),
             });
         }
 
@@ -536,9 +542,9 @@ impl From<Unleash> for Vec<db::ConfigurationValue> {
 impl Unleash {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_url = Input::<String>::with_theme(theme)
             .with_prompt("Unleash Base URL")
@@ -609,9 +615,9 @@ impl Default for UserPortal {
 impl UserPortal {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("User Portal Base URI")
@@ -632,12 +638,14 @@ impl LoadFromDatabase for UserPortal {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURI" => self.base_uri = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURI" => self.base_uri = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -655,11 +663,11 @@ impl From<UserPortal> for Vec<db::ConfigurationValue> {
 
         if let Some(base_uri) = u.base_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("BaseURI".to_string()),
-                value: Some(base_uri),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "BaseURI".to_string(),
+                value: base_uri,
+                value_type: "string".to_string(),
             });
         }
 
@@ -693,13 +701,14 @@ impl LoadFromDatabase for Admin {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Groups" => self.groups = Some(value),
-                "Attribute" => self.attribute = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "Groups" => self.groups = Some(value),
+            "Attribute" => self.attribute = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -717,21 +726,21 @@ impl From<Admin> for Vec<db::ConfigurationValue> {
 
         if let Some(groups) = a.groups {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Groups".to_string()),
-                value: Some(groups),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Groups".to_string(),
+                value: groups,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(attribute) = a.attribute {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Attribute".to_string()),
-                value: Some(attribute),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Attribute".to_string(),
+                value: attribute,
+                value_type: "string".to_string(),
             });
         }
 
@@ -742,9 +751,9 @@ impl From<Admin> for Vec<db::ConfigurationValue> {
 impl Admin {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let groups = Input::<String>::with_theme(theme)
             .with_prompt("Admin Groups")
@@ -794,13 +803,15 @@ impl LoadFromDatabase for Analytics {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
-                "Id" => self.id = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
+            "Id" => self.id = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -818,21 +829,21 @@ impl From<Analytics> for Vec<db::ConfigurationValue> {
 
         if let Some(enabled) = a.enabled {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Enabled".to_string()),
-                value: Some(format!("{}", enabled)),
-                value_type: Some("bool".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Enabled".to_string(),
+                value: format!("{}", enabled),
+                value_type: "bool".to_string(),
             });
         }
 
         if let Some(id) = a.id {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Id".to_string()),
-                value: Some(id),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Id".to_string(),
+                value: id,
+                value_type: "string".to_string(),
             });
         }
 
@@ -843,9 +854,9 @@ impl From<Analytics> for Vec<db::ConfigurationValue> {
 impl Analytics {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("Analytics Enabled")
@@ -914,17 +925,17 @@ impl LoadFromDatabase for Harbor {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "URL" => self.url = Some(value),
-                "ProjectQAImagePullSecretName" => {
-                    self.project_qa_image_pull_secret_name = Some(value)
-                }
-                "ProjectQARobotName" => self.project_qa_robot_name = Some(value),
-                "ProjectQARobotSecret" => self.project_qa_robot_secret = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "URL" => self.url = Some(value),
+            "ProjectQAImagePullSecretName" => self.project_qa_image_pull_secret_name = Some(value),
+            "ProjectQARobotName" => self.project_qa_robot_name = Some(value),
+            "ProjectQARobotSecret" => self.project_qa_robot_secret = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -942,41 +953,41 @@ impl From<Harbor> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = h.url {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("URL".to_string()),
-                value: Some(url),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "URL".to_string(),
+                value: url,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(project_qa_image_pull_secret_name) = h.project_qa_image_pull_secret_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ProjectQAImagePullSecretName".to_string()),
-                value: Some(project_qa_image_pull_secret_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ProjectQAImagePullSecretName".to_string(),
+                value: project_qa_image_pull_secret_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(project_qa_robot_name) = h.project_qa_robot_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ProjectQARobotName".to_string()),
-                value: Some(project_qa_robot_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ProjectQARobotName".to_string(),
+                value: project_qa_robot_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(project_qa_robot_secret) = h.project_qa_robot_secret {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ProjectQARobotSecret".to_string()),
-                value: Some(project_qa_robot_secret),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ProjectQARobotSecret".to_string(),
+                value: project_qa_robot_secret,
+                value_type: "string".to_string(),
             });
         }
 
@@ -987,9 +998,9 @@ impl From<Harbor> for Vec<db::ConfigurationValue> {
 impl Harbor {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Harbor URL")
@@ -1058,12 +1069,14 @@ impl LoadFromDatabase for Qms {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Enabled" => self.enabled = Some(value.parse::<bool>().unwrap_or(false)),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -1081,11 +1094,11 @@ impl From<Qms> for Vec<db::ConfigurationValue> {
 
         if let Some(enabled) = q.enabled {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Enabled".to_string()),
-                value: Some(format!("{}", enabled)),
-                value_type: Some("bool".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Enabled".to_string(),
+                value: format!("{}", enabled),
+                value_type: "bool".to_string(),
             });
         }
 
@@ -1096,9 +1109,9 @@ impl From<Qms> for Vec<db::ConfigurationValue> {
 impl Qms {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("QMS Enabled")
@@ -1140,13 +1153,15 @@ impl LoadFromDatabase for Jaeger {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Endpoint" => self.endpoint = Url::parse(&value).ok(),
-                "HttpEndpoint" => self.http_endpoint = Url::parse(&value).ok(),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Endpoint" => self.endpoint = Url::parse(&value).ok(),
+            "HttpEndpoint" => self.http_endpoint = Url::parse(&value).ok(),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -1164,21 +1179,21 @@ impl From<Jaeger> for Vec<db::ConfigurationValue> {
 
         if let Some(endpoint) = j.endpoint {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Endpoint".to_string()),
-                value: Some(endpoint.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Endpoint".to_string(),
+                value: endpoint.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(http_endpoint) = j.http_endpoint {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("HttpEndpoint".to_string()),
-                value: Some(http_endpoint.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "HttpEndpoint".to_string(),
+                value: http_endpoint.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
@@ -1189,9 +1204,9 @@ impl From<Jaeger> for Vec<db::ConfigurationValue> {
 impl Jaeger {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let endpoint = Input::<String>::with_theme(theme)
             .with_prompt("Jaeger Endpoint")

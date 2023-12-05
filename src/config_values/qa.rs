@@ -1,8 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
-use anyhow::Context;
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -33,15 +32,12 @@ impl LoadFromDatabase for QACeph {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        match cfg.key.as_ref() {
-            Some(key) => match key.as_str() {
-                "Ceph.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
-                "Ceph.Username" => self.username = Some(cfg.value.clone().unwrap_or_default()),
-                "Ceph.FirstName" => self.first_name = Some(cfg.value.clone().unwrap_or_default()),
-                "Ceph.LastName" => self.last_name = Some(cfg.value.clone().unwrap_or_default()),
-                _ => (),
-            },
-            None => (),
+        match cfg.key.as_str() {
+            "Ceph.Password" => self.password = Some(cfg.value.clone()),
+            "Ceph.Username" => self.username = Some(cfg.value.clone()),
+            "Ceph.FirstName" => self.first_name = Some(cfg.value.clone()),
+            "Ceph.LastName" => self.last_name = Some(cfg.value.clone()),
+            _ => (),
         }
         Ok(())
     }
@@ -60,41 +56,41 @@ impl From<QACeph> for Vec<db::ConfigurationValue> {
 
         if let Some(password) = ceph.password {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Ceph.Password".to_string()),
-                value: Some(password),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Ceph.Password".to_string(),
+                value: password,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(username) = ceph.username {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Ceph.Username".to_string()),
-                value: Some(username),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Ceph.Username".to_string(),
+                value: username,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(first_name) = ceph.first_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Ceph.FirstName".to_string()),
-                value: Some(first_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Ceph.FirstName".to_string(),
+                value: first_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(last_name) = ceph.last_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Ceph.LastName".to_string()),
-                value: Some(last_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Ceph.LastName".to_string(),
+                value: last_name,
+                value_type: "string".to_string(),
             });
         }
 
@@ -105,9 +101,9 @@ impl From<QACeph> for Vec<db::ConfigurationValue> {
 impl QACeph {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let password = Input::<String>::with_theme(theme)
             .with_prompt("Ceph Password")
@@ -186,20 +182,15 @@ impl LoadFromDatabase for QADE {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        match cfg.key.as_ref() {
-            Some(key) => match key.as_str() {
-                "DE.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.Username" => self.username = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.FirstName" => self.first_name = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.LastName" => self.last_name = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.LocalUser" => self.local_user = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.JwtName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
-                "DE.AdminPassword" => {
-                    self.admin_password = Some(cfg.value.clone().unwrap_or_default())
-                }
-                _ => (),
-            },
-            None => (),
+        match cfg.key.as_str() {
+            "DE.Password" => self.password = Some(cfg.value.clone()),
+            "DE.Username" => self.username = Some(cfg.value.clone()),
+            "DE.FirstName" => self.first_name = Some(cfg.value.clone()),
+            "DE.LastName" => self.last_name = Some(cfg.value.clone()),
+            "DE.LocalUser" => self.local_user = Some(cfg.value.clone()),
+            "DE.JwtName" => self.jwt_name = Some(cfg.value.clone()),
+            "DE.AdminPassword" => self.admin_password = Some(cfg.value.clone()),
+            _ => (),
         }
         Ok(())
     }
@@ -218,71 +209,71 @@ impl From<QADE> for Vec<db::ConfigurationValue> {
 
         if let Some(password) = de.password {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.Password".to_string()),
-                value: Some(password),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.Password".to_string(),
+                value: password,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(username) = de.username {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.Username".to_string()),
-                value: Some(username),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.Username".to_string(),
+                value: username,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(first_name) = de.first_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.FirstName".to_string()),
-                value: Some(first_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.FirstName".to_string(),
+                value: first_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(last_name) = de.last_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.LastName".to_string()),
-                value: Some(last_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.LastName".to_string(),
+                value: last_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(local_user) = de.local_user {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.LocalUser".to_string()),
-                value: Some(local_user),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.LocalUser".to_string(),
+                value: local_user,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(jwt_name) = de.jwt_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.JwtName".to_string()),
-                value: Some(jwt_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.JwtName".to_string(),
+                value: jwt_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(admin_password) = de.admin_password {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DE.AdminPassword".to_string()),
-                value: Some(admin_password),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DE.AdminPassword".to_string(),
+                value: admin_password,
+                value_type: "string".to_string(),
             });
         }
 
@@ -293,9 +284,9 @@ impl From<QADE> for Vec<db::ConfigurationValue> {
 impl QADE {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let password = Input::<String>::with_theme(theme)
             .with_prompt("DE Password")
@@ -407,26 +398,17 @@ impl LoadFromDatabase for QALegacy {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        match cfg.key.as_ref() {
-            Some(key) => match key.as_str() {
-                "Legacy.Password" => self.password = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.Username" => self.username = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.FirstName" => self.first_name = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.LastName" => self.last_name = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.LocalUser" => self.local_user = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.JwtName" => self.jwt_name = Some(cfg.value.clone().unwrap_or_default()),
-                "Legacy.AdminPassword" => {
-                    self.admin_password = Some(cfg.value.clone().unwrap_or_default())
-                }
-                "Legacy.AdminPassword2" => {
-                    self.admin_password2 = Some(cfg.value.clone().unwrap_or_default())
-                }
-                "Legacy.JwtPrivPass" => {
-                    self.jwt_priv_pass = Some(cfg.value.clone().unwrap_or_default())
-                }
-                _ => (),
-            },
-            None => (),
+        match cfg.key.as_str() {
+            "Legacy.Password" => self.password = Some(cfg.value.clone()),
+            "Legacy.Username" => self.username = Some(cfg.value.clone()),
+            "Legacy.FirstName" => self.first_name = Some(cfg.value.clone()),
+            "Legacy.LastName" => self.last_name = Some(cfg.value.clone()),
+            "Legacy.LocalUser" => self.local_user = Some(cfg.value.clone()),
+            "Legacy.JwtName" => self.jwt_name = Some(cfg.value.clone()),
+            "Legacy.AdminPassword" => self.admin_password = Some(cfg.value.clone()),
+            "Legacy.AdminPassword2" => self.admin_password2 = Some(cfg.value.clone()),
+            "Legacy.JwtPrivPass" => self.jwt_priv_pass = Some(cfg.value.clone()),
+            _ => (),
         }
         Ok(())
     }
@@ -445,91 +427,91 @@ impl From<QALegacy> for Vec<db::ConfigurationValue> {
 
         if let Some(password) = legacy.password {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.Password".to_string()),
-                value: Some(password),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.Password".to_string(),
+                value: password,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(username) = legacy.username {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.Username".to_string()),
-                value: Some(username),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.Username".to_string(),
+                value: username,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(first_name) = legacy.first_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.FirstName".to_string()),
-                value: Some(first_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.FirstName".to_string(),
+                value: first_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(last_name) = legacy.last_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.LastName".to_string()),
-                value: Some(last_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.LastName".to_string(),
+                value: last_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(local_user) = legacy.local_user {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.LocalUser".to_string()),
-                value: Some(local_user),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.LocalUser".to_string(),
+                value: local_user,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(jwt_name) = legacy.jwt_name {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.JwtName".to_string()),
-                value: Some(jwt_name),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.JwtName".to_string(),
+                value: jwt_name,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(admin_password) = legacy.admin_password {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.AdminPassword".to_string()),
-                value: Some(admin_password),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.AdminPassword".to_string(),
+                value: admin_password,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(admin_password2) = legacy.admin_password2 {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.AdminPassword2".to_string()),
-                value: Some(admin_password2),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.AdminPassword2".to_string(),
+                value: admin_password2,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(jwt_priv_pass) = legacy.jwt_priv_pass {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Legacy.JwtPrivPass".to_string()),
-                value: Some(jwt_priv_pass),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Legacy.JwtPrivPass".to_string(),
+                value: jwt_priv_pass,
+                value_type: "string".to_string(),
             });
         }
 
@@ -540,9 +522,9 @@ impl From<QALegacy> for Vec<db::ConfigurationValue> {
 impl QALegacy {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let password = Input::<String>::with_theme(theme)
             .with_prompt("Legacy Password")
@@ -674,7 +656,7 @@ impl LoadFromDatabase for QA {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        let k = cfg.key.as_ref().context("No key")?;
+        let k = cfg.key.clone();
 
         if k.starts_with("Ceph.") {
             self.ceph.cfg_set_key(cfg)?;
@@ -708,9 +690,9 @@ impl From<QA> for Vec<db::ConfigurationValue> {
 impl QA {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         self.ceph.ask_for_info(tx, theme, env_id).await?;
         self.de.ask_for_info(tx, theme, env_id).await?;

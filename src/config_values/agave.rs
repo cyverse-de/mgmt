@@ -1,6 +1,6 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 use serde::{Deserialize, Serialize};
 
@@ -53,72 +53,72 @@ impl From<Agave> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Key".to_string()),
-            value: Some(agave.key),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Key".to_string(),
+            value: agave.key,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Secret".to_string()),
-            value: Some(agave.secret),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Secret".to_string(),
+            value: agave.secret,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("RedirectURI".to_string()),
-            value: Some(agave.redirect_uri),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "RedirectURI".to_string(),
+            value: agave.redirect_uri,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("StorageSystem".to_string()),
-            value: Some(agave.storage_system),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "StorageSystem".to_string(),
+            value: agave.storage_system,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("CallbackBaseURI".to_string()),
-            value: Some(agave.callback_base_uri),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "CallbackBaseURI".to_string(),
+            value: agave.callback_base_uri,
+            value_type: "string".to_string(),
         });
 
         if let Some(rt) = agave.read_timeout {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ReadTimeout".to_string()),
-                value: Some(format!("{}", rt)),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ReadTimeout".to_string(),
+                value: format!("{}", rt),
+                value_type: "int".to_string(),
             });
         }
 
         if let Some(enabled) = agave.enabled {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Enabled".to_string()),
-                value: Some(format!("{}", enabled)),
-                value_type: Some("bool".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Enabled".to_string(),
+                value: format!("{}", enabled),
+                value_type: "bool".to_string(),
             });
         }
 
         if let Some(jobs_enabled) = agave.jobs_enabled {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("JobsEnabled".to_string()),
-                value: Some(format!("{}", jobs_enabled)),
-                value_type: Some("bool".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "JobsEnabled".to_string(),
+                value: format!("{}", jobs_enabled),
+                value_type: "bool".to_string(),
             });
         }
 
@@ -132,18 +132,19 @@ impl LoadFromDatabase for Agave {
     }
 
     fn cfg_set_key(&mut self, cfg: &db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Key" => self.key = value,
-                "Secret" => self.secret = value,
-                "RedirectURI" => self.redirect_uri = value,
-                "StorageSystem" => self.storage_system = value,
-                "CallbackBaseURI" => self.callback_base_uri = value,
-                "ReadTimeout" => self.read_timeout = Some(value.parse::<u32>()?),
-                "Enabled" => self.enabled = Some(value.parse::<bool>()?),
-                "JobsEnabled" => self.jobs_enabled = Some(value.parse::<bool>()?),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Key" => self.key = value,
+            "Secret" => self.secret = value,
+            "RedirectURI" => self.redirect_uri = value,
+            "StorageSystem" => self.storage_system = value,
+            "CallbackBaseURI" => self.callback_base_uri = value,
+            "ReadTimeout" => self.read_timeout = Some(value.parse::<u32>()?),
+            "Enabled" => self.enabled = Some(value.parse::<bool>()?),
+            "JobsEnabled" => self.jobs_enabled = Some(value.parse::<bool>()?),
+            _ => (),
         }
         Ok(())
     }
@@ -152,9 +153,9 @@ impl LoadFromDatabase for Agave {
 impl Agave {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
         base_url: &url::Url,
         irods_external: &str,
     ) -> anyhow::Result<()> {

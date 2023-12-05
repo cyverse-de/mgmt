@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -35,15 +35,17 @@ impl LoadFromDatabase for Icat {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Host" => self.host = value,
-                "Port" => self.port = Some(value.parse::<u16>()?),
-                "User" => self.user = value,
-                "Password" => self.password = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Host" => self.host = value,
+            "Port" => self.port = Some(value.parse::<u16>()?),
+            "User" => self.user = value,
+            "Password" => self.password = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -60,37 +62,37 @@ impl From<Icat> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Host".to_string()),
-            value: Some(i.host),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Host".to_string(),
+            value: i.host,
+            value_type: "string".to_string(),
         });
 
         if let Some(port) = i.port {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Port".to_string()),
-                value: Some(port.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Port".to_string(),
+                value: port.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("User".to_string()),
-            value: Some(i.user),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "User".to_string(),
+            value: i.user,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Password".to_string()),
-            value: Some(i.password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Password".to_string(),
+            value: i.password,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -100,9 +102,9 @@ impl From<Icat> for Vec<db::ConfigurationValue> {
 impl Icat {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let host = Input::<String>::with_theme(theme)
             .with_prompt("ICAT Host")

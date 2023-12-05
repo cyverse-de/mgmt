@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -45,35 +45,35 @@ impl From<Intercom> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Enabled".to_string()),
-            value: Some(i.enabled.to_string()),
-            value_type: Some("bool".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Enabled".to_string(),
+            value: i.enabled.to_string(),
+            value_type: "bool".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AppID".to_string()),
-            value: Some(i.app_id),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "AppID".to_string(),
+            value: i.app_id,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("CompanyID".to_string()),
-            value: Some(i.company_id),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "CompanyID".to_string(),
+            value: i.company_id,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("CompanyName".to_string()),
-            value: Some(i.company_name),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "CompanyName".to_string(),
+            value: i.company_name,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -86,14 +86,14 @@ impl LoadFromDatabase for Intercom {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Enabled" => self.enabled = value.parse::<bool>()?,
-                "AppID" => self.app_id = value,
-                "CompanyID" => self.company_id = value,
-                "CompanyName" => self.company_name = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "Enabled" => self.enabled = value.parse::<bool>()?,
+            "AppID" => self.app_id = value,
+            "CompanyID" => self.company_id = value,
+            "CompanyName" => self.company_name = value,
+            _ => (),
         }
         Ok(())
     }
@@ -102,9 +102,9 @@ impl LoadFromDatabase for Intercom {
 impl Intercom {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let enabled = Select::with_theme(theme)
             .with_prompt("Intercom Enabled")

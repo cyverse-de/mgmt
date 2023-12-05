@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -42,48 +42,48 @@ impl From<Amqp> for Vec<db::ConfigurationValue> {
 
         // Add User configuration.
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AMQP.User".to_string()),
-            value: Some(amqp.user),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "AMQP.User".to_string(),
+            value: amqp.user,
+            value_type: "string".to_string(),
         });
 
         // Add password configuration
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AMQP.Password".to_string()),
-            value: Some(amqp.password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "AMQP.Password".to_string(),
+            value: amqp.password,
+            value_type: "string".to_string(),
         });
 
         // Add host configuration
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AMQP.Host".to_string()),
-            value: Some(amqp.host),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "AMQP.Host".to_string(),
+            value: amqp.host,
+            value_type: "string".to_string(),
         });
 
         // Add port configuration
         if let Some(port) = amqp.port {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("AMQP.Port".to_string()),
-                value: Some(port.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "AMQP.Port".to_string(),
+                value: port.to_string(),
+                value_type: "int".to_string(),
             });
         }
         // Add vhost configuration
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("AMQP.Vhost".to_string()),
-            value: Some(amqp.vhost),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "AMQP.Vhost".to_string(),
+            value: amqp.vhost,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -96,16 +96,18 @@ impl LoadFromDatabase for Amqp {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "AMQP.User" => self.user = value,
-                "AMQP.Password" => self.password = value,
-                "AMQP.Host" => self.host = value,
-                "AMQP.Port" => self.port = Some(value.parse::<u16>()?),
-                "AMQP.Vhost" => self.vhost = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "AMQP.User" => self.user = value,
+            "AMQP.Password" => self.password = value,
+            "AMQP.Host" => self.host = value,
+            "AMQP.Port" => self.port = Some(value.parse::<u16>()?),
+            "AMQP.Vhost" => self.vhost = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -118,9 +120,9 @@ impl Amqp {
 
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
         prefix: &str,
     ) -> anyhow::Result<()> {
         let user = Input::<String>::with_theme(theme)

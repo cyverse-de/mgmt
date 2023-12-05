@@ -2,7 +2,7 @@ use crate::config_values::amqp::Amqp;
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -23,13 +23,15 @@ impl LoadFromDatabase for DESubscriptions {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Subscriptions.CheckoutURL" => self.checkout_url = Url::parse(&value).ok(),
-                "Subscriptions.Enforce" => self.enforce = value.parse::<bool>()?,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Subscriptions.CheckoutURL" => self.checkout_url = Url::parse(&value).ok(),
+            "Subscriptions.Enforce" => self.enforce = value.parse::<bool>()?,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -47,20 +49,20 @@ impl From<DESubscriptions> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = subs.checkout_url {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Subscriptions.CheckoutURL".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Subscriptions.CheckoutURL".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Subscriptions.Enforce".to_string()),
-            value: Some(subs.enforce.to_string()),
-            value_type: Some("bool".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Subscriptions.Enforce".to_string(),
+            value: subs.enforce.to_string(),
+            value_type: "bool".to_string(),
         });
 
         cfgs
@@ -70,9 +72,9 @@ impl From<DESubscriptions> for Vec<db::ConfigurationValue> {
 impl DESubscriptions {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let enforce_subs = Input::<bool>::with_theme(theme)
             .with_prompt("Enforce Subscriptions")
@@ -125,9 +127,9 @@ pub struct DECoge {
 impl DECoge {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("CoGe Base URI")
@@ -148,12 +150,14 @@ impl LoadFromDatabase for DECoge {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Coge.BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Coge.BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -171,11 +175,11 @@ impl From<DECoge> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = coge.base_uri {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Coge.BaseURI".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Coge.BaseURI".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
         cfgs
@@ -206,14 +210,16 @@ impl LoadFromDatabase for DETools {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Tools.Admin.MaxCpuLimit" => self.admin.max_cpu_limit = Some(value.parse()?),
-                "Tools.Admin.MaxMemoryLimit" => self.admin.max_memory_limit = Some(value.parse()?),
-                "Tools.Admin.MaxDiskLimit" => self.admin.max_disk_limit = Some(value.parse()?),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Tools.Admin.MaxCpuLimit" => self.admin.max_cpu_limit = Some(value.parse()?),
+            "Tools.Admin.MaxMemoryLimit" => self.admin.max_memory_limit = Some(value.parse()?),
+            "Tools.Admin.MaxDiskLimit" => self.admin.max_disk_limit = Some(value.parse()?),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -231,31 +237,31 @@ impl From<DETools> for Vec<db::ConfigurationValue> {
 
         if let Some(max_cpu_limit) = tools.admin.max_cpu_limit {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Tools.Admin.MaxCpuLimit".to_string()),
-                value: Some(max_cpu_limit.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Tools.Admin.MaxCpuLimit".to_string(),
+                value: max_cpu_limit.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
         if let Some(max_memory_limit) = tools.admin.max_memory_limit {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Tools.Admin.MaxMemoryLimit".to_string()),
-                value: Some(max_memory_limit.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Tools.Admin.MaxMemoryLimit".to_string(),
+                value: max_memory_limit.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
         if let Some(max_disk_limit) = tools.admin.max_disk_limit {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Tools.Admin.MaxDiskLimit".to_string()),
-                value: Some(max_disk_limit.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Tools.Admin.MaxDiskLimit".to_string(),
+                value: max_disk_limit.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
@@ -266,9 +272,9 @@ impl From<DETools> for Vec<db::ConfigurationValue> {
 impl DETools {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let max_cpu_limit = Input::<u32>::with_theme(theme)
             .with_prompt("Max CPU Limit")
@@ -368,13 +374,15 @@ impl LoadFromDatabase for Info {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Info.FAQ" => self.faq = value,
-                "Info.Description" => self.description = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Info.FAQ" => self.faq = value,
+            "Info.Description" => self.description = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -391,19 +399,19 @@ impl From<Info> for Vec<db::ConfigurationValue> {
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Info.FAQ".to_string()),
-            value: Some(info.faq),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Info.FAQ".to_string(),
+            value: info.faq,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Info.Description".to_string()),
-            value: Some(info.description),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Info.Description".to_string(),
+            value: info.description,
+            value_type: "string".to_string(),
         });
 
         cfgs
@@ -413,9 +421,9 @@ impl From<Info> for Vec<db::ConfigurationValue> {
 impl Info {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let faq = Input::<String>::with_theme(theme)
             .with_prompt("Info.FAQ")
@@ -465,58 +473,60 @@ impl LoadFromDatabase for DE {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "DefaultOutputFolder" => self.default_output_folder = Some(value),
-                _ => (),
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            "DefaultOutputFolder" => self.default_output_folder = Some(value),
+            _ => (),
+        }
+
+        if key.starts_with("Subscriptions") {
+            if self.subscriptions.is_none() {
+                self.subscriptions = Some(DESubscriptions::default());
             }
 
-            if key.starts_with("Subscriptions") {
-                if self.subscriptions.is_none() {
-                    self.subscriptions = Some(DESubscriptions::default());
-                }
-
-                if let Some(subs) = &mut self.subscriptions {
-                    subs.cfg_set_key(cfg)?;
-                }
-            }
-
-            if key.starts_with("Coge") {
-                if self.coge.is_none() {
-                    self.coge = Some(DECoge::default());
-                }
-
-                if let Some(coge) = &mut self.coge {
-                    coge.cfg_set_key(cfg)?;
-                }
-            }
-
-            if key.starts_with("Tools") {
-                if self.tools.is_none() {
-                    self.tools = Some(DETools::default());
-                }
-
-                if let Some(tools) = &mut self.tools {
-                    tools.cfg_set_key(cfg)?;
-                }
-            }
-
-            if key.starts_with("AMQP") {
-                self.amqp.set_section("DE")?;
-                self.amqp.cfg_set_key(cfg)?;
-            }
-
-            if key.starts_with("Info") {
-                if self.info.is_none() {
-                    self.info = Some(Info::default());
-                }
-
-                if let Some(info) = &mut self.info {
-                    info.cfg_set_key(cfg)?;
-                }
+            if let Some(subs) = &mut self.subscriptions {
+                subs.cfg_set_key(cfg)?;
             }
         }
+
+        if key.starts_with("Coge") {
+            if self.coge.is_none() {
+                self.coge = Some(DECoge::default());
+            }
+
+            if let Some(coge) = &mut self.coge {
+                coge.cfg_set_key(cfg)?;
+            }
+        }
+
+        if key.starts_with("Tools") {
+            if self.tools.is_none() {
+                self.tools = Some(DETools::default());
+            }
+
+            if let Some(tools) = &mut self.tools {
+                tools.cfg_set_key(cfg)?;
+            }
+        }
+
+        if key.starts_with("AMQP") {
+            self.amqp.set_section("DE")?;
+            self.amqp.cfg_set_key(cfg)?;
+        }
+
+        if key.starts_with("Info") {
+            if self.info.is_none() {
+                self.info = Some(Info::default());
+            }
+
+            if let Some(info) = &mut self.info {
+                info.cfg_set_key(cfg)?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -549,20 +559,20 @@ impl From<DE> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = de.base_uri {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("BaseURI".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "BaseURI".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("DefaultOutputFolder".to_string()),
-            value: de.default_output_folder,
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "DefaultOutputFolder".to_string(),
+            value: de.default_output_folder.unwrap_or("analyses".into()),
+            value_type: "string".to_string(),
         });
 
         if let Some(subs) = de.subscriptions {
@@ -579,7 +589,7 @@ impl From<DE> for Vec<db::ConfigurationValue> {
 
         let mut amqp_cfgs: Vec<db::ConfigurationValue> = de.amqp.into();
         amqp_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some(section.clone());
+            cfg.section = section.clone();
         });
 
         cfgs.extend::<Vec<db::ConfigurationValue>>(amqp_cfgs);
@@ -595,9 +605,9 @@ impl From<DE> for Vec<db::ConfigurationValue> {
 impl DE {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         self.amqp.set_section("DE")?;
         self.amqp.ask_for_info(tx, theme, env_id, "DE").await?;

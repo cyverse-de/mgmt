@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -28,11 +28,11 @@ impl LoadFromDatabase for Website {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "URL" => self.url = Url::parse(&value).ok(),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "URL" => self.url = Url::parse(&value).ok(),
+            _ => (),
         }
         Ok(())
     }
@@ -50,11 +50,11 @@ impl From<Website> for Vec<db::ConfigurationValue> {
 
         if let Some(url) = website.url {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("URL".to_string()),
-                value: Some(url.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "URL".to_string(),
+                value: url.to_string(),
+                value_type: "string".to_string(),
             });
         }
         cfgs
@@ -64,9 +64,9 @@ impl From<Website> for Vec<db::ConfigurationValue> {
 impl Website {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let url = Input::<String>::with_theme(theme)
             .with_prompt("Dashboard Website URL")
@@ -106,15 +106,14 @@ impl LoadFromDatabase for DashboardAggregator {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let Some(key) = cfg.key.clone() {
-            match key.as_str() {
-                "Website.URL" => {
-                    let mut ws = Website::default();
-                    ws.cfg_set_key(cfg)?;
-                    self.website = Some(ws);
-                }
-                _ => (),
+        let key = cfg.key.clone();
+        match key.as_str() {
+            "Website.URL" => {
+                let mut ws = Website::default();
+                ws.cfg_set_key(cfg)?;
+                self.website = Some(ws);
             }
+            _ => (),
         }
         Ok(())
     }
@@ -134,9 +133,9 @@ impl From<DashboardAggregator> for Vec<db::ConfigurationValue> {
 impl DashboardAggregator {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let mut new_website = Website::default();
         new_website.ask_for_info(tx, theme, env_id).await?;

@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -29,13 +29,15 @@ impl LoadFromDatabase for Infosquito {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "DayNum" => self.day_num = Some(value.parse::<u8>()?),
-                "PrefixLength" => self.prefix_length = Some(value.parse::<u32>()?),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "DayNum" => self.day_num = Some(value.parse::<u8>()?),
+            "PrefixLength" => self.prefix_length = Some(value.parse::<u32>()?),
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -53,21 +55,21 @@ impl From<Infosquito> for Vec<db::ConfigurationValue> {
 
         if let Some(day_num) = i.day_num {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("DayNum".to_string()),
-                value: Some(day_num.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "DayNum".to_string(),
+                value: day_num.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
         if let Some(prefix_length) = i.prefix_length {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("PrefixLength".to_string()),
-                value: Some(prefix_length.to_string()),
-                value_type: Some("int".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "PrefixLength".to_string(),
+                value: prefix_length.to_string(),
+                value_type: "int".to_string(),
             });
         }
 
@@ -78,9 +80,9 @@ impl From<Infosquito> for Vec<db::ConfigurationValue> {
 impl Infosquito {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let day_num = Input::<u8>::with_theme(theme)
             .with_prompt("Infosquito Day Number")

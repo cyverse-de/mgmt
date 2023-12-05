@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -39,16 +39,18 @@ impl LoadFromDatabase for Elasticsearch {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "BaseURI" => self.base_uri = Url::parse(&value).ok(),
-                "Username" => self.username = value,
-                "Password" => self.password = value,
-                "Index" => self.index = value,
-                "Enabled" => self.enabled = value.parse::<bool>()?,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "BaseURI" => self.base_uri = Url::parse(&value).ok(),
+            "Username" => self.username = value,
+            "Password" => self.password = value,
+            "Index" => self.index = value,
+            "Enabled" => self.enabled = value.parse::<bool>()?,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -66,44 +68,44 @@ impl From<Elasticsearch> for Vec<db::ConfigurationValue> {
 
         if let Some(base_uri) = es.base_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("BaseURI".to_string()),
-                value: Some(base_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "BaseURI".to_string(),
+                value: base_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Username".to_string()),
-            value: Some(es.username),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Username".to_string(),
+            value: es.username,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Password".to_string()),
-            value: Some(es.password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Password".to_string(),
+            value: es.password,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Index".to_string()),
-            value: Some(es.index),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Index".to_string(),
+            value: es.index,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Enabled".to_string()),
-            value: Some(es.enabled.to_string()),
-            value_type: Some("bool".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Enabled".to_string(),
+            value: es.enabled.to_string(),
+            value_type: "bool".to_string(),
         });
 
         vec
@@ -113,9 +115,9 @@ impl From<Elasticsearch> for Vec<db::ConfigurationValue> {
 impl Elasticsearch {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let base_uri = Input::<String>::with_theme(theme)
             .with_prompt("ElasticSearch Base URI")
@@ -161,7 +163,8 @@ impl Elasticsearch {
         add_env_cfg_value(tx, env_id, index_id).await?;
         self.index = index;
 
-        let enabled_id = set_config_value(tx, "Elasticsearch", "Enabled", &enabled.to_string(), "bool").await?;
+        let enabled_id =
+            set_config_value(tx, "Elasticsearch", "Enabled", &enabled.to_string(), "bool").await?;
         add_env_cfg_value(tx, env_id, enabled_id).await?;
         self.enabled = enabled;
 

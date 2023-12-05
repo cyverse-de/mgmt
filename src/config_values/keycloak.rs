@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -32,13 +32,15 @@ impl LoadFromDatabase for KeycloakVice {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "VICE.ClientID" => self.client_id = value,
-                "VICE.ClientSecret" => self.client_secret = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "VICE.ClientID" => self.client_id = value,
+            "VICE.ClientSecret" => self.client_secret = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -55,19 +57,19 @@ impl From<KeycloakVice> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("VICE.ClientID".to_string()),
-            value: Some(kv.client_id),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "VICE.ClientID".to_string(),
+            value: kv.client_id,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("VICE.ClientSecret".to_string()),
-            value: Some(kv.client_secret),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "VICE.ClientSecret".to_string(),
+            value: kv.client_secret,
+            value_type: "string".to_string(),
         });
 
         vec
@@ -77,9 +79,9 @@ impl From<KeycloakVice> for Vec<db::ConfigurationValue> {
 impl KeycloakVice {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let client_id = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak VICE Client ID")
@@ -148,19 +150,21 @@ impl LoadFromDatabase for Keycloak {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "ServerURI" => self.server_uri = Url::parse(&value).ok(),
-                "Realm" => self.realm = value,
-                "ClientID" => self.client_id = value,
-                "ClientSecret" => self.client_secret = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
 
-            if key.starts_with("VICE.") {
-                self.vice.cfg_set_key(cfg)?;
-            }
+        match key.as_str() {
+            "ServerURI" => self.server_uri = Url::parse(&value).ok(),
+            "Realm" => self.realm = value,
+            "ClientID" => self.client_id = value,
+            "ClientSecret" => self.client_secret = value,
+            _ => (),
         }
+
+        if key.starts_with("VICE.") {
+            self.vice.cfg_set_key(cfg)?;
+        }
+
         Ok(())
     }
 }
@@ -178,36 +182,36 @@ impl From<Keycloak> for Vec<db::ConfigurationValue> {
 
         if let Some(server_uri) = k.server_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ServerURI".to_string()),
-                value: Some(server_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ServerURI".to_string(),
+                value: server_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Realm".to_string()),
-            value: Some(k.realm),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Realm".to_string(),
+            value: k.realm,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ClientID".to_string()),
-            value: Some(k.client_id),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "ClientID".to_string(),
+            value: k.client_id,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("ClientSecret".to_string()),
-            value: Some(k.client_secret),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "ClientSecret".to_string(),
+            value: k.client_secret,
+            value_type: "string".to_string(),
         });
 
         vec.extend::<Vec<db::ConfigurationValue>>(k.vice.into());
@@ -219,9 +223,9 @@ impl From<Keycloak> for Vec<db::ConfigurationValue> {
 impl Keycloak {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let server_uri = Input::<String>::with_theme(theme)
             .with_prompt("Keycloak Server URI")

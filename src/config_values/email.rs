@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -36,15 +36,17 @@ impl LoadFromDatabase for Email {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Src" => self.src = value,
-                "Dest" => self.dest = value,
-                "PermIDRequestDest" => self.perm_id_request_dest = value,
-                "SupportDest" => self.support_dest = value,
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Src" => self.src = value,
+            "Dest" => self.dest = value,
+            "PermIDRequestDest" => self.perm_id_request_dest = value,
+            "SupportDest" => self.support_dest = value,
+            _ => (),
         }
+
         Ok(())
     }
 }
@@ -61,35 +63,35 @@ impl From<Email> for Vec<db::ConfigurationValue> {
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Src".to_string()),
-            value: Some(email.src),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Src".to_string(),
+            value: email.src,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Dest".to_string()),
-            value: Some(email.dest),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Dest".to_string(),
+            value: email.dest,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("PermIDRequestDest".to_string()),
-            value: Some(email.perm_id_request_dest),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "PermIDRequestDest".to_string(),
+            value: email.perm_id_request_dest,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("SupportDest".to_string()),
-            value: Some(email.support_dest),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "SupportDest".to_string(),
+            value: email.support_dest,
+            value_type: "string".to_string(),
         });
 
         cfgs
@@ -99,9 +101,9 @@ impl From<Email> for Vec<db::ConfigurationValue> {
 impl Email {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let src = Input::<String>::with_theme(theme)
             .with_prompt("Email Source")

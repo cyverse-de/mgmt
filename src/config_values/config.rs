@@ -10,7 +10,7 @@ use crate::db::{self, add_env_cfg_value, set_config_value, upsert_environment, L
 use anyhow::Context;
 use dialoguer::{console::Style, theme::ColorfulTheme, Input, Select};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Pool, Transaction};
+use sqlx::{Pool, Postgres, Transaction};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SectionOptions {
@@ -34,21 +34,21 @@ pub struct SectionOptions {
 impl From<db::FeatureFlags> for SectionOptions {
     fn from(ff: db::FeatureFlags) -> Self {
         Self {
-            include_admin: ff.administration.unwrap_or_default(),
-            include_analytics: ff.analytics.unwrap_or_default(),
-            include_agave: ff.agave.unwrap_or_default(),
-            include_base_urls: ff.base_urls.unwrap_or_default(),
-            include_cas: ff.cas.unwrap_or_default(),
-            include_docker: ff.docker.unwrap_or_default(),
-            include_infosquito: ff.infosquito.unwrap_or_default(),
-            include_intercom: ff.intercom.unwrap_or_default(),
-            include_jaeger: ff.jaeger.unwrap_or_default(),
-            include_jobs: ff.jobs.unwrap_or_default(),
-            include_jvmopts: ff.jvmopts.unwrap_or_default(),
-            include_permanent_id: ff.permanent_id.unwrap_or_default(),
-            include_qa: ff.qa.unwrap_or_default(),
-            include_qms: ff.qms.unwrap_or_default(),
-            include_unleash: ff.unleash.unwrap_or_default(),
+            include_admin: ff.administration,
+            include_analytics: ff.analytics,
+            include_agave: ff.agave,
+            include_base_urls: ff.base_urls,
+            include_cas: ff.cas,
+            include_docker: ff.docker,
+            include_infosquito: ff.infosquito,
+            include_intercom: ff.intercom,
+            include_jaeger: ff.jaeger,
+            include_jobs: ff.jobs,
+            include_jvmopts: ff.jvmopts,
+            include_permanent_id: ff.permanent_id,
+            include_qa: ff.qa,
+            include_qms: ff.qms,
+            include_unleash: ff.unleash,
         }
     }
 }
@@ -56,27 +56,27 @@ impl From<db::FeatureFlags> for SectionOptions {
 impl From<SectionOptions> for db::FeatureFlags {
     fn from(so: SectionOptions) -> Self {
         Self {
-            administration: Some(so.include_admin),
-            analytics: Some(so.include_analytics),
-            agave: Some(so.include_agave),
-            base_urls: Some(so.include_base_urls),
-            cas: Some(so.include_cas),
-            docker: Some(so.include_docker),
-            infosquito: Some(so.include_infosquito),
-            intercom: Some(so.include_intercom),
-            jaeger: Some(so.include_jaeger),
-            jobs: Some(so.include_jobs),
-            jvmopts: Some(so.include_jvmopts),
-            permanent_id: Some(so.include_permanent_id),
-            qa: Some(so.include_qa),
-            qms: Some(so.include_qms),
-            unleash: Some(so.include_unleash),
+            administration: so.include_admin,
+            analytics: so.include_analytics,
+            agave: so.include_agave,
+            base_urls: so.include_base_urls,
+            cas: so.include_cas,
+            docker: so.include_docker,
+            infosquito: so.include_infosquito,
+            intercom: so.include_intercom,
+            jaeger: so.include_jaeger,
+            jobs: so.include_jobs,
+            jvmopts: so.include_jvmopts,
+            permanent_id: so.include_permanent_id,
+            qa: so.include_qa,
+            qms: so.include_qms,
+            unleash: so.include_unleash,
         }
     }
 }
 
 impl SectionOptions {
-    pub async fn new_from_db(pool: &Pool<MySql>, env: &str) -> anyhow::Result<SectionOptions> {
+    pub async fn new_from_db(pool: &Pool<Postgres>, env: &str) -> anyhow::Result<SectionOptions> {
         let mut tx = pool.begin().await?;
         let ff = db::get_feature_flags(&mut tx, env).await?;
         tx.commit().await?;
@@ -455,184 +455,186 @@ impl LoadFromDatabase for ConfigValues {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Environment" => self.environment = value,
-                "Namespace" => self.namespace = value,
-                "UIDDomain" => self.uid_domain = value,
-                "Timezone" => self.timezone = Some(value),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Environment" => self.environment = value,
+            "Namespace" => self.namespace = value,
+            "UIDDomain" => self.uid_domain = value,
+            "Timezone" => self.timezone = Some(value),
+            _ => (),
         }
+
         Ok(())
     }
 
     fn cfg_set_keys(&mut self, cfgs: Vec<crate::db::ConfigurationValue>) -> anyhow::Result<()> {
         cfgs.iter().for_each(|cfg| {
-            if let Some(section) = cfg.section.clone() {
-                match section.as_str() {
-                    "Agave" => {
-                        if let Some(agave) = &mut self.agave {
-                            agave.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "BaseURLs" => {
-                        if let Some(base_urls) = &mut self.base_urls {
-                            base_urls.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "DashboardAggregator" => {
-                        if let Some(dashboard_aggregator) = &mut self.dashboard_aggregator {
-                            dashboard_aggregator.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "DE" => {
-                        self.de.cfg_set_key(cfg).ok();
-                    }
-                    "Docker" => {
-                        if let Some(docker) = &mut self.docker {
-                            docker.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Elasticsearch" => {
-                        self.elasticsearch.cfg_set_key(cfg).ok();
-                    }
-                    "Email" => {
-                        self.email.cfg_set_key(cfg).ok();
-                    }
-                    "Grouper" => {
-                        self.grouper.cfg_set_key(cfg).ok();
-                    }
-                    "ICAT" => {
-                        self.icat.cfg_set_key(cfg).ok();
-                    }
-                    "Infosquito" => {
-                        if let Some(infosquito) = &mut self.infosquito {
-                            infosquito.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Intercom" => {
-                        if let Some(intercom) = &mut self.intercom {
-                            intercom.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "IRODS" => {
-                        self.irods.cfg_set_key(cfg).ok();
-                    }
-                    "Jobs" => {
-                        if let Some(jobs) = &mut self.jobs {
-                            jobs.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "JVMOpts" => {
-                        if self.jvmopts.is_none() {
-                            self.jvmopts = Some(config_values::jvmopts::JVMOpts::default());
-                        }
+            let section = cfg.section.clone();
 
-                        if let Some(jvmopts) = &mut self.jvmopts {
-                            jvmopts.cfg_set_key(cfg).ok();
-                        }
+            match section.as_str() {
+                "Agave" => {
+                    if let Some(agave) = &mut self.agave {
+                        agave.cfg_set_key(cfg).ok();
                     }
-                    "Keycloak" => {
-                        self.keycloak.cfg_set_key(cfg).ok();
-                    }
-                    "PGP" => {
-                        self.pgp.cfg_set_key(cfg).ok();
-                    }
-                    "PermanentID" => {
-                        if let Some(permanent_id) = &mut self.permanent_id {
-                            permanent_id.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Unleash" => {
-                        if self.unleash.is_none() {
-                            self.unleash = Some(config_values::misc::Unleash::default());
-                        }
-
-                        if let Some(unleash) = &mut self.unleash {
-                            unleash.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "UserPortal" => {
-                        self.user_portal.cfg_set_key(cfg).ok();
-                    }
-                    "VICE" => {
-                        self.vice.cfg_set_key(cfg).ok();
-                    }
-                    "DEDB" => {
-                        self.de_db.cfg_set_key(cfg).ok();
-                    }
-                    "GrouperDB" => {
-                        self.grouper_db.cfg_set_key(cfg).ok();
-                    }
-                    "NotificationsDB" => {
-                        self.notifications_db.cfg_set_key(cfg).ok();
-                    }
-                    "PermissionsDB" => {
-                        self.permissions_db.cfg_set_key(cfg).ok();
-                    }
-                    "QMSDB" => {
-                        self.qms_db.cfg_set_key(cfg).ok();
-                    }
-                    "MetadataDB" => {
-                        self.metadata_db.cfg_set_key(cfg).ok();
-                    }
-                    "UnleashDB" => {
-                        if self.unleash_db.is_none() {
-                            self.unleash_db = Some(config_values::db::DatabaseConfig::default());
-                        }
-
-                        if let Some(unleash_db) = &mut self.unleash_db {
-                            unleash_db.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Admin" => {
-                        if let Some(admin) = &mut self.admin {
-                            admin.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Analytics" => {
-                        if let Some(analytics) = &mut self.analytics {
-                            analytics.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Harbor" => {
-                        if self.harbor.is_none() {
-                            self.harbor = Some(config_values::misc::Harbor::default());
-                        }
-
-                        if let Some(harbor) = &mut self.harbor {
-                            harbor.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "QMS" => {
-                        if let Some(qms) = &mut self.qms {
-                            qms.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "Jaeger" => {
-                        if let Some(jaeger) = &mut self.jaeger {
-                            jaeger.cfg_set_key(cfg).ok();
-                        }
-                    }
-                    "TopLevel" => {
-                        self.cfg_set_key(cfg).ok();
-                    }
-
-                    "QA" => {
-                        if let Some(qa) = &mut self.qa {
-                            qa.cfg_set_key(cfg).ok();
-                        }
-                    }
-
-                    "CAS" => {
-                        if let Some(cas) = &mut self.cas {
-                            cas.cfg_set_key(cfg).ok();
-                        }
-                    }
-
-                    _ => (),
                 }
+                "BaseURLs" => {
+                    if let Some(base_urls) = &mut self.base_urls {
+                        base_urls.cfg_set_key(cfg).ok();
+                    }
+                }
+                "DashboardAggregator" => {
+                    if let Some(dashboard_aggregator) = &mut self.dashboard_aggregator {
+                        dashboard_aggregator.cfg_set_key(cfg).ok();
+                    }
+                }
+                "DE" => {
+                    self.de.cfg_set_key(cfg).ok();
+                }
+                "Docker" => {
+                    if let Some(docker) = &mut self.docker {
+                        docker.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Elasticsearch" => {
+                    self.elasticsearch.cfg_set_key(cfg).ok();
+                }
+                "Email" => {
+                    self.email.cfg_set_key(cfg).ok();
+                }
+                "Grouper" => {
+                    self.grouper.cfg_set_key(cfg).ok();
+                }
+                "ICAT" => {
+                    self.icat.cfg_set_key(cfg).ok();
+                }
+                "Infosquito" => {
+                    if let Some(infosquito) = &mut self.infosquito {
+                        infosquito.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Intercom" => {
+                    if let Some(intercom) = &mut self.intercom {
+                        intercom.cfg_set_key(cfg).ok();
+                    }
+                }
+                "IRODS" => {
+                    self.irods.cfg_set_key(cfg).ok();
+                }
+                "Jobs" => {
+                    if let Some(jobs) = &mut self.jobs {
+                        jobs.cfg_set_key(cfg).ok();
+                    }
+                }
+                "JVMOpts" => {
+                    if self.jvmopts.is_none() {
+                        self.jvmopts = Some(config_values::jvmopts::JVMOpts::default());
+                    }
+
+                    if let Some(jvmopts) = &mut self.jvmopts {
+                        jvmopts.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Keycloak" => {
+                    self.keycloak.cfg_set_key(cfg).ok();
+                }
+                "PGP" => {
+                    self.pgp.cfg_set_key(cfg).ok();
+                }
+                "PermanentID" => {
+                    if let Some(permanent_id) = &mut self.permanent_id {
+                        permanent_id.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Unleash" => {
+                    if self.unleash.is_none() {
+                        self.unleash = Some(config_values::misc::Unleash::default());
+                    }
+
+                    if let Some(unleash) = &mut self.unleash {
+                        unleash.cfg_set_key(cfg).ok();
+                    }
+                }
+                "UserPortal" => {
+                    self.user_portal.cfg_set_key(cfg).ok();
+                }
+                "VICE" => {
+                    self.vice.cfg_set_key(cfg).ok();
+                }
+                "DEDB" => {
+                    self.de_db.cfg_set_key(cfg).ok();
+                }
+                "GrouperDB" => {
+                    self.grouper_db.cfg_set_key(cfg).ok();
+                }
+                "NotificationsDB" => {
+                    self.notifications_db.cfg_set_key(cfg).ok();
+                }
+                "PermissionsDB" => {
+                    self.permissions_db.cfg_set_key(cfg).ok();
+                }
+                "QMSDB" => {
+                    self.qms_db.cfg_set_key(cfg).ok();
+                }
+                "MetadataDB" => {
+                    self.metadata_db.cfg_set_key(cfg).ok();
+                }
+                "UnleashDB" => {
+                    if self.unleash_db.is_none() {
+                        self.unleash_db = Some(config_values::db::DatabaseConfig::default());
+                    }
+
+                    if let Some(unleash_db) = &mut self.unleash_db {
+                        unleash_db.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Admin" => {
+                    if let Some(admin) = &mut self.admin {
+                        admin.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Analytics" => {
+                    if let Some(analytics) = &mut self.analytics {
+                        analytics.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Harbor" => {
+                    if self.harbor.is_none() {
+                        self.harbor = Some(config_values::misc::Harbor::default());
+                    }
+
+                    if let Some(harbor) = &mut self.harbor {
+                        harbor.cfg_set_key(cfg).ok();
+                    }
+                }
+                "QMS" => {
+                    if let Some(qms) = &mut self.qms {
+                        qms.cfg_set_key(cfg).ok();
+                    }
+                }
+                "Jaeger" => {
+                    if let Some(jaeger) = &mut self.jaeger {
+                        jaeger.cfg_set_key(cfg).ok();
+                    }
+                }
+                "TopLevel" => {
+                    self.cfg_set_key(cfg).ok();
+                }
+
+                "QA" => {
+                    if let Some(qa) = &mut self.qa {
+                        qa.cfg_set_key(cfg).ok();
+                    }
+                }
+
+                "CAS" => {
+                    if let Some(cas) = &mut self.cas {
+                        cas.cfg_set_key(cfg).ok();
+                    }
+                }
+
+                _ => (),
             }
         });
         Ok(())
@@ -659,27 +661,27 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Environment".to_string()),
-            value: Some(cv.environment),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Environment".to_string(),
+            value: cv.environment,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Namespace".to_string()),
-            value: Some(cv.namespace),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Namespace".to_string(),
+            value: cv.namespace,
+            value_type: "string".to_string(),
         });
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("UIDDomain".to_string()),
-            value: Some(cv.uid_domain),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "UIDDomain".to_string(),
+            value: cv.uid_domain,
+            value_type: "string".to_string(),
         });
 
         // Agave section is optional, so check before adding it.
@@ -760,11 +762,11 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
 
         if let Some(timezone) = cv.timezone {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("Timezone".to_string()),
-                value: Some(timezone),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "Timezone".to_string(),
+                value: timezone,
+                value_type: "string".to_string(),
             });
         }
 
@@ -781,37 +783,37 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
 
         let mut de_db_cfgs: Vec<db::ConfigurationValue> = cv.de_db.into();
         de_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("DEDB".to_string());
+            cfg.section = "DEDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(de_db_cfgs.into());
 
         let mut grouper_db_cfgs: Vec<db::ConfigurationValue> = cv.grouper_db.into();
         grouper_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("GrouperDB".to_string());
+            cfg.section = "GrouperDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(grouper_db_cfgs.into());
 
         let mut notifications_db_cfgs: Vec<db::ConfigurationValue> = cv.notifications_db.into();
         notifications_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("NotificationsDB".to_string());
+            cfg.section = "NotificationsDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(notifications_db_cfgs.into());
 
         let mut permissions_db_cfgs: Vec<db::ConfigurationValue> = cv.permissions_db.into();
         permissions_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("PermissionsDB".to_string());
+            cfg.section = "PermissionsDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(permissions_db_cfgs.into());
 
         let mut qms_db_cfgs: Vec<db::ConfigurationValue> = cv.qms_db.into();
         qms_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("QMSDB".to_string());
+            cfg.section = "QMSDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(qms_db_cfgs.into());
 
         let mut metadata_db_cfgs: Vec<db::ConfigurationValue> = cv.metadata_db.into();
         metadata_db_cfgs.iter_mut().for_each(|cfg| {
-            cfg.section = Some("MetadataDB".to_string());
+            cfg.section = "MetadataDB".to_string();
         });
         cfgs.extend::<Vec<db::ConfigurationValue>>(metadata_db_cfgs.into());
 
@@ -820,7 +822,7 @@ impl From<ConfigValues> for Vec<db::ConfigurationValue> {
             if let Some(unleash_db) = cv.unleash_db {
                 let mut unleash_db_cfgs: Vec<db::ConfigurationValue> = unleash_db.into();
                 unleash_db_cfgs.iter_mut().for_each(|cfg| {
-                    cfg.section = Some("UnleashDB".to_string());
+                    cfg.section = "UnleashDB".to_string();
                 });
                 cfgs.extend::<Vec<db::ConfigurationValue>>(unleash_db_cfgs.into());
             }
@@ -1020,25 +1022,17 @@ impl ConfigValues {
         let mut merged: HashMap<String, db::ConfigurationValue> = HashMap::new();
 
         for bv in base_values {
-            let key = format!(
-                "{}.{}",
-                bv.section.clone().context("section not set.")?,
-                bv.key.clone().context("key not set.")?
-            );
+            let key = format!("{}.{}", bv.section, bv.key);
 
             merged.insert(key, bv);
         }
 
         for mv in merge_values {
-            let key = format!(
-                "{}.{}",
-                mv.section.clone().context("section not set.")?,
-                mv.key.clone().context("key not set.")?
-            );
+            let key = format!("{}.{}", mv.section, mv.key);
 
             if merged.contains_key(&key) {
                 // Only override the default if the new value is not an empty string.
-                if mv.value.as_ref().is_some_and(|mval| !mval.is_empty()) {
+                if !mv.value.is_empty() {
                     merged.insert(key, mv);
                 }
             } else {
@@ -1059,7 +1053,7 @@ impl ConfigValues {
         Ok(new_cv)
     }
 
-    pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, MySql>) -> anyhow::Result<()> {
+    pub async fn ask_for_info(&mut self, tx: &mut Transaction<'_, Postgres>) -> anyhow::Result<()> {
         let mut theme = ColorfulTheme::default();
         theme.hint_style = Style::new().yellow();
         let mut section_options = SectionOptions::default();

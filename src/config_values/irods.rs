@@ -2,7 +2,7 @@ use crate::config_values::amqp::Amqp;
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -21,11 +21,12 @@ impl LoadFromDatabase for IrodsWebDav {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "WebDAV.AnonURI" => self.anon_uri = Url::parse(&value).ok(),
-                _ => (),
-            }
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "WebDAV.AnonURI" => self.anon_uri = Url::parse(&value).ok(),
+            _ => (),
         }
         Ok(())
     }
@@ -53,11 +54,11 @@ impl From<IrodsWebDav> for Vec<db::ConfigurationValue> {
 
         if let Some(anon_uri) = iwd.anon_uri {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("WebDAV.AnonURI".to_string()),
-                value: Some(anon_uri.to_string()),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "WebDAV.AnonURI".to_string(),
+                value: anon_uri.to_string(),
+                value_type: "string".to_string(),
             });
         }
 
@@ -68,9 +69,9 @@ impl From<IrodsWebDav> for Vec<db::ConfigurationValue> {
 impl IrodsWebDav {
     async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
         external: &str,
     ) -> anyhow::Result<()> {
         let anon_uri = Input::<String>::with_theme(theme)
@@ -122,74 +123,74 @@ impl From<Irods> for Vec<db::ConfigurationValue> {
         }
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Host".to_string()),
-            value: Some(i.host),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Host".to_string(),
+            value: i.host,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("User".to_string()),
-            value: Some(i.user),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "User".to_string(),
+            value: i.user,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Zone".to_string()),
-            value: Some(i.zone),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Zone".to_string(),
+            value: i.zone,
+            value_type: "string".to_string(),
         });
 
         vec.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Password".to_string()),
-            value: Some(i.password),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Password".to_string(),
+            value: i.password,
+            value_type: "string".to_string(),
         });
 
         if let Some(admin_users) = i.admin_users {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("AdminUsers".to_string()),
-                value: Some(admin_users.join(",")),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "AdminUsers".to_string(),
+                value: admin_users.join(","),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(perms_filter) = i.perms_filter {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("PermsFilter".to_string()),
-                value: Some(perms_filter.join(",")),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "PermsFilter".to_string(),
+                value: perms_filter.join(","),
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(external_host) = i.external_host {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("ExternalHost".to_string()),
-                value: Some(external_host),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "ExternalHost".to_string(),
+                value: external_host,
+                value_type: "string".to_string(),
             });
         }
 
         if let Some(quota_root_resources) = i.quota_root_resources {
             vec.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("QuotaRootResources".to_string()),
-                value: Some(quota_root_resources),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "QuotaRootResources".to_string(),
+                value: quota_root_resources,
+                value_type: "string".to_string(),
             });
         }
 
@@ -199,7 +200,7 @@ impl From<Irods> for Vec<db::ConfigurationValue> {
 
         let mut amqp_vec: Vec<db::ConfigurationValue> = i.amqp.into();
         amqp_vec.iter_mut().for_each(|c| {
-            c.section = Some(section.clone());
+            c.section = section.clone();
         });
 
         vec.extend::<Vec<db::ConfigurationValue>>(amqp_vec);
@@ -214,38 +215,40 @@ impl LoadFromDatabase for Irods {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Host" => self.host = value,
-                "User" => self.user = value,
-                "Zone" => self.zone = value,
-                "Password" => self.password = value,
-                "AdminUsers" => {
-                    self.admin_users = Some(value.split(',').map(|s| s.to_string()).collect())
-                }
-                "PermsFilter" => {
-                    self.perms_filter = Some(value.split(',').map(|s| s.to_string()).collect())
-                }
-                "ExternalHost" => self.external_host = Some(value),
-                "QuotaRootResources" => self.quota_root_resources = Some(value),
-                _ => (),
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+
+        match key.as_str() {
+            "Host" => self.host = value,
+            "User" => self.user = value,
+            "Zone" => self.zone = value,
+            "Password" => self.password = value,
+            "AdminUsers" => {
+                self.admin_users = Some(value.split(',').map(|s| s.to_string()).collect())
+            }
+            "PermsFilter" => {
+                self.perms_filter = Some(value.split(',').map(|s| s.to_string()).collect())
+            }
+            "ExternalHost" => self.external_host = Some(value),
+            "QuotaRootResources" => self.quota_root_resources = Some(value),
+            _ => (),
+        }
+
+        if key.starts_with("WebDAV") {
+            if self.web_dav.is_none() {
+                self.web_dav = Some(IrodsWebDav::default());
             }
 
-            if key.starts_with("WebDAV") {
-                if self.web_dav.is_none() {
-                    self.web_dav = Some(IrodsWebDav::default());
-                }
-
-                if let Some(web_dav) = self.web_dav.as_mut() {
-                    web_dav.cfg_set_key(cfg)?;
-                }
-            }
-
-            if key.starts_with("AMQP") {
-                self.amqp.set_section("IRODS")?;
-                self.amqp.cfg_set_key(cfg)?;
+            if let Some(web_dav) = self.web_dav.as_mut() {
+                web_dav.cfg_set_key(cfg)?;
             }
         }
+
+        if key.starts_with("AMQP") {
+            self.amqp.set_section("IRODS")?;
+            self.amqp.cfg_set_key(cfg)?;
+        }
+
         Ok(())
     }
 }
@@ -271,9 +274,9 @@ impl Default for Irods {
 impl Irods {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         self.amqp.set_section("IRODS")?;
         self.amqp.ask_for_info(tx, theme, env_id, "iRODS").await?;

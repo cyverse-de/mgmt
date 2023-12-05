@@ -1,7 +1,7 @@
 use crate::db::{self, add_env_cfg_value, set_config_value, LoadFromDatabase};
 use dialoguer::{theme::ColorfulTheme, Input};
 use serde::{Deserialize, Serialize};
-use sqlx::{MySql, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -19,19 +19,19 @@ impl LoadFromDatabase for Docker {
     }
 
     fn cfg_set_key(&mut self, cfg: &crate::db::ConfigurationValue) -> anyhow::Result<()> {
-        if let (Some(key), Some(value)) = (cfg.key.clone(), cfg.value.clone()) {
-            match key.as_str() {
-                "Tag" => self.tag = value,
-                "TrustedRegistries" => {
-                    self.trusted_registries = Some(
-                        value
-                            .split(',')
-                            .map(|s| s.trim().to_string())
-                            .collect::<Vec<String>>(),
-                    )
-                }
-                _ => (),
+        let key = cfg.key.clone();
+        let value = cfg.value.clone();
+        match key.as_str() {
+            "Tag" => self.tag = value,
+            "TrustedRegistries" => {
+                self.trusted_registries = Some(
+                    value
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect::<Vec<String>>(),
+                )
             }
+            _ => (),
         }
         Ok(())
     }
@@ -50,20 +50,20 @@ impl From<Docker> for Vec<db::ConfigurationValue> {
 
         if let Some(trusted_registries) = docker.trusted_registries {
             cfgs.push(db::ConfigurationValue {
-                id: None,
-                section: Some(section.clone()),
-                key: Some("TrustedRegistries".to_string()),
-                value: Some(trusted_registries.join(",")),
-                value_type: Some("string".to_string()),
+                id: 0,
+                section: section.clone(),
+                key: "TrustedRegistries".to_string(),
+                value: trusted_registries.join(","),
+                value_type: "string".to_string(),
             });
         }
 
         cfgs.push(db::ConfigurationValue {
-            id: None,
-            section: Some(section.clone()),
-            key: Some("Tag".to_string()),
-            value: Some(docker.tag),
-            value_type: Some("string".to_string()),
+            id: 0,
+            section: section.clone(),
+            key: "Tag".to_string(),
+            value: docker.tag,
+            value_type: "string".to_string(),
         });
 
         cfgs
@@ -83,9 +83,9 @@ impl Default for Docker {
 impl Docker {
     pub async fn ask_for_info(
         &mut self,
-        tx: &mut Transaction<'_, MySql>,
+        tx: &mut Transaction<'_, Postgres>,
         theme: &ColorfulTheme,
-        env_id: u64,
+        env_id: i32,
     ) -> anyhow::Result<()> {
         let tag = Input::<String>::with_theme(theme)
             .with_prompt("Docker Tag")
