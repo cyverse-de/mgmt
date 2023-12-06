@@ -423,15 +423,16 @@ pub async fn list_default_config_values(
 ) -> anyhow::Result<Vec<ConfigurationValue>> {
     let query = String::from(
         r#"
-SELECT 
-    config_defaults.id AS id,
-    config_sections.name AS section,
-    config_defaults.cfg_key AS 'key',
-    config_defaults.cfg_value AS 'value',
-    config_value_types.name AS value_type
-FROM config_defaults
-INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
-INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id"#,
+            SELECT 
+                config_defaults.id AS id,
+                config_sections.name AS section,
+                config_defaults.cfg_key AS key,
+                config_defaults.cfg_value AS value,
+                config_value_types.name AS value_type
+            FROM config_defaults
+            INNER JOIN config_sections ON config_defaults.section_id = config_sections.id
+            INNER JOIN config_value_types ON config_defaults.value_type_id = config_value_types.id
+        "#,
     );
 
     let mut builder: sqlx::QueryBuilder<Postgres> = sqlx::QueryBuilder::new(query);
